@@ -1,0 +1,173 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+/**
+ * French strings for mod_redaction.
+ *
+ * @package    mod_redaction
+ * @copyright  2026 Emmanuel REMY
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+// Module info.
+$string['modulename'] = 'Rédaction';
+$string['modulenameplural'] = 'Rédactions';
+$string['pluginname'] = 'Rédaction';
+$string['pluginadministration'] = 'Administration Rédaction';
+$string['modulename_help'] = 'Le module Rédaction permet aux enseignants de proposer une activité de rédaction de texte avec des consignes détaillées et une évaluation (manuelle ou assistée par IA).';
+
+// Capabilities.
+$string['redaction:addinstance'] = 'Ajouter une nouvelle activité Rédaction';
+$string['redaction:view'] = 'Voir l\'activité Rédaction';
+$string['redaction:editconsignes'] = 'Modifier les consignes';
+$string['redaction:submit'] = 'Soumettre une rédaction';
+$string['redaction:viewallsubmissions'] = 'Voir toutes les soumissions';
+$string['redaction:grade'] = 'Noter les rédactions';
+$string['redaction:viewhistory'] = 'Voir l\'historique des versions';
+
+// Settings.
+$string['autosave_settings'] = 'Sauvegarde automatique';
+$string['autosave_interval'] = 'Intervalle de sauvegarde';
+$string['autosave_interval_help'] = 'Fréquence de sauvegarde automatique du travail des élèves (en secondes).';
+$string['submissionsettings'] = 'Paramètres de soumission';
+$string['groupsubmission'] = 'Soumission par groupe';
+$string['groupsubmission_help'] = 'Si activé, les élèves soumettent leur travail en tant que groupe. Tous les membres du groupe partagent la même rédaction et la même note.';
+
+// AI Settings.
+$string['ai_settings'] = 'Évaluation par IA';
+$string['ai_enabled'] = 'Activer l\'évaluation IA';
+$string['ai_enabled_help'] = 'Permet d\'utiliser l\'intelligence artificielle pour évaluer automatiquement les rédactions des élèves.';
+$string['ai_provider'] = 'Fournisseur IA';
+$string['ai_provider_help'] = 'Sélectionnez le service d\'IA à utiliser pour l\'évaluation.';
+$string['ai_provider_select'] = 'Sélectionner un fournisseur...';
+$string['ai_provider_builtin'] = 'Clé intégrée';
+$string['ai_provider_required'] = 'Veuillez sélectionner un fournisseur IA.';
+$string['ai_api_key'] = 'Clé API';
+$string['ai_api_key_help'] = 'Votre clé API pour le fournisseur sélectionné. Cette clé sera chiffrée.';
+$string['ai_api_key_builtin_notice'] = 'Albert utilise une clé API intégrée. Aucune configuration requise.';
+$string['ai_api_key_required'] = 'La clé API est requise pour ce fournisseur.';
+$string['ai_test_connection'] = 'Tester la connexion';
+$string['ai_auto_apply'] = 'Appliquer automatiquement les notes IA';
+$string['ai_auto_apply_help'] = 'Si activé, les notes générées par l\'IA seront automatiquement appliquées sans validation de l\'enseignant.';
+
+// Home page.
+$string['home'] = 'Accueil';
+$string['teacher_section'] = 'Espace enseignant';
+$string['student_section'] = 'Espace élève';
+$string['consignes'] = 'Consignes';
+$string['consignes_desc'] = 'Définir les consignes et critères d\'évaluation pour l\'activité.';
+$string['correction_model'] = 'Modèle de correction';
+$string['correction_model_desc'] = 'Définir le modèle de réponse et les instructions pour l\'évaluation IA.';
+$string['my_redaction'] = 'Ma rédaction';
+$string['my_redaction_desc'] = 'Rédiger et soumettre votre travail.';
+$string['grading'] = 'Notation';
+$string['grading_desc'] = 'Consulter et noter les soumissions des élèves.';
+
+// Consignes page.
+$string['consignes_title'] = 'Titre de l\'activité';
+$string['consignes_content'] = 'Consignes détaillées';
+$string['consignes_content_help'] = 'Décrivez précisément ce que les élèves doivent rédiger.';
+$string['consignes_criteres'] = 'Critères d\'évaluation';
+$string['consignes_criteres_help'] = 'Listez les critères qui seront utilisés pour évaluer les rédactions.';
+$string['consignes_documents'] = 'Ressources et documents';
+$string['consignes_documents_help'] = 'Liens vers des ressources ou documents utiles pour la rédaction.';
+$string['consignes_locked'] = 'Consignes verrouillées';
+$string['consignes_unlocked'] = 'Consignes déverrouillées';
+$string['lock_consignes'] = 'Verrouiller les consignes';
+$string['unlock_consignes'] = 'Déverrouiller les consignes';
+$string['consignes_not_ready'] = 'Les consignes ne sont pas encore disponibles.';
+
+// Redaction page.
+$string['redaction'] = 'Rédaction';
+$string['redaction_title'] = 'Titre';
+$string['redaction_title_placeholder'] = 'Donnez un titre à votre rédaction';
+$string['redaction_content'] = 'Contenu';
+$string['redaction_content_placeholder'] = 'Rédigez votre texte ici...';
+$string['status_draft'] = 'Brouillon';
+$string['status_submitted'] = 'Soumis';
+$string['submit_redaction'] = 'Soumettre la rédaction';
+$string['submit_confirm'] = 'Êtes-vous sûr de vouloir soumettre votre rédaction ? Vous ne pourrez plus la modifier après soumission.';
+$string['submitted_on'] = 'Soumis le {$a}';
+$string['unlock_submission'] = 'Déverrouiller pour modification';
+
+// Correction model page.
+$string['modele_reponse'] = 'Modèle de réponse';
+$string['modele_reponse_help'] = 'Rédigez un exemple de réponse attendue. Cela aidera l\'IA à évaluer les productions.';
+$string['modele_reponse_placeholder'] = 'Rédigez ici un exemple de réponse attendue...';
+$string['grille_criteres'] = 'Grille de critères';
+$string['grille_criteres_help'] = 'Définissez les critères de notation avec leur pondération (format JSON).';
+$string['grille_criteres_placeholder'] = 'Format JSON : [{"name": "Critère", "weight": 5, "description": "..."}]';
+$string['grille_criteres_example'] = 'Exemple de format JSON pour la grille de critères :';
+$string['ai_instructions'] = 'Instructions pour l\'IA';
+$string['ai_instructions_help'] = 'Donnez des instructions spécifiques à l\'IA pour guider son évaluation.';
+$string['ai_instructions_placeholder'] = 'Exemple : Évalue la pertinence de la réponse, la qualité de l\'argumentation...';
+$string['ai_disabled_warning'] = 'L\'évaluation IA n\'est pas activée pour cette activité.';
+$string['dates_section'] = 'Dates';
+$string['submission_date'] = 'Date de soumission attendue';
+$string['deadline_date'] = 'Date limite';
+
+// Grading page.
+$string['grade'] = 'Note';
+$string['grade_outof'] = 'Note sur {$a}';
+$string['feedback'] = 'Commentaires';
+$string['feedback_placeholder'] = 'Entrez vos commentaires pour l\'élève...';
+$string['save_grade'] = 'Enregistrer la note';
+$string['grade_saved'] = 'Note enregistrée';
+$string['no_submission'] = 'Aucune soumission';
+$string['not_submitted'] = 'Non soumis';
+$string['view_submission'] = 'Voir la soumission';
+$string['evaluate_ai'] = 'Évaluer avec l\'IA';
+$string['apply_ai_grade'] = 'Appliquer la note IA';
+$string['ai_evaluation'] = 'Évaluation IA';
+$string['ai_evaluation_pending'] = 'Évaluation IA en cours...';
+$string['ai_evaluation_complete'] = 'Évaluation IA terminée';
+$string['ai_evaluation_failed'] = 'Échec de l\'évaluation IA';
+$string['ai_grade'] = 'Note IA';
+$string['ai_feedback'] = 'Commentaires IA';
+$string['no_ai_evaluation'] = 'Aucune évaluation IA n\'a encore été effectuée pour cette soumission.';
+$string['reevaluate'] = 'Réévaluer';
+$string['unlock_confirm'] = 'Êtes-vous sûr de vouloir déverrouiller cette soumission ? L\'élève pourra la modifier à nouveau.';
+
+// History.
+$string['version_history'] = 'Historique des versions';
+$string['version'] = 'Version {$a}';
+$string['version_saved_by'] = 'Sauvegardé par {$a->name} le {$a->date}';
+$string['word_count'] = '{$a} mots';
+$string['char_count'] = '{$a} caractères';
+$string['view_version'] = 'Voir cette version';
+$string['compare_versions'] = 'Comparer les versions';
+$string['no_history'] = 'Aucun historique disponible';
+
+// Autosave messages.
+$string['saving'] = 'Sauvegarde en cours...';
+$string['saved'] = 'Sauvegardé';
+$string['save_error'] = 'Erreur de sauvegarde';
+$string['unsaved_changes'] = 'Modifications non sauvegardées';
+
+// Errors.
+$string['error:noconsignes'] = 'Les consignes n\'ont pas encore été définies par l\'enseignant.';
+$string['error:nosubmission'] = 'Aucune soumission trouvée.';
+$string['error:alreadysubmitted'] = 'Cette rédaction a déjà été soumise.';
+$string['error:notsubmitted'] = 'Cette rédaction n\'a pas encore été soumise.';
+$string['error:cannotgrade'] = 'Vous n\'avez pas la permission de noter.';
+$string['error:invalidgrade'] = 'La note doit être comprise entre 0 et 20.';
+
+// Misc.
+$string['group'] = 'Groupe';
+$string['student'] = 'Élève';
+$string['lastmodified'] = 'Dernière modification';
+$string['actions'] = 'Actions';
+$string['back_to_home'] = 'Retour à l\'accueil';
+$string['all_groups'] = 'Tous les groupes';
+$string['all_students'] = 'Tous les élèves';
+$string['filter'] = 'Filtrer';
+$string['search'] = 'Rechercher';
+$string['complete'] = 'Complet';
+$string['incomplete'] = 'Incomplet';
