@@ -2,6 +2,36 @@
 
 Plugin Moodle permettant aux enseignants de proposer des activités de rédaction de texte avec évaluation manuelle ou assistée par IA.
 
+## Captures d'écran
+
+### Page d'accueil
+![Page d'accueil](docs/screenshots/home.png)
+*Vue d'ensemble de l'activité avec accès aux différentes sections*
+
+### Consignes enseignant
+![Consignes](docs/screenshots/consignes.png)
+*Interface de définition des consignes et critères d'évaluation*
+
+### Modèle de correction
+![Modèle de correction](docs/screenshots/correction_model.png)
+*Configuration du modèle de réponse et génération automatique des critères par IA*
+
+### Rédaction élève
+![Rédaction élève](docs/screenshots/redaction_student.png)
+*Éditeur de texte avec compteur de mots et sauvegarde automatique*
+
+### Évaluation IA détaillée (vue élève)
+![Évaluation élève](docs/screenshots/evaluation_student.png)
+*Affichage des critères d'évaluation avec niveaux, scores et commentaires personnalisés*
+
+### Interface de notation (enseignant)
+![Notation enseignant](docs/screenshots/grading.png)
+*Interface de notation avec navigation entre les soumissions*
+
+### Évaluation IA détaillée (vue enseignant)
+![Évaluation enseignant](docs/screenshots/evaluation_teacher.png)
+*Détail des critères IA avec barres de progression et commentaires par critère*
+
 ## Fonctionnalités
 
 ### Pour les enseignants
@@ -254,6 +284,16 @@ Ce plugin est distribué sous licence [GNU GPL v3](http://www.gnu.org/copyleft/g
 Copyright 2026
 
 ## Changelog
+
+### Version 1.1.0 (2026-01-28)
+
+- Affichage détaillé des critères d'évaluation IA sur la page élève
+- Affichage détaillé des critères d'évaluation IA sur la page enseignant
+- Indicateurs de niveau (Excellent, Bien, À améliorer, Insuffisant)
+- Barres de progression visuelles pour chaque critère
+- Commentaires individuels par critère
+- Sections pliables pour une meilleure ergonomie
+- Génération automatique des critères d'évaluation par IA
 
 ### Version 1.0.0 (2026-01-28)
 
