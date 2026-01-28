@@ -44,6 +44,17 @@ L'évaluation IA génère :
 - **Mode individuel** : Chaque élève travaille seul sur sa rédaction
 - **Mode groupe** : Les membres d'un groupe partagent une rédaction commune
 
+## Captures d'écran
+
+### Page d'accueil
+![Page d'accueil](docs/screenshots/Accueil.png)
+
+### Consignes enseignant
+![Consignes](docs/screenshots/Consignes.png)
+
+### Feedback et évaluation IA
+![Feedback](docs/screenshots/Feedback.png)
+
 ## Prérequis
 
 - Moodle 5.0 ou supérieur (version 2024100700+)
