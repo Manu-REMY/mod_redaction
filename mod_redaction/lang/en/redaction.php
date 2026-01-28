@@ -171,3 +171,13 @@ $string['filter'] = 'Filter';
 $string['search'] = 'Search';
 $string['complete'] = 'Complete';
 $string['incomplete'] = 'Incomplete';
+
+// Task.
+$string['task_evaluate_submission'] = 'Evaluate submission with AI';
+
+// AI Errors.
+$string['ai_not_enabled'] = 'AI evaluation is not enabled for this activity.';
+$string['ai_request_failed'] = 'AI request failed';
+$string['ai_invalid_response'] = 'Invalid AI response';
+$string['ai_parse_error'] = 'Error parsing AI response';
+$string['ai_unknown_provider'] = 'Unknown AI provider: {$a}';

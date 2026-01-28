@@ -171,3 +171,13 @@ $string['filter'] = 'Filtrer';
 $string['search'] = 'Rechercher';
 $string['complete'] = 'Complet';
 $string['incomplete'] = 'Incomplet';
+
+// Task.
+$string['task_evaluate_submission'] = 'Évaluer une soumission avec l\'IA';
+
+// AI Errors.
+$string['ai_not_enabled'] = 'L\'évaluation IA n\'est pas activée pour cette activité.';
+$string['ai_request_failed'] = 'Échec de la requête IA';
+$string['ai_invalid_response'] = 'Réponse IA invalide';
+$string['ai_parse_error'] = 'Erreur de parsing de la réponse IA';
+$string['ai_unknown_provider'] = 'Fournisseur IA inconnu : {$a}';
