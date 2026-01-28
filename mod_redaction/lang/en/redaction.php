@@ -83,6 +83,7 @@ $string['consignes_unlocked'] = 'Instructions unlocked';
 $string['lock_consignes'] = 'Lock instructions';
 $string['unlock_consignes'] = 'Unlock instructions';
 $string['consignes_not_ready'] = 'Instructions are not yet available.';
+$string['confirm_lock'] = 'Are you sure you want to lock the instructions? Students will be able to see the content.';
 
 // Redaction page.
 $string['redaction'] = 'Writing';
@@ -181,3 +182,27 @@ $string['ai_request_failed'] = 'AI request failed';
 $string['ai_invalid_response'] = 'Invalid AI response';
 $string['ai_parse_error'] = 'Error parsing AI response';
 $string['ai_unknown_provider'] = 'Unknown AI provider: {$a}';
+
+// AI Generation.
+$string['ai_generate_criteria'] = 'AI-assisted generation';
+$string['ai_generate_criteria_help'] = 'Use AI to automatically generate evaluation criteria and instructions based on the consignes you have defined.';
+$string['ai_generate_button'] = 'Generate with AI';
+$string['ai_generate_need_consignes'] = 'Please define and lock the consignes first before generating criteria.';
+$string['ai_generate_confirm_overwrite'] = 'This will overwrite the existing criteria grid and AI instructions. Continue?';
+$string['ai_generate_success'] = 'Criteria and instructions generated successfully. Please review and adjust as needed.';
+$string['ai_generate_error'] = 'Error generating criteria: {$a}';
+$string['ai_generating'] = 'Generating...';
+
+// Admin Settings.
+$string['settings_albert_heading'] = 'Albert (Etalab) Configuration';
+$string['settings_albert_heading_desc'] = 'Albert is the French sovereign AI. Configure the API key here to allow teachers to use Albert without providing their own key.';
+$string['settings_albert_api_key'] = 'Albert API Key';
+$string['settings_albert_api_key_desc'] = 'API key for the Albert (Etalab) service. This key will be used for all activities using Albert as AI provider.';
+
+// AI Evaluation Details.
+$string['ai_criteria_details'] = 'Evaluation criteria details';
+$string['ai_general_feedback'] = 'General feedback';
+$string['level_excellent'] = 'Excellent';
+$string['level_good'] = 'Good';
+$string['level_medium'] = 'Needs improvement';
+$string['level_low'] = 'Insufficient';

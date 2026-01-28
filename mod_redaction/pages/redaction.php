@@ -16,11 +16,18 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->libdir . '/filelib.php');
+
+// Define constant if not exists.
+if (!defined('EDITOR_UNLIMITED_FILES')) {
+    define('EDITOR_UNLIMITED_FILES', -1);
+}
+
 // Get consignes.
 $consignes = $DB->get_record('redaction_consignes', ['redactionid' => $redaction->id]);
-if (!$consignes || empty($consignes->consignes)) {
+if (!$consignes || !$consignes->locked) {
     echo $OUTPUT->header();
-    echo $OUTPUT->notification(get_string('error:noconsignes', 'redaction'), 'warning');
+    echo $OUTPUT->notification(get_string('consignes_not_ready', 'redaction'), 'warning');
     echo $OUTPUT->footer();
     exit;
 }
@@ -41,20 +48,143 @@ $submission = redaction_get_or_create_submission($redaction, $usergroup, $USER->
 $issubmitted = ($submission->status == 1);
 $isgraded = ($submission->grade !== null);
 
+// Get AI evaluation if available and graded.
+$aievaluation = null;
+if ($isgraded && $redaction->ai_enabled && $submission) {
+    $aievaluation = $DB->get_record_sql(
+        'SELECT * FROM {redaction_ai_evaluations}
+         WHERE submissionid = ? AND (status = ? OR status = ?)
+         ORDER BY timecreated DESC LIMIT 1',
+        [$submission->id, 'completed', 'applied']
+    );
+}
+
+// Editor options for rich text.
+$editoroptions = [
+    'maxfiles' => EDITOR_UNLIMITED_FILES,
+    'noclean' => true,
+    'context' => $context,
+    'subdirs' => true,
+    'maxbytes' => $CFG->maxbytes,
+    'changeformat' => 0,
+    'trusttext' => false,
+];
+
+// Prepare editor for contenu field.
+$submission = file_prepare_standard_editor(
+    $submission,
+    'contenu',
+    $editoroptions,
+    $context,
+    'mod_redaction',
+    'contenu',
+    $submission->id
+);
+
+// Handle form submission (manual save).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$issubmitted) {
+    require_sesskey();
+
+    $action = optional_param('action', 'save', PARAM_ALPHA);
+
+    if ($action === 'save') {
+        // Get form data.
+        $submission->titre = optional_param('titre', '', PARAM_TEXT);
+
+        // Handle editor content.
+        $editordata = optional_param_array('contenu_editor', [], PARAM_RAW);
+        $submission->contenu_editor = [
+            'text' => $editordata['text'] ?? '',
+            'format' => isset($editordata['format']) ? (int)$editordata['format'] : FORMAT_HTML,
+            'itemid' => isset($editordata['itemid']) ? (int)$editordata['itemid'] : 0,
+        ];
+
+        // Save editor content.
+        $submission = file_postupdate_standard_editor(
+            $submission,
+            'contenu',
+            $editoroptions,
+            $context,
+            'mod_redaction',
+            'contenu',
+            $submission->id
+        );
+
+        $submission->timemodified = time();
+        $DB->update_record('redaction_submission', $submission);
+
+        // Save to history.
+        redaction_save_history($submission, $USER->id);
+
+        // Reload with fresh editor data.
+        $submission = $DB->get_record('redaction_submission', ['id' => $submission->id]);
+        $submission = file_prepare_standard_editor(
+            $submission,
+            'contenu',
+            $editoroptions,
+            $context,
+            'mod_redaction',
+            'contenu',
+            $submission->id
+        );
+
+        \core\notification::success(get_string('changessaved', 'moodle'));
+    }
+
+    if ($action === 'submit') {
+        // Get form data first.
+        $submission->titre = optional_param('titre', '', PARAM_TEXT);
+
+        // Handle editor content.
+        $editordata = optional_param_array('contenu_editor', [], PARAM_RAW);
+        $submission->contenu_editor = [
+            'text' => $editordata['text'] ?? '',
+            'format' => isset($editordata['format']) ? (int)$editordata['format'] : FORMAT_HTML,
+            'itemid' => isset($editordata['itemid']) ? (int)$editordata['itemid'] : 0,
+        ];
+
+        // Save editor content.
+        $submission = file_postupdate_standard_editor(
+            $submission,
+            'contenu',
+            $editoroptions,
+            $context,
+            'mod_redaction',
+            'contenu',
+            $submission->id
+        );
+
+        // Mark as submitted.
+        $submission->status = 1;
+        $submission->timesubmitted = time();
+        $submission->timemodified = time();
+        $DB->update_record('redaction_submission', $submission);
+
+        // Save to history.
+        redaction_save_history($submission, $USER->id);
+
+        // Trigger AI evaluation if enabled.
+        if ($redaction->ai_enabled) {
+            \mod_redaction\ai_evaluator::queue_evaluation(
+                $redaction->id,
+                $submission->id,
+                $submission->groupid,
+                $submission->userid
+            );
+        }
+
+        redirect(
+            new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'redaction']),
+            get_string('status_submitted', 'redaction'),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
+    }
+}
+
 // Page setup.
 $PAGE->set_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'redaction']);
 $PAGE->set_title(format_string($redaction->name) . ' - ' . get_string('redaction', 'redaction'));
-
-// Initialize autosave JS only if not submitted.
-if (!$issubmitted) {
-    $PAGE->requires->js_call_amd('mod_redaction/autosave', 'init', [
-        'cmid' => $cm->id,
-        'page' => 'redaction',
-        'interval' => $redaction->autosave_interval * 1000,
-        'formSelector' => '#redaction-form',
-        'groupid' => $usergroup
-    ]);
-}
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('redaction', 'redaction'));
@@ -158,11 +288,6 @@ if ($redaction->group_submission && $usergroup > 0) {
         overflow: hidden;
     }
 
-    .editor-container textarea {
-        border: none;
-        border-radius: 0;
-    }
-
     .submission-status {
         padding: 15px;
         border-radius: 8px;
@@ -213,6 +338,201 @@ if ($redaction->group_submission && $usergroup > 0) {
         margin-bottom: 10px;
     }
 
+    .ai-evaluation-detail {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .ai-evaluation-detail h4 {
+        color: #667eea;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ai-criteria-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .ai-criterion-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #667eea;
+    }
+
+    .ai-criterion-card.excellent {
+        border-left-color: #48bb78;
+    }
+
+    .ai-criterion-card.good {
+        border-left-color: #38a169;
+    }
+
+    .ai-criterion-card.medium {
+        border-left-color: #ed8936;
+    }
+
+    .ai-criterion-card.low {
+        border-left-color: #f56565;
+    }
+
+    .criterion-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .criterion-name {
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+    }
+
+    .criterion-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        color: white;
+    }
+
+    .criterion-badge.excellent {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    }
+
+    .criterion-badge.good {
+        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+    }
+
+    .criterion-badge.medium {
+        background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+    }
+
+    .criterion-badge.low {
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+    }
+
+    .criterion-progress-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .criterion-progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .criterion-progress-fill.excellent {
+        background: linear-gradient(90deg, #48bb78, #38a169);
+    }
+
+    .criterion-progress-fill.good {
+        background: linear-gradient(90deg, #38a169, #2f855a);
+    }
+
+    .criterion-progress-fill.medium {
+        background: linear-gradient(90deg, #ed8936, #dd6b20);
+    }
+
+    .criterion-progress-fill.low {
+        background: linear-gradient(90deg, #f56565, #e53e3e);
+    }
+
+    .criterion-comment {
+        font-size: 14px;
+        color: #555;
+        line-height: 1.6;
+        background: white;
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+
+    .ai-general-feedback {
+        background: #f0f4ff;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+
+    .ai-general-feedback h5 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+    .ai-general-feedback p {
+        color: #555;
+        line-height: 1.7;
+        margin: 0;
+    }
+
+    .collapsible-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        padding: 5px 0;
+    }
+
+    .collapsible-header:hover {
+        opacity: 0.8;
+    }
+
+    .collapse-icon {
+        font-size: 12px;
+        transition: transform 0.3s ease;
+    }
+
+    .collapsible-header.collapsed .collapse-icon {
+        transform: rotate(-90deg);
+    }
+
+    .collapsible-content {
+        overflow: hidden;
+        max-height: 2000px;
+        transition: max-height 0.3s ease;
+    }
+
+    .collapsible-content.collapsed {
+        max-height: 0;
+    }
+
+    .btn-save {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-save:hover {
+        background: #5a67d8;
+        transform: scale(1.02);
+    }
+
     .btn-submit {
         background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
         color: white;
@@ -235,40 +555,13 @@ if ($redaction->group_submission && $usergroup > 0) {
         transform: none;
     }
 
-    .autosave-status {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        padding: 10px 20px;
-        background: #333;
-        color: white;
-        border-radius: 8px;
-        opacity: 0;
-        transition: opacity 0.3s;
-        z-index: 1000;
-    }
-
-    .autosave-status.visible {
-        opacity: 1;
-    }
-
-    .autosave-status.saving {
-        background: #667eea;
-    }
-
-    .autosave-status.saved {
-        background: #48bb78;
-    }
-
-    .autosave-status.error {
-        background: #e53e3e;
-    }
-
-    .word-counter {
-        text-align: right;
-        font-size: 13px;
-        color: #666;
-        margin-top: 5px;
+    .action-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
     }
 </style>
 
@@ -277,20 +570,20 @@ if ($redaction->group_submission && $usergroup > 0) {
     <div class="consignes-panel">
         <h3>📋 <?php echo s($consignes->titre ?? get_string('consignes', 'redaction')); ?></h3>
         <div class="consignes-content">
-            <?php echo format_text($consignes->consignes, $consignes->consignesformat); ?>
+            <?php echo format_text($consignes->consignes, $consignes->consignesformat ?? FORMAT_HTML); ?>
         </div>
 
         <?php if (!empty($consignes->criteres)): ?>
             <div class="criteres-panel">
                 <h4>📝 <?php echo get_string('consignes_criteres', 'redaction'); ?></h4>
-                <?php echo format_text($consignes->criteres, $consignes->criteresformat); ?>
+                <?php echo nl2br(s($consignes->criteres)); ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($consignes->documents)): ?>
             <div class="mt-3">
                 <strong>📎 <?php echo get_string('consignes_documents', 'redaction'); ?></strong>
-                <div><?php echo format_text($consignes->documents, $consignes->documentsformat); ?></div>
+                <div><?php echo nl2br(s($consignes->documents)); ?></div>
             </div>
         <?php endif; ?>
     </div>
@@ -302,10 +595,79 @@ if ($redaction->group_submission && $usergroup > 0) {
             <div class="grade-value"><?php echo number_format($submission->grade, 1); ?> / 20</div>
         </div>
 
-        <?php if (!empty($submission->feedback)): ?>
+        <?php
+        // Parse AI criteria if available.
+        $criteria = [];
+        if ($aievaluation && !empty($aievaluation->criteria_json)) {
+            $criteria = json_decode($aievaluation->criteria_json, true);
+            if (!is_array($criteria)) {
+                $criteria = [];
+            }
+        }
+        ?>
+
+        <?php if (!empty($criteria)): ?>
+            <div class="ai-evaluation-detail">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h4 style="margin: 0;">📊 <?php echo get_string('ai_criteria_details', 'redaction'); ?></h4>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    <div class="ai-criteria-grid">
+                        <?php foreach ($criteria as $criterion): ?>
+                            <?php
+                            $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
+                            $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
+                            $percentage = $max > 0 ? ($score / $max) * 100 : 0;
+
+                            // Determine level class.
+                            if ($percentage >= 80) {
+                                $levelClass = 'excellent';
+                                $levelText = get_string('level_excellent', 'redaction');
+                            } elseif ($percentage >= 65) {
+                                $levelClass = 'good';
+                                $levelText = get_string('level_good', 'redaction');
+                            } elseif ($percentage >= 50) {
+                                $levelClass = 'medium';
+                                $levelText = get_string('level_medium', 'redaction');
+                            } else {
+                                $levelClass = 'low';
+                                $levelText = get_string('level_low', 'redaction');
+                            }
+                            ?>
+                            <div class="ai-criterion-card <?php echo $levelClass; ?>">
+                                <div class="criterion-header">
+                                    <span class="criterion-name"><?php echo s($criterion['name'] ?? 'Critère'); ?></span>
+                                    <span class="criterion-badge <?php echo $levelClass; ?>">
+                                        <?php echo number_format($score, 1); ?>/<?php echo number_format($max, 0); ?>
+                                        <span style="font-size: 11px; opacity: 0.9;">(<?php echo $levelText; ?>)</span>
+                                    </span>
+                                </div>
+                                <div class="criterion-progress-bar">
+                                    <div class="criterion-progress-fill <?php echo $levelClass; ?>"
+                                         style="width: <?php echo $percentage; ?>%"></div>
+                                </div>
+                                <?php if (!empty($criterion['comment'])): ?>
+                                    <div class="criterion-comment">
+                                        <?php echo nl2br(s($criterion['comment'])); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <?php if ($aievaluation && !empty($aievaluation->parsed_feedback)): ?>
+                        <div class="ai-general-feedback">
+                            <h5>💬 <?php echo get_string('ai_general_feedback', 'redaction'); ?></h5>
+                            <p><?php echo nl2br(s($aievaluation->parsed_feedback)); ?></p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php elseif (!empty($submission->feedback)): ?>
             <div class="feedback-panel">
                 <h4><?php echo get_string('feedback', 'redaction'); ?></h4>
-                <?php echo format_text($submission->feedback, $submission->feedbackformat); ?>
+                <?php echo format_text($submission->feedback, $submission->feedbackformat ?? FORMAT_HTML); ?>
             </div>
         <?php endif; ?>
     <?php endif; ?>
@@ -321,16 +683,13 @@ if ($redaction->group_submission && $usergroup > 0) {
     <?php else: ?>
         <div class="submission-status draft">
             📝 <?php echo get_string('status_draft', 'redaction'); ?>
-            - <?php echo get_string('saving', 'redaction'); ?>
         </div>
     <?php endif; ?>
 
     <!-- Formulaire de rédaction -->
     <div class="redaction-form">
-        <form id="redaction-form" method="post">
+        <form id="redaction-form" method="post" action="<?php echo $PAGE->url; ?>">
             <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
-            <input type="hidden" name="id" value="<?php echo $cm->id; ?>">
-            <input type="hidden" name="page" value="redaction">
             <input type="hidden" name="groupid" value="<?php echo $usergroup; ?>">
 
             <div class="form-group">
@@ -345,33 +704,36 @@ if ($redaction->group_submission && $usergroup > 0) {
             </div>
 
             <div class="form-group">
-                <label for="contenu"><?php echo get_string('redaction_content', 'redaction'); ?></label>
-                <div class="editor-container">
-                    <textarea id="contenu"
-                              name="contenu"
-                              class="form-control"
-                              rows="15"
-                              <?php echo $issubmitted ? 'readonly' : ''; ?>
-                              placeholder="<?php echo get_string('redaction_content_placeholder', 'redaction'); ?>"
-                              style="min-height: 300px;"><?php echo s($submission->contenu ?? ''); ?></textarea>
-                </div>
-                <div class="word-counter" id="word-counter">0 mots</div>
+                <label for="contenu_editor_text"><?php echo get_string('redaction_content', 'redaction'); ?></label>
+                <?php if ($issubmitted): ?>
+                    <div class="editor-container" style="padding: 15px; background: #f8f9fa;">
+                        <?php echo format_text($submission->contenu ?? '', $submission->contenuformat ?? FORMAT_HTML); ?>
+                    </div>
+                <?php else: ?>
+                    <div class="editor-container">
+                        <?php
+                        // Use Moodle's standard editor.
+                        $editor = editors_get_preferred_editor($submission->contenuformat ?? FORMAT_HTML);
+                        $editor->set_text($submission->contenu_editor['text'] ?? '');
+                        $editor->use_editor('contenu_editor_text', $editoroptions, ['context' => $context]);
+                        ?>
+                        <textarea id="contenu_editor_text"
+                                  name="contenu_editor[text]"
+                                  rows="20"
+                                  style="width: 100%;"><?php echo s($submission->contenu_editor['text'] ?? ''); ?></textarea>
+                        <input type="hidden" name="contenu_editor[format]" value="<?php echo $submission->contenuformat ?? FORMAT_HTML; ?>">
+                        <input type="hidden" name="contenu_editor[itemid]" value="<?php echo $submission->contenu_editor['itemid'] ?? 0; ?>">
+                    </div>
+                <?php endif; ?>
             </div>
 
             <?php if (!$issubmitted): ?>
-                <div class="d-flex justify-content-end gap-3">
-                    <button type="button"
-                            class="btn-submit"
-                            onclick="submitRedaction()">
-                        <?php echo get_string('submit_redaction', 'redaction'); ?>
+                <div class="action-buttons">
+                    <button type="submit" name="action" value="save" class="btn-save">
+                        💾 <?php echo get_string('savechanges', 'moodle'); ?>
                     </button>
-                </div>
-            <?php elseif ($cangrade): ?>
-                <div class="d-flex justify-content-end">
-                    <button type="button"
-                            class="btn btn-warning"
-                            onclick="unlockSubmission()">
-                        🔓 <?php echo get_string('unlock_submission', 'redaction'); ?>
+                    <button type="submit" name="action" value="submit" class="btn-submit" onclick="return confirm('<?php echo get_string('submit_confirm', 'redaction'); ?>');">
+                        ✓ <?php echo get_string('submit_redaction', 'redaction'); ?>
                     </button>
                 </div>
             <?php endif; ?>
@@ -379,74 +741,11 @@ if ($redaction->group_submission && $usergroup > 0) {
     </div>
 </div>
 
-<div id="autosave-status" class="autosave-status"></div>
-
 <script>
-// Word counter.
-const contenuField = document.getElementById('contenu');
-const wordCounter = document.getElementById('word-counter');
-
-function updateWordCount() {
-    const text = contenuField.value.trim();
-    const words = text ? text.split(/\s+/).length : 0;
-    wordCounter.textContent = words + ' mots';
-}
-
-contenuField.addEventListener('input', updateWordCount);
-updateWordCount();
-
-// Submit function.
-function submitRedaction() {
-    if (!confirm('<?php echo get_string('submit_confirm', 'redaction'); ?>')) {
-        return;
-    }
-
-    const formData = new FormData(document.getElementById('redaction-form'));
-    formData.append('action', 'submit');
-
-    fetch('<?php echo $CFG->wwwroot; ?>/mod/redaction/ajax/submit.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || 'Erreur lors de la soumission');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erreur de connexion');
-    });
-}
-
-// Unlock function (teachers only).
-function unlockSubmission() {
-    const formData = new FormData();
-    formData.append('sesskey', '<?php echo sesskey(); ?>');
-    formData.append('id', '<?php echo $cm->id; ?>');
-    formData.append('action', 'unlock');
-    formData.append('groupid', '<?php echo $usergroup; ?>');
-    formData.append('userid', '<?php echo $USER->id; ?>');
-
-    fetch('<?php echo $CFG->wwwroot; ?>/mod/redaction/ajax/submit.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || 'Erreur');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erreur de connexion');
-    });
+function toggleCollapsible(header) {
+    header.classList.toggle('collapsed');
+    const content = header.nextElementSibling;
+    content.classList.toggle('collapsed');
 }
 </script>
 

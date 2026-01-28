@@ -83,6 +83,7 @@ $string['consignes_unlocked'] = 'Consignes déverrouillées';
 $string['lock_consignes'] = 'Verrouiller les consignes';
 $string['unlock_consignes'] = 'Déverrouiller les consignes';
 $string['consignes_not_ready'] = 'Les consignes ne sont pas encore disponibles.';
+$string['confirm_lock'] = 'Êtes-vous sûr de vouloir verrouiller les consignes ? Les élèves pourront voir le contenu.';
 
 // Redaction page.
 $string['redaction'] = 'Rédaction';
@@ -181,3 +182,27 @@ $string['ai_request_failed'] = 'Échec de la requête IA';
 $string['ai_invalid_response'] = 'Réponse IA invalide';
 $string['ai_parse_error'] = 'Erreur de parsing de la réponse IA';
 $string['ai_unknown_provider'] = 'Fournisseur IA inconnu : {$a}';
+
+// AI Generation.
+$string['ai_generate_criteria'] = 'Génération assistée par IA';
+$string['ai_generate_criteria_help'] = 'Utilisez l\'IA pour générer automatiquement les critères d\'évaluation et les instructions basés sur les consignes que vous avez définies.';
+$string['ai_generate_button'] = 'Générer avec l\'IA';
+$string['ai_generate_need_consignes'] = 'Veuillez d\'abord définir et verrouiller les consignes avant de générer les critères.';
+$string['ai_generate_confirm_overwrite'] = 'Cela va écraser la grille de critères et les instructions IA existantes. Continuer ?';
+$string['ai_generate_success'] = 'Critères et instructions générés avec succès. Veuillez vérifier et ajuster si nécessaire.';
+$string['ai_generate_error'] = 'Erreur lors de la génération des critères : {$a}';
+$string['ai_generating'] = 'Génération en cours...';
+
+// Admin Settings.
+$string['settings_albert_heading'] = 'Configuration Albert (Etalab)';
+$string['settings_albert_heading_desc'] = 'Albert est l\'IA souveraine française. Configurez ici la clé API pour permettre aux enseignants d\'utiliser Albert sans avoir à fournir leur propre clé.';
+$string['settings_albert_api_key'] = 'Clé API Albert';
+$string['settings_albert_api_key_desc'] = 'Clé API pour le service Albert (Etalab). Cette clé sera utilisée pour toutes les activités utilisant Albert comme fournisseur IA.';
+
+// AI Evaluation Details.
+$string['ai_criteria_details'] = 'Détail des critères d\'évaluation';
+$string['ai_general_feedback'] = 'Commentaire général';
+$string['level_excellent'] = 'Excellent';
+$string['level_good'] = 'Bien';
+$string['level_medium'] = 'À améliorer';
+$string['level_low'] = 'Insuffisant';

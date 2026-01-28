@@ -348,6 +348,133 @@ echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'
         line-height: 1.6;
     }
 
+    .ai-criteria-section {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .ai-criteria-section h5 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .ai-criterion {
+        padding: 12px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+    }
+
+    .ai-criterion:last-child {
+        margin-bottom: 0;
+    }
+
+    .ai-criterion-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .ai-criterion-name {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .ai-criterion-score {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .ai-criterion-score.good {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    }
+
+    .ai-criterion-score.medium {
+        background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+    }
+
+    .ai-criterion-score.low {
+        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+    }
+
+    .ai-criterion-progress {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+
+    .ai-criterion-progress-bar {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    .ai-criterion-progress-bar.good {
+        background: linear-gradient(90deg, #48bb78, #38a169);
+    }
+
+    .ai-criterion-progress-bar.medium {
+        background: linear-gradient(90deg, #ed8936, #dd6b20);
+    }
+
+    .ai-criterion-progress-bar.low {
+        background: linear-gradient(90deg, #f56565, #e53e3e);
+    }
+
+    .ai-criterion-comment {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.5;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed #ddd;
+    }
+
+    .ai-section-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        padding: 10px 0;
+    }
+
+    .ai-section-toggle:hover {
+        opacity: 0.8;
+    }
+
+    .ai-section-toggle .toggle-icon {
+        transition: transform 0.3s ease;
+    }
+
+    .ai-section-toggle.collapsed .toggle-icon {
+        transform: rotate(-90deg);
+    }
+
+    .ai-section-content {
+        max-height: 1000px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .ai-section-content.collapsed {
+        max-height: 0;
+    }
+
     .ai-actions {
         display: flex;
         gap: 10px;
@@ -567,9 +694,64 @@ echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'
                                 <div class="ai-grade-label"><?php echo get_string('ai_grade', 'redaction'); ?></div>
                             </div>
 
+                            <?php
+                            // Parse criteria from JSON.
+                            $criteria = [];
+                            if (!empty($aievaluation->criteria_json)) {
+                                $criteria = json_decode($aievaluation->criteria_json, true);
+                                if (!is_array($criteria)) {
+                                    $criteria = [];
+                                }
+                            }
+                            ?>
+
+                            <?php if (!empty($criteria)): ?>
+                                <div class="ai-criteria-section">
+                                    <div class="ai-section-toggle" onclick="toggleSection(this)">
+                                        <h5 style="margin: 0;">📊 <?php echo get_string('ai_criteria_details', 'redaction'); ?></h5>
+                                        <span class="toggle-icon">▼</span>
+                                    </div>
+                                    <div class="ai-section-content">
+                                        <?php foreach ($criteria as $criterion): ?>
+                                            <?php
+                                            $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
+                                            $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
+                                            $percentage = $max > 0 ? ($score / $max) * 100 : 0;
+                                            $scoreClass = $percentage >= 70 ? 'good' : ($percentage >= 50 ? 'medium' : 'low');
+                                            ?>
+                                            <div class="ai-criterion">
+                                                <div class="ai-criterion-header">
+                                                    <span class="ai-criterion-name"><?php echo s($criterion['name'] ?? 'Critère'); ?></span>
+                                                    <span class="ai-criterion-score <?php echo $scoreClass; ?>">
+                                                        <?php echo number_format($score, 1); ?>/<?php echo number_format($max, 0); ?>
+                                                    </span>
+                                                </div>
+                                                <div class="ai-criterion-progress">
+                                                    <div class="ai-criterion-progress-bar <?php echo $scoreClass; ?>"
+                                                         style="width: <?php echo $percentage; ?>%"></div>
+                                                </div>
+                                                <?php if (!empty($criterion['comment'])): ?>
+                                                    <div class="ai-criterion-comment">
+                                                        <?php echo nl2br(s($criterion['comment'])); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
                             <?php if (!empty($aievaluation->parsed_feedback)): ?>
-                                <div class="ai-feedback">
-                                    <?php echo nl2br(s($aievaluation->parsed_feedback)); ?>
+                                <div class="ai-criteria-section">
+                                    <div class="ai-section-toggle" onclick="toggleSection(this)">
+                                        <h5 style="margin: 0;">💬 <?php echo get_string('ai_general_feedback', 'redaction'); ?></h5>
+                                        <span class="toggle-icon">▼</span>
+                                    </div>
+                                    <div class="ai-section-content">
+                                        <div class="ai-feedback" style="margin-bottom: 0;">
+                                            <?php echo nl2br(s($aievaluation->parsed_feedback)); ?>
+                                        </div>
+                                    </div>
                                 </div>
                             <?php endif; ?>
 
@@ -726,6 +908,12 @@ function applyAIGrade(evaluationId) {
         console.error('Error:', error);
         alert('Connection error');
     });
+}
+
+function toggleSection(toggleElement) {
+    toggleElement.classList.toggle('collapsed');
+    const content = toggleElement.nextElementSibling;
+    content.classList.toggle('collapsed');
 }
 
 function showHistory(submissionId) {
