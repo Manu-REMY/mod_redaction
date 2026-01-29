@@ -206,3 +206,44 @@ $string['level_excellent'] = 'Excellent';
 $string['level_good'] = 'Good';
 $string['level_medium'] = 'Needs improvement';
 $string['level_low'] = 'Insufficient';
+
+// Index page.
+$string['noredactions'] = 'There are no Writing activities in this course.';
+
+// Privacy API.
+$string['privacy:metadata:redaction_submission'] = 'Information about student submissions for Writing activities.';
+$string['privacy:metadata:redaction_submission:userid'] = 'The ID of the user who made the submission.';
+$string['privacy:metadata:redaction_submission:groupid'] = 'The ID of the group for group submissions.';
+$string['privacy:metadata:redaction_submission:titre'] = 'The title of the submission.';
+$string['privacy:metadata:redaction_submission:contenu'] = 'The content of the student\'s writing.';
+$string['privacy:metadata:redaction_submission:status'] = 'The submission status (draft or submitted).';
+$string['privacy:metadata:redaction_submission:grade'] = 'The grade received for the submission.';
+$string['privacy:metadata:redaction_submission:feedback'] = 'The feedback provided by the teacher.';
+$string['privacy:metadata:redaction_submission:timesubmitted'] = 'The time when the submission was made.';
+$string['privacy:metadata:redaction_submission:timecreated'] = 'The time when the submission record was created.';
+$string['privacy:metadata:redaction_submission:timemodified'] = 'The time when the submission was last modified.';
+
+$string['privacy:metadata:redaction_history'] = 'Information about version history of student submissions.';
+$string['privacy:metadata:redaction_history:userid'] = 'The ID of the user associated with the history entry.';
+$string['privacy:metadata:redaction_history:titre'] = 'The title at the time of saving.';
+$string['privacy:metadata:redaction_history:contenu'] = 'The content at the time of saving.';
+$string['privacy:metadata:redaction_history:version_number'] = 'The version number of this save.';
+$string['privacy:metadata:redaction_history:word_count'] = 'The word count at the time of saving.';
+$string['privacy:metadata:redaction_history:char_count'] = 'The character count at the time of saving.';
+$string['privacy:metadata:redaction_history:saved_by'] = 'The ID of the user who saved this version.';
+$string['privacy:metadata:redaction_history:timecreated'] = 'The time when this version was saved.';
+
+$string['privacy:metadata:redaction_ai_evaluations'] = 'Information about AI evaluations of student submissions.';
+$string['privacy:metadata:redaction_ai_evaluations:userid'] = 'The ID of the user whose submission was evaluated.';
+$string['privacy:metadata:redaction_ai_evaluations:provider'] = 'The AI provider used for evaluation.';
+$string['privacy:metadata:redaction_ai_evaluations:model'] = 'The AI model used for evaluation.';
+$string['privacy:metadata:redaction_ai_evaluations:raw_response'] = 'The raw response from the AI service.';
+$string['privacy:metadata:redaction_ai_evaluations:parsed_grade'] = 'The grade extracted from the AI response.';
+$string['privacy:metadata:redaction_ai_evaluations:parsed_feedback'] = 'The feedback extracted from the AI response.';
+$string['privacy:metadata:redaction_ai_evaluations:criteria_json'] = 'The detailed criteria scores in JSON format.';
+$string['privacy:metadata:redaction_ai_evaluations:status'] = 'The status of the AI evaluation.';
+$string['privacy:metadata:redaction_ai_evaluations:applied_by'] = 'The ID of the teacher who applied the AI grade.';
+$string['privacy:metadata:redaction_ai_evaluations:timecreated'] = 'The time when the AI evaluation was created.';
+
+$string['privacy:metadata:ai_provider'] = 'Student submission content is sent to external AI services for evaluation.';
+$string['privacy:metadata:ai_provider:submission_content'] = 'The content of the student\'s writing is sent to the AI provider for evaluation.';

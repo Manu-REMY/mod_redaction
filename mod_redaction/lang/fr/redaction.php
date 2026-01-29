@@ -206,3 +206,44 @@ $string['level_excellent'] = 'Excellent';
 $string['level_good'] = 'Bien';
 $string['level_medium'] = 'À améliorer';
 $string['level_low'] = 'Insuffisant';
+
+// Index page.
+$string['noredactions'] = 'Il n\'y a pas d\'activités Rédaction dans ce cours.';
+
+// Privacy API.
+$string['privacy:metadata:redaction_submission'] = 'Informations sur les soumissions des élèves pour les activités Rédaction.';
+$string['privacy:metadata:redaction_submission:userid'] = 'L\'identifiant de l\'utilisateur qui a fait la soumission.';
+$string['privacy:metadata:redaction_submission:groupid'] = 'L\'identifiant du groupe pour les soumissions de groupe.';
+$string['privacy:metadata:redaction_submission:titre'] = 'Le titre de la soumission.';
+$string['privacy:metadata:redaction_submission:contenu'] = 'Le contenu de la rédaction de l\'élève.';
+$string['privacy:metadata:redaction_submission:status'] = 'Le statut de la soumission (brouillon ou soumis).';
+$string['privacy:metadata:redaction_submission:grade'] = 'La note reçue pour la soumission.';
+$string['privacy:metadata:redaction_submission:feedback'] = 'Le commentaire fourni par l\'enseignant.';
+$string['privacy:metadata:redaction_submission:timesubmitted'] = 'L\'heure à laquelle la soumission a été effectuée.';
+$string['privacy:metadata:redaction_submission:timecreated'] = 'L\'heure de création de l\'enregistrement de soumission.';
+$string['privacy:metadata:redaction_submission:timemodified'] = 'L\'heure de la dernière modification de la soumission.';
+
+$string['privacy:metadata:redaction_history'] = 'Informations sur l\'historique des versions des soumissions.';
+$string['privacy:metadata:redaction_history:userid'] = 'L\'identifiant de l\'utilisateur associé à l\'entrée d\'historique.';
+$string['privacy:metadata:redaction_history:titre'] = 'Le titre au moment de la sauvegarde.';
+$string['privacy:metadata:redaction_history:contenu'] = 'Le contenu au moment de la sauvegarde.';
+$string['privacy:metadata:redaction_history:version_number'] = 'Le numéro de version de cette sauvegarde.';
+$string['privacy:metadata:redaction_history:word_count'] = 'Le nombre de mots au moment de la sauvegarde.';
+$string['privacy:metadata:redaction_history:char_count'] = 'Le nombre de caractères au moment de la sauvegarde.';
+$string['privacy:metadata:redaction_history:saved_by'] = 'L\'identifiant de l\'utilisateur qui a sauvegardé cette version.';
+$string['privacy:metadata:redaction_history:timecreated'] = 'L\'heure à laquelle cette version a été sauvegardée.';
+
+$string['privacy:metadata:redaction_ai_evaluations'] = 'Informations sur les évaluations IA des soumissions.';
+$string['privacy:metadata:redaction_ai_evaluations:userid'] = 'L\'identifiant de l\'utilisateur dont la soumission a été évaluée.';
+$string['privacy:metadata:redaction_ai_evaluations:provider'] = 'Le fournisseur IA utilisé pour l\'évaluation.';
+$string['privacy:metadata:redaction_ai_evaluations:model'] = 'Le modèle IA utilisé pour l\'évaluation.';
+$string['privacy:metadata:redaction_ai_evaluations:raw_response'] = 'La réponse brute du service IA.';
+$string['privacy:metadata:redaction_ai_evaluations:parsed_grade'] = 'La note extraite de la réponse IA.';
+$string['privacy:metadata:redaction_ai_evaluations:parsed_feedback'] = 'Le commentaire extrait de la réponse IA.';
+$string['privacy:metadata:redaction_ai_evaluations:criteria_json'] = 'Les scores détaillés par critère au format JSON.';
+$string['privacy:metadata:redaction_ai_evaluations:status'] = 'Le statut de l\'évaluation IA.';
+$string['privacy:metadata:redaction_ai_evaluations:applied_by'] = 'L\'identifiant de l\'enseignant qui a appliqué la note IA.';
+$string['privacy:metadata:redaction_ai_evaluations:timecreated'] = 'L\'heure de création de l\'évaluation IA.';
+
+$string['privacy:metadata:ai_provider'] = 'Le contenu des soumissions est envoyé à des services IA externes pour évaluation.';
+$string['privacy:metadata:ai_provider:submission_content'] = 'Le contenu de la rédaction de l\'élève est envoyé au fournisseur IA pour évaluation.';

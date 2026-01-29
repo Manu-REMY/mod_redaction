@@ -18,14 +18,14 @@
  * Plugin version and other metadata.
  *
  * @package    mod_redaction
- * @copyright  2026 Emmanuel REMY
+ * @copyright  2025 Emmanuel REMY
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_redaction';
-$plugin->version = 2026012800;  // YYYYMMDDXX format
-$plugin->requires = 2024100700; // Moodle 5.0+
-$plugin->maturity = MATURITY_ALPHA;
+$plugin->version = 2025012900;  // YYYYMMDDXX format
+$plugin->requires = 2024100700; // Moodle 4.5+
+$plugin->maturity = MATURITY_STABLE;
 $plugin->release = '1.0.0';
