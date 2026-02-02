@@ -1,0 +1,301 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_redaction/dashboard_teacher
+
+    Teacher dashboard for viewing submission statistics and AI feedback synthesis.
+
+    Context variables required for this template:
+    * cmid - Course module ID
+    * ai_enabled - Whether AI is enabled
+    * stats - Submission statistics object
+    * summary - AI summary object (optional)
+    * token_stats - Token usage statistics
+
+    Example context (json):
+    {
+        "cmid": 123,
+        "ai_enabled": true,
+        "stats": {
+            "total_expected": 25,
+            "submitted": 20,
+            "graded": 15,
+            "submitted_percent": 80,
+            "graded_percent": 60,
+            "average_grade": 13.5
+        }
+    }
+}}
+
+<div class="mod-redaction-dashboard" data-cmid="{{cmid}}" style="max-width: 1200px; margin: 0 auto;">
+    {{! Submission Progress Section }}
+    <div class="card mb-3" style="border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+        <div class="card-header bg-primary text-white" style="border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0" style="font-size: 16px;">
+                <i class="fa fa-chart-bar mr-2"></i>
+                {{#str}}dashboard_progress, mod_redaction{{/str}}
+            </h5>
+        </div>
+        <div class="card-body py-3">
+            <div class="row align-items-center">
+                {{! Progress Stats }}
+                <div class="col-lg-5 col-md-6 mb-3 mb-md-0">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span style="font-size: 14px;">{{#str}}dashboard_submitted, mod_redaction{{/str}}</span>
+                        <strong style="font-size: 14px;">{{stats.submitted}} / {{stats.total_expected}} ({{stats.submitted_percent}}%)</strong>
+                    </div>
+                    <div class="progress mb-3" style="height: 12px; border-radius: 6px;">
+                        <div class="progress-bar bg-info" role="progressbar"
+                             style="width: {{stats.submitted_percent}}%; border-radius: 6px;"
+                             aria-valuenow="{{stats.submitted_percent}}"
+                             aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-1">
+                        <span style="font-size: 14px;">{{#str}}dashboard_graded, mod_redaction{{/str}}</span>
+                        <strong style="font-size: 14px;">{{stats.graded}} / {{stats.total_expected}} ({{stats.graded_percent}}%)</strong>
+                    </div>
+                    <div class="progress" style="height: 12px; border-radius: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: {{stats.graded_percent}}%; border-radius: 6px;"
+                             aria-valuenow="{{stats.graded_percent}}"
+                             aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+
+                    {{#ai_enabled}}
+                    <div class="mt-2 p-2 bg-light rounded" style="font-size: 13px;">
+                        <i class="fa fa-robot mr-1 text-muted"></i>
+                        <span class="badge badge-warning">{{stats.ai_pending}} {{#str}}dashboard_pending, mod_redaction{{/str}}</span>
+                        <span class="badge badge-success">{{stats.ai_completed}} {{#str}}dashboard_completed, mod_redaction{{/str}}</span>
+                        <span class="badge badge-info">{{stats.ai_applied}} {{#str}}dashboard_applied, mod_redaction{{/str}}</span>
+                    </div>
+                    {{/ai_enabled}}
+                </div>
+
+                {{! Average Grade }}
+                <div class="col-lg-3 col-md-6 mb-3 mb-md-0">
+                    {{#stats.average_grade}}
+                    <div class="text-center">
+                        <h2 class="mb-0" style="font-size: 2.5rem; font-weight: 700;">{{stats.average_grade}}<small class="text-muted" style="font-size: 1rem;">/20</small></h2>
+                        <p class="text-muted mb-0" style="font-size: 13px;">{{#str}}dashboard_average, mod_redaction{{/str}}</p>
+                    </div>
+                    {{/stats.average_grade}}
+                    {{^stats.average_grade}}
+                    <div class="text-center text-muted">
+                        <i class="fa fa-minus-circle fa-2x mb-1"></i>
+                        <p class="mb-0" style="font-size: 13px;">{{#str}}dashboard_no_grades, mod_redaction{{/str}}</p>
+                    </div>
+                    {{/stats.average_grade}}
+                </div>
+
+                {{! Grade Distribution }}
+                <div class="col-lg-4 col-md-12">
+                    <div class="chart-container" style="position: relative; height: 120px; width: 100%;">
+                        <canvas id="gradeDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{#ai_enabled}}
+    {{! AI Summary Section }}
+    <div class="card mb-3" style="border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0" style="font-size: 16px;">
+                <i class="fa fa-brain mr-2"></i>
+                {{#str}}dashboard_ai_summary, mod_redaction{{/str}}
+            </h5>
+            <button type="button" class="btn btn-sm btn-light" id="refreshSummaryBtn" data-cmid="{{cmid}}" style="font-size: 13px;">
+                <i class="fa fa-sync-alt mr-1"></i>
+                {{#str}}dashboard_refresh, mod_redaction{{/str}}
+            </button>
+        </div>
+        <div class="card-body py-3" id="aiSummaryContent">
+            {{#summary}}
+            <div class="row">
+                {{! Difficulties }}
+                <div class="col-lg-4 col-md-4 mb-3 mb-lg-0">
+                    <div class="h-100" style="background: #fff5f5; border-radius: 8px; border-left: 4px solid #e53e3e;">
+                        <div class="px-3 py-2" style="border-bottom: 1px solid rgba(229, 62, 62, 0.2);">
+                            <strong style="font-size: 14px; color: #c53030;">
+                                <i class="fa fa-exclamation-triangle mr-1"></i>
+                                {{#str}}dashboard_difficulties, mod_redaction{{/str}}
+                            </strong>
+                        </div>
+                        <ul class="list-unstyled mb-0 px-3 py-2" style="font-size: 13px;">
+                            {{#summary.difficulties}}
+                            <li class="mb-2">
+                                <i class="fa fa-times-circle text-danger mr-1" style="font-size: 11px;"></i>
+                                {{.}}
+                            </li>
+                            {{/summary.difficulties}}
+                            {{^summary.difficulties}}
+                            <li class="text-muted">{{#str}}dashboard_no_difficulties, mod_redaction{{/str}}</li>
+                            {{/summary.difficulties}}
+                        </ul>
+                    </div>
+                </div>
+
+                {{! Strengths }}
+                <div class="col-lg-4 col-md-4 mb-3 mb-lg-0">
+                    <div class="h-100" style="background: #f0fff4; border-radius: 8px; border-left: 4px solid #38a169;">
+                        <div class="px-3 py-2" style="border-bottom: 1px solid rgba(56, 161, 105, 0.2);">
+                            <strong style="font-size: 14px; color: #276749;">
+                                <i class="fa fa-check-circle mr-1"></i>
+                                {{#str}}dashboard_strengths, mod_redaction{{/str}}
+                            </strong>
+                        </div>
+                        <ul class="list-unstyled mb-0 px-3 py-2" style="font-size: 13px;">
+                            {{#summary.strengths}}
+                            <li class="mb-2">
+                                <i class="fa fa-check-circle text-success mr-1" style="font-size: 11px;"></i>
+                                {{.}}
+                            </li>
+                            {{/summary.strengths}}
+                            {{^summary.strengths}}
+                            <li class="text-muted">{{#str}}dashboard_no_strengths, mod_redaction{{/str}}</li>
+                            {{/summary.strengths}}
+                        </ul>
+                    </div>
+                </div>
+
+                {{! Recommendations }}
+                <div class="col-lg-4 col-md-4">
+                    <div class="h-100" style="background: #ebf8ff; border-radius: 8px; border-left: 4px solid #3182ce;">
+                        <div class="px-3 py-2" style="border-bottom: 1px solid rgba(49, 130, 206, 0.2);">
+                            <strong style="font-size: 14px; color: #2c5282;">
+                                <i class="fa fa-lightbulb mr-1"></i>
+                                {{#str}}dashboard_recommendations, mod_redaction{{/str}}
+                            </strong>
+                        </div>
+                        <ul class="list-unstyled mb-0 px-3 py-2" style="font-size: 13px;">
+                            {{#summary.recommendations}}
+                            <li class="mb-2">
+                                <i class="fa fa-arrow-right text-info mr-1" style="font-size: 11px;"></i>
+                                {{.}}
+                            </li>
+                            {{/summary.recommendations}}
+                            {{^summary.recommendations}}
+                            <li class="text-muted">{{#str}}dashboard_no_recommendations, mod_redaction{{/str}}</li>
+                            {{/summary.recommendations}}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {{#summary.general_observation}}
+            <div class="mt-3 p-2 rounded" style="background: #f7fafc; font-size: 13px;">
+                <strong><i class="fa fa-comment mr-1 text-muted"></i> {{#str}}dashboard_observation, mod_redaction{{/str}}:</strong>
+                {{summary.general_observation}}
+            </div>
+            {{/summary.general_observation}}
+
+            <div class="mt-2 text-right">
+                <small class="text-muted" style="font-size: 12px;">
+                    <i class="fa fa-clock mr-1"></i>
+                    {{#str}}dashboard_analyzed, mod_redaction{{/str}}: {{summary.submissions_analyzed}} {{#str}}dashboard_submissions, mod_redaction{{/str}}
+                    {{#summary.provider}}
+                    | {{#str}}dashboard_provider, mod_redaction{{/str}}: {{summary.provider}}
+                    {{/summary.provider}}
+                </small>
+            </div>
+            {{/summary}}
+
+            {{^summary}}
+            <div class="text-center py-3 text-muted">
+                <i class="fa fa-info-circle fa-2x mb-2"></i>
+                <p class="mb-1" style="font-size: 14px;">{{#str}}dashboard_no_summary, mod_redaction{{/str}}</p>
+                <p class="small mb-0">{{#str}}dashboard_summary_hint, mod_redaction{{/str}}</p>
+            </div>
+            {{/summary}}
+        </div>
+    </div>
+
+    {{! Token Usage Section }}
+    {{#token_stats}}
+    <div class="card mb-3" style="border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+        <div class="card-header" style="background: #f7fafc; border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0" style="font-size: 16px; color: #4a5568;">
+                <i class="fa fa-coins mr-2"></i>
+                {{#str}}dashboard_token_usage, mod_redaction{{/str}}
+            </h5>
+        </div>
+        <div class="card-body py-3">
+            <div class="row text-center">
+                <div class="col-6 col-md-3 mb-2 mb-md-0">
+                    <div class="rounded p-2" style="background: #edf2f7;">
+                        <h4 class="mb-0" style="font-size: 1.25rem; font-weight: 700; color: #2d3748;">{{token_stats.total_tokens}}</h4>
+                        <small class="text-muted" style="font-size: 11px;">{{#str}}dashboard_total_tokens, mod_redaction{{/str}}</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-2 mb-md-0">
+                    <div class="rounded p-2" style="background: #edf2f7;">
+                        <h4 class="mb-0" style="font-size: 1.25rem; font-weight: 700; color: #2d3748;">{{token_stats.prompt_tokens}}</h4>
+                        <small class="text-muted" style="font-size: 11px;">{{#str}}dashboard_prompt_tokens, mod_redaction{{/str}}</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="rounded p-2" style="background: #edf2f7;">
+                        <h4 class="mb-0" style="font-size: 1.25rem; font-weight: 700; color: #2d3748;">{{token_stats.completion_tokens}}</h4>
+                        <small class="text-muted" style="font-size: 11px;">{{#str}}dashboard_completion_tokens, mod_redaction{{/str}}</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="rounded p-2" style="background: #edf2f7;">
+                        <h4 class="mb-0" style="font-size: 1.25rem; font-weight: 700; color: #2d3748;">{{token_stats.evaluation_count}}</h4>
+                        <small class="text-muted" style="font-size: 11px;">{{#str}}dashboard_evaluations, mod_redaction{{/str}}</small>
+                    </div>
+                </div>
+            </div>
+
+            {{#token_stats.by_provider.length}}
+            <div class="mt-3">
+                <h6 style="font-size: 13px; color: #718096;">{{#str}}dashboard_by_provider, mod_redaction{{/str}}</h6>
+                <table class="table table-sm mb-0" style="font-size: 13px;">
+                    <thead style="background: #f7fafc;">
+                        <tr>
+                            <th style="font-weight: 600; border-top: none;">{{#str}}dashboard_provider, mod_redaction{{/str}}</th>
+                            <th class="text-right" style="font-weight: 600; border-top: none;">{{#str}}dashboard_requests, mod_redaction{{/str}}</th>
+                            <th class="text-right" style="font-weight: 600; border-top: none;">{{#str}}dashboard_tokens, mod_redaction{{/str}}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#token_stats.by_provider}}
+                        <tr>
+                            <td>{{provider}}</td>
+                            <td class="text-right">{{request_count}}</td>
+                            <td class="text-right">{{total_tokens}}</td>
+                        </tr>
+                        {{/token_stats.by_provider}}
+                    </tbody>
+                </table>
+            </div>
+            {{/token_stats.by_provider.length}}
+        </div>
+    </div>
+    {{/token_stats}}
+    {{/ai_enabled}}
+</div>
+
+{{#js}}
+require(['mod_redaction/dashboard'], function(Dashboard) {
+    Dashboard.init({{cmid}}, {{{grade_distribution_json}}});
+});
+{{/js}}
