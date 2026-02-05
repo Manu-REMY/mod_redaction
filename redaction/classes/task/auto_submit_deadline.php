@@ -44,80 +44,107 @@ class auto_submit_deadline extends \core\task\scheduled_task {
      * Execute the task.
      */
     public function execute() {
-        global $DB;
+        global $CFG, $DB;
+
+        require_once($CFG->dirroot . '/mod/redaction/lib.php');
 
         $now = time();
-        mtrace('Starting auto-submit deadline task at ' . userdate($now));
+        mtrace('Starting auto-submit deadline task...');
 
-        // Find all draft submissions where deadline has passed.
-        $sql = "SELECT s.*, c.deadline_date, r.ai_enabled, r.group_submission
-                FROM {redaction_submission} s
-                JOIN {redaction_correction} c ON c.redactionid = s.redactionid
-                JOIN {redaction} r ON r.id = s.redactionid
+        // Find all redactions with passed deadlines.
+        $sql = "SELECT r.id, r.name, r.course, r.group_submission, r.ai_enabled,
+                       c.deadline_date
+                FROM {redaction} r
+                JOIN {redaction_correction} c ON c.redactionid = r.id
                 WHERE c.deadline_date IS NOT NULL
-                  AND c.deadline_date <= :now
-                  AND s.status = 0
-                  AND s.contenu IS NOT NULL
-                  AND s.contenu != ''";
+                  AND c.deadline_date > 0
+                  AND c.deadline_date <= :now";
 
-        $drafts = $DB->get_records_sql($sql, ['now' => $now]);
+        $redactions = $DB->get_records_sql($sql, ['now' => $now]);
 
-        $count = 0;
-        $errors = 0;
+        if (empty($redactions)) {
+            mtrace('No redactions with passed deadlines found.');
+            mtrace('Auto-submit deadline task completed. Processed: 0, Errors: 0');
+            return;
+        }
 
-        foreach ($drafts as $submission) {
-            try {
-                $this->process_submission($submission);
-                $count++;
-                mtrace("  Auto-submitted submission ID {$submission->id} for redaction {$submission->redactionid}");
-            } catch (\Exception $e) {
-                $errors++;
-                mtrace("  ERROR processing submission ID {$submission->id}: " . $e->getMessage());
+        $totalprocessed = 0;
+        $totalerrors = 0;
+
+        foreach ($redactions as $redaction) {
+            mtrace("  Processing redaction ID {$redaction->id} (deadline: " .
+                   userdate($redaction->deadline_date) . ")...");
+
+            // Get all draft submissions (status = 0) for this redaction.
+            $drafts = $DB->get_records('redaction_submission', [
+                'redactionid' => $redaction->id,
+                'status' => 0
+            ]);
+
+            if (empty($drafts)) {
+                mtrace("    No draft submissions found.");
+                continue;
+            }
+
+            mtrace("    Found " . count($drafts) . " draft(s) to auto-submit");
+
+            foreach ($drafts as $draft) {
+                try {
+                    // Update to submitted status.
+                    $draft->status = 1; // Submitted.
+                    $draft->timesubmitted = $redaction->deadline_date;
+                    $draft->timemodified = $now;
+
+                    $DB->update_record('redaction_submission', $draft);
+
+                    // Log the auto-submission.
+                    $identifier = $draft->groupid ? "group {$draft->groupid}" : "user {$draft->userid}";
+                    mtrace("      Auto-submitted {$identifier}");
+
+                    // Save to history if has content.
+                    if (!empty($draft->contenu)) {
+                        $savedby = $this->get_savedby_user($draft, $redaction->group_submission);
+                        redaction_save_history($draft, $savedby);
+                    }
+
+                    // Trigger AI evaluation if enabled and has content.
+                    if ($redaction->ai_enabled && !empty($draft->contenu)) {
+                        $this->trigger_ai_evaluation($draft);
+                    }
+
+                    $totalprocessed++;
+                } catch (\Exception $e) {
+                    mtrace("      ERROR: " . $e->getMessage());
+                    $totalerrors++;
+                }
             }
         }
 
-        mtrace("Auto-submit deadline task completed: {$count} submissions processed, {$errors} errors.");
+        mtrace("Auto-submit deadline task completed. Processed: {$totalprocessed}, Errors: {$totalerrors}");
     }
 
     /**
-     * Process a single submission.
+     * Get the user ID to use for history saved_by field.
      *
-     * @param object $submission The submission record with additional fields
+     * @param object $submission The submission record
+     * @param bool $groupsubmission Whether this is a group submission
+     * @return int User ID
      */
-    protected function process_submission($submission) {
-        global $DB;
+    protected function get_savedby_user($submission, $groupsubmission) {
+        if ($submission->userid > 0) {
+            return $submission->userid;
+        }
 
-        // Determine the user ID for history.
-        $savedby = $submission->userid;
-        if ($submission->group_submission && $submission->groupid > 0 && $savedby == 0) {
-            // For group submissions, get first group member as saved_by.
+        if ($groupsubmission && $submission->groupid > 0) {
+            // For group submissions, get first group member.
             $members = groups_get_members($submission->groupid, 'u.id', 'u.id ASC');
             if (!empty($members)) {
-                $savedby = reset($members)->id;
+                return reset($members)->id;
             }
         }
 
-        // Use admin user (2) if no user found.
-        if (empty($savedby)) {
-            $savedby = 2;
-        }
-
-        // 1. Save to history before submission.
-        require_once(__DIR__ . '/../../lib.php');
-        redaction_save_history($submission, $savedby);
-
-        // 2. Update submission status.
-        $submission->status = 1; // Submitted.
-        // Use deadline time as submission time.
-        $submission->timesubmitted = $submission->deadline_date;
-        $submission->timemodified = time();
-
-        $DB->update_record('redaction_submission', $submission);
-
-        // 3. Trigger AI evaluation if enabled.
-        if ($submission->ai_enabled) {
-            $this->trigger_ai_evaluation($submission);
-        }
+        // Fallback to admin user.
+        return 2;
     }
 
     /**
@@ -126,7 +153,14 @@ class auto_submit_deadline extends \core\task\scheduled_task {
      * @param object $submission
      */
     protected function trigger_ai_evaluation($submission) {
-        require_once(__DIR__ . '/../ai_evaluator.php');
+        global $CFG;
+
+        $evaluatorfile = $CFG->dirroot . '/mod/redaction/classes/ai_evaluator.php';
+        if (!file_exists($evaluatorfile)) {
+            return;
+        }
+
+        require_once($evaluatorfile);
 
         try {
             \mod_redaction\ai_evaluator::queue_evaluation(
@@ -135,10 +169,9 @@ class auto_submit_deadline extends \core\task\scheduled_task {
                 $submission->groupid,
                 $submission->userid
             );
-            mtrace("    Queued AI evaluation for submission ID {$submission->id}");
+            mtrace("        AI evaluation queued.");
         } catch (\Exception $e) {
-            mtrace("    WARNING: Could not queue AI evaluation: " . $e->getMessage());
-            // Don't fail the submission if AI evaluation fails.
+            mtrace("        WARNING: Could not queue AI evaluation: " . $e->getMessage());
         }
     }
 }

@@ -309,7 +309,7 @@ function redaction_save_history($submission, $savedby) {
     // Count words and characters.
     $plaintext = strip_tags($submission->contenu ?? '');
     $wordcount = str_word_count($plaintext);
-    $charcount = mb_strlen($plaintext);
+    $charcount = function_exists('mb_strlen') ? mb_strlen($plaintext) : strlen($plaintext);
 
     $history = new stdClass();
     $history->submissionid = $submission->id;

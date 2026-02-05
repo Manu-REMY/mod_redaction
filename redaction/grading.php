@@ -681,7 +681,7 @@ if ($showDashboard) {
                     <?php
                     $plaintext = strip_tags($submission->contenu);
                     $wordcount = str_word_count($plaintext);
-                    $charcount = mb_strlen($plaintext);
+                    $charcount = function_exists('mb_strlen') ? mb_strlen($plaintext) : strlen($plaintext);
                     ?>
                     <div class="word-count">
                         <?php echo get_string('word_count', 'redaction', $wordcount); ?> |
