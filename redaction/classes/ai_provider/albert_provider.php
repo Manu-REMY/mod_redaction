@@ -102,8 +102,8 @@ class albert_provider extends base_provider {
      */
     protected function build_headers(): array {
         return [
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . $this->apikey,
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $this->apikey,
         ];
     }
 

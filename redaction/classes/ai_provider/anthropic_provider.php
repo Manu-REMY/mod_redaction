@@ -84,9 +84,9 @@ class anthropic_provider extends base_provider {
      */
     protected function build_headers(): array {
         return [
-            'Content-Type' => 'application/json',
-            'x-api-key' => $this->apikey,
-            'anthropic-version' => self::API_VERSION,
+            'Content-Type: application/json',
+            'x-api-key: ' . $this->apikey,
+            'anthropic-version: ' . self::API_VERSION,
         ];
     }
 

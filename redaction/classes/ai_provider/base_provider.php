@@ -109,16 +109,14 @@ abstract class base_provider implements provider_interface {
         $curl->setopt([
             'CURLOPT_TIMEOUT' => $this->timeout,
             'CURLOPT_CONNECTTIMEOUT' => $this->connecttimeout,
-            'CURLOPT_RETURNTRANSFER' => true,
         ]);
 
         $headers = $this->build_headers();
-        foreach ($headers as $key => $value) {
-            $curl->setHeader("$key: $value");
-        }
-
         $body = $this->build_body($systemprompt, $userprompt, $model, $maxtokens);
-        $response = $curl->post($this->get_endpoint(), json_encode($body));
+
+        $response = $curl->post($this->get_endpoint(), json_encode($body), [
+            'CURLOPT_HTTPHEADER' => $headers,
+        ]);
 
         $httpcode = $curl->get_info()['http_code'] ?? 0;
 
