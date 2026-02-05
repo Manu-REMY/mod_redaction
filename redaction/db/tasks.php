@@ -15,17 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other metadata.
+ * Scheduled tasks definition.
  *
  * @package    mod_redaction
- * @copyright  2025 Emmanuel REMY
+ * @copyright  2026 Emmanuel REMY
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'mod_redaction';
-$plugin->version = 2026020401;  // YYYYMMDDXX format
-$plugin->requires = 2024100700; // Moodle 4.5+
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0.0';
+$tasks = [
+    [
+        'classname' => 'mod_redaction\task\auto_submit_deadline',
+        'blocking' => 0,
+        'minute' => '*/5',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+        'disabled' => 0,
+    ],
+];

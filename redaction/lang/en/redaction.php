@@ -175,6 +175,8 @@ $string['incomplete'] = 'Incomplete';
 
 // Task.
 $string['task_evaluate_submission'] = 'Evaluate submission with AI';
+$string['task_auto_submit_deadline'] = 'Auto-submit drafts at deadline';
+$string['auto_submitted_at_deadline'] = 'Automatically submitted at deadline';
 
 // AI Errors.
 $string['ai_not_enabled'] = 'AI evaluation is not enabled for this activity.';
