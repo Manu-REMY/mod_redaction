@@ -23,8 +23,8 @@ defined('MOODLE_INTERNAL') || die();
  */
 class ai_config {
 
-    /** @var array Providers with built-in API keys */
-    const BUILTIN_KEY_PROVIDERS = ['albert'];
+    /** @var array Providers with admin-configured API keys */
+    const ADMIN_KEY_PROVIDERS = ['albert'];
 
     /** @var array Available providers */
     const PROVIDERS = ['openai', 'anthropic', 'mistral', 'albert'];
@@ -32,46 +32,52 @@ class ai_config {
     /**
      * Encrypt an API key for storage.
      *
+     * Requires Moodle 4.0+ encryption (guaranteed by plugin requiring Moodle 4.5+).
+     *
      * @param string $apikey
      * @return string
+     * @throws \moodle_exception If encryption is not available.
      */
     public static function encrypt_api_key(string $apikey): string {
         if (empty($apikey)) {
             return '';
         }
 
-        // Use Moodle's encryption if available (4.0+).
-        if (class_exists('\core\encryption')) {
-            return \core\encryption::encrypt($apikey);
+        if (!class_exists('\core\encryption')) {
+            throw new \moodle_exception('error:encryption_unavailable', 'redaction');
         }
 
-        // Fallback to base64 (not truly encrypted, but obfuscated).
-        return base64_encode($apikey);
+        return \core\encryption::encrypt($apikey);
     }
 
     /**
      * Decrypt a stored API key.
      *
+     * Handles migration from legacy base64-encoded keys.
+     *
      * @param string $encrypted
      * @return string
+     * @throws \moodle_exception If encryption is not available.
      */
     public static function decrypt_api_key(string $encrypted): string {
         if (empty($encrypted)) {
             return '';
         }
 
-        // Try Moodle's encryption first.
-        if (class_exists('\core\encryption')) {
-            try {
-                return \core\encryption::decrypt($encrypted);
-            } catch (\Exception $e) {
-                // Fall through to base64 decode.
-            }
+        if (!class_exists('\core\encryption')) {
+            throw new \moodle_exception('error:encryption_unavailable', 'redaction');
         }
 
-        // Fallback to base64 decode.
-        $decoded = base64_decode($encrypted, true);
-        return $decoded !== false ? $decoded : $encrypted;
+        try {
+            return \core\encryption::decrypt($encrypted);
+        } catch (\Exception $e) {
+            // Attempt legacy base64 migration: decode and return.
+            $decoded = base64_decode($encrypted, true);
+            if ($decoded !== false && $decoded !== $encrypted) {
+                return $decoded;
+            }
+            return $encrypted;
+        }
     }
 
     /**
@@ -103,43 +109,39 @@ class ai_config {
      * @param string $provider
      * @return bool
      */
-    public static function has_builtin_key(string $provider): bool {
-        return in_array($provider, self::BUILTIN_KEY_PROVIDERS);
+    public static function has_admin_key(string $provider): bool {
+        return in_array($provider, self::ADMIN_KEY_PROVIDERS);
     }
 
     /**
-     * Get the built-in API key for a provider.
-     * For Albert, returns the hardcoded key. For others, checks admin config.
+     * Get the admin-configured API key for a provider.
      *
      * @param string $provider
      * @return string
      */
-    public static function get_builtin_api_key(string $provider): string {
-        // Albert has a hardcoded built-in key.
-        if ($provider === 'albert') {
-            return \mod_redaction\ai_provider\albert_provider::get_builtin_key();
-        }
-
-        // Other providers check admin config.
+    public static function get_admin_api_key(string $provider): string {
         $key = get_config('mod_redaction', $provider . '_api_key');
-        return $key ?? '';
+        return !empty($key) ? $key : '';
     }
 
     /**
      * Get the effective API key for a provider.
+     *
+     * Priority: instance-level key > admin-configured key.
+     * For Albert, admin key is used when no instance key is set.
      *
      * @param string $provider
      * @param string $instancekey The instance-level key
      * @return string
      */
     public static function get_effective_api_key(string $provider, string $instancekey): string {
-        // Built-in providers (like Albert) use the built-in key.
-        if (self::has_builtin_key($provider)) {
-            return self::get_builtin_api_key($provider);
+        // Use instance key if available.
+        if (!empty($instancekey)) {
+            return $instancekey;
         }
 
-        // Other providers use instance-level key.
-        return $instancekey;
+        // Fall back to admin-configured key (applies to all providers including Albert).
+        return self::get_admin_api_key($provider);
     }
 
     /**
@@ -172,7 +174,7 @@ class ai_config {
             'openai' => 'OpenAI (GPT-4)',
             'anthropic' => 'Anthropic (Claude)',
             'mistral' => 'Mistral AI',
-            'albert' => 'Albert (Etalab) - ' . get_string('ai_provider_builtin', 'redaction'),
+            'albert' => 'Albert (Etalab) - ' . get_string('ai_provider_admin_key', 'redaction'),
         ];
     }
 }

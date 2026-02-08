@@ -41,7 +41,7 @@ $context = context_module::instance($cm->id);
 // Decode data.
 $formdata = json_decode($data, true);
 if ($formdata === null) {
-    echo json_encode(['success' => false, 'message' => 'Invalid JSON data']);
+    echo json_encode(['success' => false, 'message' => get_string('ajax:invalid_json', 'redaction')]);
     exit;
 }
 
@@ -66,13 +66,13 @@ try {
                 $consignes->timemodified = time();
                 $DB->update_record('redaction_consignes', $consignes);
 
-                $result = ['success' => true, 'message' => 'Lock status updated'];
+                $result = ['success' => true, 'message' => get_string('ajax:lock_updated', 'redaction')];
                 break;
             }
 
             // Check if locked.
             if ($consignes->locked) {
-                $result = ['success' => false, 'message' => 'Consignes are locked'];
+                $result = ['success' => false, 'message' => get_string('ajax:consignes_locked', 'redaction')];
                 break;
             }
 
@@ -88,7 +88,7 @@ try {
             $consignes->timemodified = time();
             $DB->update_record('redaction_consignes', $consignes);
 
-            $result = ['success' => true, 'message' => 'Saved'];
+            $result = ['success' => true, 'message' => get_string('ajax:saved', 'redaction')];
             break;
 
         case 'redaction':
@@ -100,7 +100,7 @@ try {
 
             // Check if already submitted.
             if ($submission->status == 1) {
-                $result = ['success' => false, 'message' => 'Already submitted'];
+                $result = ['success' => false, 'message' => get_string('ajax:already_submitted', 'redaction')];
                 break;
             }
 
@@ -119,7 +119,7 @@ try {
             // Save to history.
             redaction_save_history($submission, $USER->id);
 
-            $result = ['success' => true, 'message' => 'Saved'];
+            $result = ['success' => true, 'message' => get_string('ajax:saved', 'redaction')];
             break;
 
         case 'correction':
@@ -153,11 +153,11 @@ try {
             $correction->timemodified = time();
             $DB->update_record('redaction_correction', $correction);
 
-            $result = ['success' => true, 'message' => 'Saved'];
+            $result = ['success' => true, 'message' => get_string('ajax:saved', 'redaction')];
             break;
 
         default:
-            $result = ['success' => false, 'message' => 'Invalid page'];
+            $result = ['success' => false, 'message' => get_string('ajax:invalid_page', 'redaction')];
     }
 } catch (Exception $e) {
     $result = ['success' => false, 'message' => $e->getMessage()];

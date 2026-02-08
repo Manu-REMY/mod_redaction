@@ -150,9 +150,49 @@ class token_stats {
     }
 
     /**
+     * Get token pricing configuration.
+     *
+     * Reads pricing from admin config (JSON). Falls back to default
+     * hardcoded values if no config is set or if JSON is invalid.
+     *
+     * Pricing is per 1M tokens in USD.
+     *
+     * @return array Pricing array keyed by provider name
+     */
+    protected function get_token_pricing(): array {
+        // Default pricing per 1M tokens.
+        $defaults = [
+            'openai' => ['input' => 2.50, 'output' => 10.00],       // GPT-4 Turbo
+            'anthropic' => ['input' => 3.00, 'output' => 15.00],   // Claude 3 Sonnet
+            'mistral' => ['input' => 0.25, 'output' => 0.25],      // Mistral Medium
+            'albert' => ['input' => 0.00, 'output' => 0.00],       // Free (public service)
+        ];
+
+        $configjson = get_config('mod_redaction', 'token_pricing');
+        if (empty($configjson)) {
+            return $defaults;
+        }
+
+        $pricing = json_decode($configjson, true);
+        if (!is_array($pricing)) {
+            return $defaults;
+        }
+
+        // Validate structure: each entry must have numeric input and output.
+        foreach ($pricing as $provider => $rates) {
+            if (!isset($rates['input']) || !isset($rates['output'])
+                    || !is_numeric($rates['input']) || !is_numeric($rates['output'])) {
+                return $defaults;
+            }
+        }
+
+        return $pricing;
+    }
+
+    /**
      * Estimate cost based on token usage and provider.
      *
-     * Note: These are rough estimates. Actual costs depend on specific models used.
+     * Uses configurable pricing from admin settings, with sensible defaults.
      *
      * @param array $byProvider Usage by provider
      * @return float Estimated cost in USD
@@ -160,13 +200,7 @@ class token_stats {
     protected function estimate_cost(array $byProvider): float {
         $totalCost = 0.0;
 
-        // Approximate pricing per 1M tokens (as of 2024).
-        $pricing = [
-            'openai' => ['input' => 2.50, 'output' => 10.00],       // GPT-4 Turbo
-            'anthropic' => ['input' => 3.00, 'output' => 15.00],   // Claude 3 Sonnet
-            'mistral' => ['input' => 0.25, 'output' => 0.25],      // Mistral Medium
-            'albert' => ['input' => 0.00, 'output' => 0.00],       // Free (public service)
-        ];
+        $pricing = $this->get_token_pricing();
 
         foreach ($byProvider as $usage) {
             $provider = strtolower($usage['provider']);
@@ -191,29 +225,32 @@ class token_stats {
 
         $startTime = time() - ($days * 86400);
 
-        $sql = "SELECT
-                    DATE(FROM_UNIXTIME(timecreated)) as date,
-                    COALESCE(SUM(prompt_tokens), 0) as prompt_tokens,
-                    COALESCE(SUM(completion_tokens), 0) as completion_tokens,
-                    COUNT(*) as request_count
+        $sql = "SELECT id, timecreated, prompt_tokens, completion_tokens
                 FROM {redaction_ai_evaluations}
                 WHERE redactionid = ? AND timecreated >= ?
-                GROUP BY DATE(FROM_UNIXTIME(timecreated))
-                ORDER BY date";
+                ORDER BY timecreated";
 
         $results = $DB->get_records_sql($sql, [$this->redactionid, $startTime]);
 
-        $data = [];
+        // Group by day using PHP (database-agnostic).
+        $daily = [];
         foreach ($results as $row) {
-            $data[] = [
-                'date' => $row->date,
-                'prompt_tokens' => (int) $row->prompt_tokens,
-                'completion_tokens' => (int) $row->completion_tokens,
-                'total_tokens' => (int) ($row->prompt_tokens + $row->completion_tokens),
-                'request_count' => (int) $row->request_count,
-            ];
+            $date = date('Y-m-d', $row->timecreated);
+            if (!isset($daily[$date])) {
+                $daily[$date] = [
+                    'date' => $date,
+                    'prompt_tokens' => 0,
+                    'completion_tokens' => 0,
+                    'total_tokens' => 0,
+                    'request_count' => 0,
+                ];
+            }
+            $daily[$date]['prompt_tokens'] += (int) $row->prompt_tokens;
+            $daily[$date]['completion_tokens'] += (int) $row->completion_tokens;
+            $daily[$date]['total_tokens'] += (int) ($row->prompt_tokens + $row->completion_tokens);
+            $daily[$date]['request_count']++;
         }
 
-        return $data;
+        return array_values($daily);
     }
 }

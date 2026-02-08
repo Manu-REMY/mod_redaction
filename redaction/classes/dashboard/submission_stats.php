@@ -50,9 +50,34 @@ class submission_stats {
     /**
      * Get all submission statistics.
      *
+     * Results are cached for 5 minutes to reduce database load on the dashboard.
+     *
+     * @param bool $forcereload If true, bypass cache and recompute stats.
      * @return object Statistics object
      */
-    public function get_stats(): object {
+    public function get_stats(bool $forcereload = false): object {
+        $cache = \cache::make('mod_redaction', 'dashboard_stats');
+        $key = 'stats_' . $this->redactionid;
+
+        if (!$forcereload) {
+            $cached = $cache->get($key);
+            if ($cached !== false) {
+                return $cached;
+            }
+        }
+
+        $stats = $this->compute_stats();
+        $cache->set($key, $stats);
+
+        return $stats;
+    }
+
+    /**
+     * Compute all submission statistics from database.
+     *
+     * @return object Statistics object
+     */
+    protected function compute_stats(): object {
         $stats = new \stdClass();
 
         // Get expected submissions count.
@@ -89,6 +114,19 @@ class submission_stats {
         $stats->ai_failed = $aiStats->failed;
 
         return $stats;
+    }
+
+    /**
+     * Invalidate the cached dashboard statistics for a redaction instance.
+     *
+     * Should be called whenever submissions or grades change (e.g. new submission,
+     * grading, AI evaluation completion).
+     *
+     * @param int $redactionid The redaction instance ID
+     */
+    public static function invalidate_cache(int $redactionid): void {
+        $cache = \cache::make('mod_redaction', 'dashboard_stats');
+        $cache->delete('stats_' . $redactionid);
     }
 
     /**

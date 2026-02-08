@@ -19,6 +19,8 @@ define(['jquery'], function($) {
         cmid: 0,
         submissionid: 0,
         pollInterval: null,
+        maxPollAttempts: 120,
+        pollCount: 0,
 
         /**
          * Initialize grading module.
@@ -41,8 +43,15 @@ define(['jquery'], function($) {
             var pendingIndicator = $('.ai-pending');
 
             if (pendingIndicator.length > 0) {
-                // Start polling every 5 seconds
+                this.pollCount = 0;
                 this.pollInterval = setInterval(function() {
+                    self.pollCount++;
+                    if (self.pollCount >= self.maxPollAttempts) {
+                        self.stopPolling();
+                        $('.ai-pending .spinner').hide();
+                        $('.ai-pending span').text('Evaluation timeout - please refresh the page.');
+                        return;
+                    }
                     self.pollEvaluationStatus();
                 }, 5000);
             }

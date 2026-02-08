@@ -26,6 +26,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, Ajax, Notifica
         formSelector: null,
         statusElement: null,
         isDirty: false,
+        strings: {},
 
         /**
          * Initialize autosave.
@@ -38,6 +39,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, Ajax, Notifica
             this.groupid = config.groupid || 0;
             this.interval = config.interval || 30000;
             this.formSelector = config.formSelector || 'form';
+            this.strings = config.strings || {};
 
             // Create status indicator
             this.createStatusIndicator();
@@ -65,7 +67,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, Ajax, Notifica
                 'box-shadow: 0 4px 12px rgba(0,0,0,0.1); ' +
                 'display: none; transition: all 0.3s; font-family: -apple-system, system-ui, BlinkMacSystemFont, sans-serif;">' +
                 '<span id="autosave-icon" style="margin-right: 8px;">💾</span> ' +
-                '<span id="autosave-text">Sauvegarde automatique...</span>' +
+                '<span id="autosave-text">' + (this.strings.saving || 'Saving...') + '</span>' +
                 '</div>';
 
             $('body').append(statusHtml);
@@ -120,7 +122,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, Ajax, Notifica
          */
         showStatus: function (type) {
             var icon = '💾';
-            var text = 'Sauvegarde automatique...';
+            var text = this.strings.saving || 'Saving...';
             var bgColor = '#f8f9fa';
             var borderColor = '#dee2e6';
             var textColor = '#212529';
@@ -128,21 +130,21 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, Ajax, Notifica
             switch (type) {
                 case 'saving':
                     icon = '⏳';
-                    text = 'Sauvegarde en cours...';
+                    text = this.strings.saving || 'Saving...';
                     bgColor = '#fff3cd';
                     borderColor = '#ffeeba';
                     textColor = '#856404';
                     break;
                 case 'saved':
                     icon = '✓';
-                    text = 'Sauvegardé';
+                    text = this.strings.saved || 'Saved';
                     bgColor = '#d4edda';
                     borderColor = '#c3e6cb';
                     textColor = '#155724';
                     break;
                 case 'error':
                     icon = '⚠️';
-                    text = 'Erreur de sauvegarde';
+                    text = this.strings.error || 'Save error';
                     bgColor = '#f8d7da';
                     borderColor = '#f5c6cb';
                     textColor = '#721c24';
@@ -244,7 +246,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, Ajax, Notifica
             $(window).on('beforeunload', function () {
                 if (self.isDirty) {
                     self.save();
-                    return 'Vous avez des modifications non sauvegardées.';
+                    return self.strings.unsaved || 'You have unsaved changes.';
                 }
             });
         }

@@ -15,17 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other metadata.
+ * Cache definitions for mod_redaction.
  *
  * @package    mod_redaction
- * @copyright  2025 Emmanuel REMY
+ * @copyright  2026 Emmanuel REMY
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'mod_redaction';
-$plugin->version = 2026020805;  // YYYYMMDDXX format
-$plugin->requires = 2024100700; // Moodle 4.5+
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0.0';
+$definitions = [
+    'dashboard_stats' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'simpledata' => false,
+        'ttl' => 300, // 5 minutes.
+    ],
+];

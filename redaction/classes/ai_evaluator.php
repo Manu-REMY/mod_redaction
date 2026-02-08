@@ -42,6 +42,52 @@ class ai_evaluator {
     /** @var int Maximum tokens for response */
     const MAX_TOKENS = 2000;
 
+    /** @var int Default rate limit: max evaluations per hour per activity */
+    const DEFAULT_RATE_LIMIT = 60;
+
+    /** @var int Cooldown in seconds between re-evaluations of the same submission */
+    const EVALUATION_COOLDOWN = 300;
+
+    /**
+     * Check rate limiting for AI evaluations.
+     *
+     * @param int $redactionid Activity instance ID
+     * @param int $submissionid Submission ID
+     * @throws \moodle_exception If rate limit is exceeded or cooldown not elapsed.
+     */
+    public static function check_rate_limit(int $redactionid, int $submissionid): void {
+        global $DB;
+
+        $ratelimit = (int) get_config('mod_redaction', 'ai_rate_limit');
+        if ($ratelimit <= 0) {
+            $ratelimit = self::DEFAULT_RATE_LIMIT;
+        }
+
+        // Check activity-level rate limit (evaluations in the last hour).
+        $onehourago = time() - 3600;
+        $recentcount = $DB->count_records_select(
+            'redaction_ai_evaluations',
+            'redactionid = ? AND timecreated > ?',
+            [$redactionid, $onehourago]
+        );
+
+        if ($recentcount >= $ratelimit) {
+            throw new \moodle_exception('error:rate_limit_exceeded', 'redaction');
+        }
+
+        // Check per-submission cooldown.
+        $cooldowntime = time() - self::EVALUATION_COOLDOWN;
+        $recentforsubmission = $DB->record_exists_select(
+            'redaction_ai_evaluations',
+            'submissionid = ? AND timecreated > ? AND status NOT IN (?, ?)',
+            [$submissionid, $cooldowntime, 'pending', 'processing']
+        );
+
+        if ($recentforsubmission) {
+            throw new \moodle_exception('error:evaluation_cooldown', 'redaction');
+        }
+    }
+
     /**
      * Queue an evaluation for processing.
      *
@@ -49,10 +95,16 @@ class ai_evaluator {
      * @param int $submissionid Submission ID
      * @param int $groupid Group ID
      * @param int $userid User ID
+     * @param bool $skipratelimit Skip rate limiting (for auto-submit tasks)
      * @return int Evaluation ID
      */
-    public static function queue_evaluation(int $redactionid, int $submissionid, int $groupid, int $userid): int {
+    public static function queue_evaluation(int $redactionid, int $submissionid, int $groupid, int $userid, bool $skipratelimit = false): int {
         global $DB;
+
+        // Check rate limiting unless explicitly skipped (e.g., from cron task).
+        if (!$skipratelimit) {
+            self::check_rate_limit($redactionid, $submissionid);
+        }
 
         $redaction = $DB->get_record('redaction', ['id' => $redactionid], '*', MUST_EXIST);
 
@@ -134,10 +186,27 @@ class ai_evaluator {
 
             $DB->update_record('redaction_ai_evaluations', $evaluation);
 
+            // Trigger AI evaluation completed event.
+            $cm = get_coursemodule_from_instance('redaction', $redaction->id, $redaction->course, false, MUST_EXIST);
+            $context = \context_module::instance($cm->id);
+            $event = \mod_redaction\event\ai_evaluation_completed::create([
+                'objectid' => $evaluation->id,
+                'context' => $context,
+                'userid' => $evaluation->userid,
+                'other' => [
+                    'submissionid' => $evaluation->submissionid,
+                    'provider' => $evaluation->provider,
+                ],
+            ]);
+            $event->trigger();
+
             // Auto-apply if configured.
             if ($redaction->ai_auto_apply) {
                 self::apply_evaluation($evaluationid, 0); // System auto-apply.
             }
+
+            // Invalidate dashboard cache.
+            \mod_redaction\dashboard\submission_stats::invalidate_cache($redaction->id);
 
             return true;
 
@@ -161,10 +230,14 @@ class ai_evaluator {
     public static function get_evaluation(int $submissionid): ?object {
         global $DB;
 
-        return $DB->get_record_sql(
-            'SELECT * FROM {redaction_ai_evaluations} WHERE submissionid = ? ORDER BY timecreated DESC LIMIT 1',
-            [$submissionid]
-        ) ?: null;
+        $records = $DB->get_records_sql(
+            'SELECT * FROM {redaction_ai_evaluations} WHERE submissionid = ? ORDER BY timecreated DESC',
+            [$submissionid],
+            0,
+            1
+        );
+
+        return !empty($records) ? reset($records) : null;
     }
 
     /**
@@ -278,7 +351,12 @@ class ai_evaluator {
      * @return string
      */
     public static function get_model_for_provider(string $provider): string {
-        $instance = self::get_provider($provider, '');
-        return $instance->get_default_model();
+        $models = [
+            'openai' => 'gpt-4o-mini',
+            'anthropic' => 'claude-3-5-sonnet-20241022',
+            'mistral' => 'mistral-medium-latest',
+            'albert' => 'albert-large',
+        ];
+        return $models[$provider] ?? 'default';
     }
 }

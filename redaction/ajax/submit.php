@@ -62,7 +62,7 @@ try {
 
             // Check if content is not empty.
             if (empty($submission->contenu)) {
-                $result = ['success' => false, 'message' => 'Le contenu ne peut pas être vide'];
+                $result = ['success' => false, 'message' => get_string('error:empty_content', 'redaction')];
                 break;
             }
 
@@ -72,9 +72,17 @@ try {
                 $submission = $DB->get_record('redaction_submission', ['id' => $submission->id]);
                 redaction_save_history($submission, $USER->id);
 
-                $result = ['success' => true, 'message' => 'Submitted'];
+                // Trigger submission submitted event.
+                $event = \mod_redaction\event\submission_submitted::create([
+                    'objectid' => $submission->id,
+                    'context' => $context,
+                    'userid' => $USER->id,
+                ]);
+                $event->trigger();
+
+                $result = ['success' => true, 'message' => get_string('ajax:submitted', 'redaction')];
             } else {
-                $result = ['success' => false, 'message' => 'Failed to submit'];
+                $result = ['success' => false, 'message' => get_string('ajax:submit_failed', 'redaction')];
             }
             break;
 
@@ -86,7 +94,7 @@ try {
             if ($submissionid > 0) {
                 $submission = $DB->get_record('redaction_submission', ['id' => $submissionid]);
                 if ($submission && $submission->redactionid != $redaction->id) {
-                    $result = ['success' => false, 'message' => 'Invalid submission'];
+                    $result = ['success' => false, 'message' => get_string('ajax:invalid_submission', 'redaction')];
                     break;
                 }
             } else {
@@ -112,14 +120,14 @@ try {
             $submission->status = 0;
             $submission->timemodified = time();
             if ($DB->update_record('redaction_submission', $submission)) {
-                $result = ['success' => true, 'message' => 'Unlocked'];
+                $result = ['success' => true, 'message' => get_string('ajax:unlocked', 'redaction')];
             } else {
-                $result = ['success' => false, 'message' => 'Failed to unlock'];
+                $result = ['success' => false, 'message' => get_string('ajax:unlock_failed', 'redaction')];
             }
             break;
 
         default:
-            $result = ['success' => false, 'message' => 'Invalid action'];
+            $result = ['success' => false, 'message' => get_string('ajax:invalid_action', 'redaction')];
     }
 } catch (Exception $e) {
     $result = ['success' => false, 'message' => $e->getMessage()];

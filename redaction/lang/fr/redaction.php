@@ -292,3 +292,50 @@ $string['dashboard_summary_generated'] = 'Synthèse générée avec succès.';
 // Unknown user/group.
 $string['unknowngroup'] = 'Groupe inconnu';
 $string['unknownuser'] = 'Utilisateur inconnu';
+
+// Messages AJAX.
+$string['error:empty_content'] = 'Le contenu ne peut pas être vide.';
+$string['error:rate_limit_exceeded'] = 'Limite de requêtes atteinte. Veuillez patienter avant de demander une nouvelle évaluation.';
+$string['error:evaluation_cooldown'] = 'Veuillez patienter quelques minutes avant de demander une nouvelle évaluation pour cette soumission.';
+$string['error:encryption_unavailable'] = 'Le chiffrement Moodle n\'est pas disponible. Ce plugin nécessite Moodle 4.5+.';
+$string['ajax:submitted'] = 'Soumis';
+$string['ajax:submit_failed'] = 'Échec de la soumission';
+$string['ajax:invalid_submission'] = 'Soumission invalide';
+$string['ajax:unlocked'] = 'Déverrouillé';
+$string['ajax:unlock_failed'] = 'Échec du déverrouillage';
+$string['ajax:invalid_action'] = 'Action invalide';
+$string['ajax:invalid_json'] = 'Données JSON invalides';
+$string['ajax:lock_updated'] = 'Statut de verrouillage mis à jour';
+$string['ajax:consignes_locked'] = 'Les consignes sont verrouillées';
+$string['ajax:saved'] = 'Sauvegardé';
+$string['ajax:already_submitted'] = 'Déjà soumis';
+$string['ajax:invalid_page'] = 'Page invalide';
+$string['ai_provider_admin_key'] = 'Clé administrateur';
+$string['ai_albert_no_key'] = 'La clé API Albert n\'est pas configurée. Veuillez contacter votre administrateur.';
+
+// Paramètres de limitation.
+$string['settings_rate_limit'] = 'Limite de fréquence des évaluations IA';
+$string['settings_rate_limit_desc'] = 'Nombre maximum d\'évaluations IA par heure et par activité. Mettre 0 pour aucune limite (non recommandé).';
+
+// Paramètres de tarification des tokens.
+$string['settings_token_pricing_heading'] = 'Tarification des tokens';
+$string['settings_token_pricing_heading_desc'] = 'Configurez le prix par million de tokens pour chaque fournisseur IA. Ces valeurs sont utilisées pour estimer les coûts sur le tableau de bord enseignant. Mettez-les à jour lorsque les fournisseurs modifient leurs tarifs.';
+$string['settings_token_pricing'] = 'Tarification des tokens (JSON)';
+$string['settings_token_pricing_desc'] = 'Prix par million de tokens en USD, au format JSON. Chaque fournisseur doit avoir des valeurs "input" et "output". Exemple : {"openai": {"input": 2.50, "output": 10.00}, "anthropic": {"input": 3.00, "output": 15.00}}';
+
+// Événements.
+$string['event_submission_created'] = 'Soumission créée';
+$string['event_submission_submitted'] = 'Soumission soumise';
+$string['event_grade_updated'] = 'Note mise à jour';
+$string['event_ai_evaluation_requested'] = 'Évaluation IA demandée';
+$string['event_ai_evaluation_completed'] = 'Évaluation IA terminée';
+$string['event_ai_grade_applied'] = 'Note IA appliquée';
+
+// Chaînes JS notation.
+$string['js:evaluating'] = 'Évaluation en cours...';
+$string['js:evaluate_with_ai'] = 'Évaluer avec l\'IA';
+$string['js:words'] = 'mots';
+$string['js:characters'] = 'caractères';
+$string['js:no_history'] = 'Aucun historique disponible.';
+$string['js:loading_error'] = 'Erreur de chargement.';
+$string['js:connection_error'] = 'Erreur de connexion';

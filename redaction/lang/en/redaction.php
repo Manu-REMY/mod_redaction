@@ -292,3 +292,50 @@ $string['dashboard_summary_generated'] = 'Summary generated successfully.';
 // Unknown user/group.
 $string['unknowngroup'] = 'Unknown group';
 $string['unknownuser'] = 'Unknown user';
+
+// AJAX messages.
+$string['error:empty_content'] = 'Content cannot be empty.';
+$string['error:rate_limit_exceeded'] = 'Rate limit exceeded. Please wait before requesting another evaluation.';
+$string['error:evaluation_cooldown'] = 'Please wait a few minutes before requesting another evaluation for this submission.';
+$string['error:encryption_unavailable'] = 'Moodle encryption is not available. This plugin requires Moodle 4.5+.';
+$string['ajax:submitted'] = 'Submitted';
+$string['ajax:submit_failed'] = 'Failed to submit';
+$string['ajax:invalid_submission'] = 'Invalid submission';
+$string['ajax:unlocked'] = 'Unlocked';
+$string['ajax:unlock_failed'] = 'Failed to unlock';
+$string['ajax:invalid_action'] = 'Invalid action';
+$string['ajax:invalid_json'] = 'Invalid JSON data';
+$string['ajax:lock_updated'] = 'Lock status updated';
+$string['ajax:consignes_locked'] = 'Instructions are locked';
+$string['ajax:saved'] = 'Saved';
+$string['ajax:already_submitted'] = 'Already submitted';
+$string['ajax:invalid_page'] = 'Invalid page';
+$string['ai_provider_admin_key'] = 'Admin key';
+$string['ai_albert_no_key'] = 'Albert API key is not configured. Please contact your administrator.';
+
+// Rate limiting settings.
+$string['settings_rate_limit'] = 'AI evaluation rate limit';
+$string['settings_rate_limit_desc'] = 'Maximum number of AI evaluations per hour per activity. Set to 0 for no limit (not recommended).';
+
+// Token pricing settings.
+$string['settings_token_pricing_heading'] = 'Token Pricing';
+$string['settings_token_pricing_heading_desc'] = 'Configure the pricing per 1 million tokens for each AI provider. These values are used to estimate costs on the teacher dashboard. Update them when providers change their pricing.';
+$string['settings_token_pricing'] = 'Token pricing (JSON)';
+$string['settings_token_pricing_desc'] = 'Pricing per 1M tokens in USD, in JSON format. Each provider must have "input" and "output" values. Example: {"openai": {"input": 2.50, "output": 10.00}, "anthropic": {"input": 3.00, "output": 15.00}}';
+
+// Events.
+$string['event_submission_created'] = 'Submission created';
+$string['event_submission_submitted'] = 'Submission submitted';
+$string['event_grade_updated'] = 'Grade updated';
+$string['event_ai_evaluation_requested'] = 'AI evaluation requested';
+$string['event_ai_evaluation_completed'] = 'AI evaluation completed';
+$string['event_ai_grade_applied'] = 'AI grade applied';
+
+// Grading JS strings.
+$string['js:evaluating'] = 'Evaluating...';
+$string['js:evaluate_with_ai'] = 'Evaluate with AI';
+$string['js:words'] = 'words';
+$string['js:characters'] = 'characters';
+$string['js:no_history'] = 'No history available.';
+$string['js:loading_error'] = 'Loading error.';
+$string['js:connection_error'] = 'Connection error';

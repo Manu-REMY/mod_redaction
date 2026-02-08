@@ -60,5 +60,32 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026012901, 'redaction');
     }
 
+    // Audit improvements: re-encrypt any legacy base64-encoded API keys,
+    // add cache definition, and event system support.
+    if ($oldversion < 2026020805) {
+        // Re-encrypt any API keys that were stored with base64 fallback.
+        $records = $DB->get_recordset('redaction', null, '', 'id, ai_api_key');
+        foreach ($records as $record) {
+            if (!empty($record->ai_api_key)) {
+                // Try to detect base64-encoded keys (not encrypted with \core\encryption).
+                $decoded = @base64_decode($record->ai_api_key, true);
+                if ($decoded !== false && base64_encode($decoded) === $record->ai_api_key) {
+                    // This looks like a base64-encoded key, re-encrypt it properly.
+                    try {
+                        $encrypted = \core\encryption::encrypt($decoded);
+                        $DB->set_field('redaction', 'ai_api_key', $encrypted, ['id' => $record->id]);
+                    } catch (\Exception $e) {
+                        // Skip if encryption fails - key will need manual re-entry.
+                        debugging('Failed to re-encrypt API key for redaction ' . $record->id . ': ' . $e->getMessage());
+                    }
+                }
+            }
+        }
+        $records->close();
+
+        // Redaction savepoint reached.
+        upgrade_mod_savepoint(true, 2026020805, 'redaction');
+    }
+
     return true;
 }

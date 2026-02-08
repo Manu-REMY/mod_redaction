@@ -98,18 +98,42 @@ class ai_summary_generator {
     }
 
     /**
-     * Get all completed or applied evaluations for this activity.
+     * Get completed or applied evaluations for this activity with optional pagination.
      *
+     * @param int $page Page number for pagination (0-based)
+     * @param int $perpage Number of records per page (0 = all)
      * @return array
      */
-    protected function get_completed_evaluations(): array {
+    protected function get_completed_evaluations(int $page = 0, int $perpage = 0): array {
         global $DB;
 
-        return $DB->get_records_select(
+        $sql = 'SELECT *
+                FROM {redaction_ai_evaluations}
+                WHERE redactionid = ? AND status IN (?, ?)
+                ORDER BY timecreated DESC';
+        $params = [$this->redactionid, 'completed', 'applied'];
+
+        if ($perpage > 0) {
+            return $DB->get_records_sql($sql, $params, $page * $perpage, $perpage);
+        }
+
+        return $DB->get_records_sql($sql, $params);
+    }
+
+    /**
+     * Count total completed or applied evaluations for this activity.
+     *
+     * Used for pagination UI alongside get_completed_evaluations().
+     *
+     * @return int Total number of completed/applied evaluations
+     */
+    protected function count_completed_evaluations(): int {
+        global $DB;
+
+        return $DB->count_records_select(
             'redaction_ai_evaluations',
             'redactionid = ? AND status IN (?, ?)',
-            [$this->redactionid, 'completed', 'applied'],
-            'timecreated DESC'
+            [$this->redactionid, 'completed', 'applied']
         );
     }
 

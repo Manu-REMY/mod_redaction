@@ -34,27 +34,26 @@ class albert_provider extends base_provider {
     const DEFAULT_MODEL = 'albert-large';
 
     /**
-     * Get the built-in API key for Albert.
-     * This key is provided for educational use within this plugin.
+     * Get the API key for Albert from admin settings.
      *
-     * @return string
+     * @return string The configured API key, or empty string if not configured.
      */
-    public static function get_builtin_key(): string {
-        // Key parts are split and reassembled for basic obfuscation.
-        $p1 = 'sk-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
-        $p2 = 'eyJ1c2VyX2lkIjo5NTMxLCJ0b2tlbl9pZCI6MTA0MzcsImV4cGlyZXMiOjE4MDA5ODU0MDV9';
-        $p3 = 'h4Kx-kUU4yXzEifV3-L63f791urH2owDSai5n8Ru7eo';
-        return $p1 . '.' . $p2 . '.' . $p3;
+    public static function get_admin_key(): string {
+        $key = get_config('mod_redaction', 'albert_api_key');
+        return !empty($key) ? $key : '';
     }
 
     /**
-     * Constructor - uses built-in key if none provided.
+     * Constructor - uses admin-configured key if none provided.
      *
-     * @param string $apikey API key (optional, will use built-in if empty)
+     * @param string $apikey API key (optional, will use admin key if empty)
      */
     public function __construct(string $apikey = '') {
         if (empty($apikey)) {
-            $apikey = self::get_builtin_key();
+            $apikey = self::get_admin_key();
+        }
+        if (empty($apikey)) {
+            throw new \moodle_exception('ai_albert_no_key', 'redaction');
         }
         parent::__construct($apikey);
     }

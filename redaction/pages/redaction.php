@@ -51,12 +51,15 @@ $isgraded = ($submission->grade !== null);
 // Get AI evaluation if available and graded.
 $aievaluation = null;
 if ($isgraded && $redaction->ai_enabled && $submission) {
-    $aievaluation = $DB->get_record_sql(
+    $records = $DB->get_records_sql(
         'SELECT * FROM {redaction_ai_evaluations}
          WHERE submissionid = ? AND (status = ? OR status = ?)
-         ORDER BY timecreated DESC LIMIT 1',
-        [$submission->id, 'completed', 'applied']
+         ORDER BY timecreated DESC',
+        [$submission->id, 'completed', 'applied'],
+        0,
+        1
     );
+    $aievaluation = !empty($records) ? reset($records) : null;
 }
 
 // Editor options for rich text.

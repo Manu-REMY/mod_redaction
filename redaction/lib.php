@@ -329,13 +329,15 @@ function redaction_save_history($submission, $savedby) {
 }
 
 /**
- * Get version history for a submission.
+ * Get version history for a submission with optional pagination.
  *
  * @param int $submissionid
  * @param int $limit Max number of versions to return (0 = all)
+ * @param int $page Page number for pagination (0-based)
+ * @param int $perpage Number of records per page
  * @return array
  */
-function redaction_get_history($submissionid, $limit = 0) {
+function redaction_get_history($submissionid, $limit = 0, int $page = 0, int $perpage = 20) {
     global $DB;
 
     $sql = 'SELECT h.*, u.firstname, u.lastname
@@ -348,7 +350,21 @@ function redaction_get_history($submissionid, $limit = 0) {
         return $DB->get_records_sql($sql, [$submissionid], 0, $limit);
     }
 
-    return $DB->get_records_sql($sql, [$submissionid]);
+    return $DB->get_records_sql($sql, [$submissionid], $page * $perpage, $perpage);
+}
+
+/**
+ * Count total version history records for a submission.
+ *
+ * Used for pagination UI alongside redaction_get_history().
+ *
+ * @param int $submissionid The submission ID
+ * @return int Total number of history records
+ */
+function redaction_count_history(int $submissionid): int {
+    global $DB;
+
+    return $DB->count_records('redaction_history', ['submissionid' => $submissionid]);
 }
 
 /**
