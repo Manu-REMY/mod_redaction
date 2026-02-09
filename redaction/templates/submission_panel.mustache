@@ -1,0 +1,81 @@
+{{!
+    @template mod_redaction/submission_panel
+
+    Student submission display panel.
+
+    Context variables required for this template:
+    * hassubmission - Boolean
+    * hascontent - Boolean
+    * issubmitted - Boolean
+    * isdraft - Boolean
+    * submissionid - Submission ID
+    * titre - Submission title
+    * contenu - Formatted content HTML
+    * timesubmitted - Formatted date
+    * timemodified - Formatted date
+    * wordcount - Word count
+    * charcount - Character count
+    * cangrade - Boolean
+    * canviewhistory - Boolean
+
+    Example context (json):
+    {
+        "hassubmission": true,
+        "hascontent": true,
+        "issubmitted": true,
+        "submissionid": 1,
+        "titre": "My Essay",
+        "contenu": "<p>Content here</p>",
+        "wordcount": 150,
+        "charcount": 800
+    }
+}}
+<div class="submission-content">
+    {{^hascontent}}
+        <div class="status-bar no-submission">
+            &#10060; {{#str}}no_submission, redaction{{/str}}
+        </div>
+    {{/hascontent}}
+
+    {{#hascontent}}
+        {{#issubmitted}}
+            <div class="status-bar submitted">
+                &#9989; {{#str}}status_submitted, redaction{{/str}}
+                <span style="margin-left: auto; font-size: 13px;">
+                    {{#str}}submitted_on, redaction, {{timesubmitted}}{{/str}}
+                </span>
+                {{#cangrade}}
+                    <button type="button" class="unlock-btn" onclick="unlockSubmission({{submissionid}})">
+                        &#128275; {{#str}}unlock_submission, redaction{{/str}}
+                    </button>
+                {{/cangrade}}
+            </div>
+        {{/issubmitted}}
+        {{^issubmitted}}
+            <div class="status-bar draft">
+                &#128221; {{#str}}status_draft, redaction{{/str}}
+                <span style="margin-left: auto; font-size: 13px;">
+                    {{#str}}lastmodified, redaction{{/str}}: {{timemodified}}
+                </span>
+            </div>
+        {{/issubmitted}}
+
+        {{#titre}}
+            <div class="content-title">{{{titre}}}</div>
+        {{/titre}}
+
+        <div class="content-display">
+            {{{contenu}}}
+        </div>
+
+        <div class="word-count">
+            {{#str}}word_count, redaction, {{wordcount}}{{/str}} |
+            {{#str}}char_count, redaction, {{charcount}}{{/str}}
+            {{#canviewhistory}}
+                | <a href="#" class="history-link" onclick="showHistory({{submissionid}}); return false;">
+                    &#128220; {{#str}}version_history, redaction{{/str}}
+                </a>
+            {{/canviewhistory}}
+        </div>
+    {{/hascontent}}
+</div>

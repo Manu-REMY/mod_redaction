@@ -339,3 +339,57 @@ $string['js:characters'] = 'caractères';
 $string['js:no_history'] = 'Aucun historique disponible.';
 $string['js:loading_error'] = 'Erreur de chargement.';
 $string['js:connection_error'] = 'Erreur de connexion';
+
+// Délai d'application automatique.
+$string['settings_auto_apply_delay'] = 'Délai d\'application automatique (minutes)';
+$string['settings_auto_apply_delay_desc'] = 'Délai en minutes avant l\'application automatique des notes IA. Mettre à 0 pour une application immédiate. Cela donne aux enseignants le temps de vérifier les notes avant leur application.';
+$string['task_apply_ai_grade'] = 'Appliquer les notes IA en attente';
+$string['status_pending_apply'] = 'Application en attente';
+
+// Notifications.
+$string['notification_submission_subject'] = 'Nouvelle soumission de {$a}';
+$string['notification_submission_body'] = '{$a->student} a soumis sa rédaction dans l\'activité « {$a->activity} » du cours « {$a->course} ».';
+$string['notification_submission_body_html'] = '<p><strong>{$a->student}</strong> a soumis sa rédaction dans l\'activité « <em>{$a->activity}</em> » du cours « <em>{$a->course}</em> ».</p>';
+$string['notification_submission_small'] = 'Nouvelle soumission de {$a}';
+$string['notification_grade_subject'] = 'Votre rédaction « {$a} » a été notée';
+$string['notification_grade_body'] = 'Votre rédaction dans l\'activité « {$a->activity} » a été notée : {$a->grade}/20 dans le cours « {$a->course} ».';
+$string['notification_grade_body_html'] = '<p>Votre rédaction dans l\'activité « <em>{$a->activity}</em> » a été notée : <strong>{$a->grade}/20</strong> dans le cours « <em>{$a->course}</em> ».</p>';
+$string['notification_grade_small'] = '{$a->activity} : {$a->grade}/20';
+$string['notification_ai_eval_subject'] = 'Évaluation IA terminée';
+$string['notification_ai_eval_body'] = 'L\'évaluation IA pour {$a->student} dans l\'activité « {$a->activity} » est terminée. Note suggérée : {$a->grade}/20 (fournisseur : {$a->provider}).';
+$string['notification_ai_eval_body_html'] = '<p>L\'évaluation IA pour <strong>{$a->student}</strong> dans l\'activité « <em>{$a->activity}</em> » est terminée. Note suggérée : <strong>{$a->grade}/20</strong> (fournisseur : {$a->provider}).</p>';
+$string['notification_ai_eval_small'] = 'Évaluation IA terminée pour {$a}';
+$string['notification_ai_grade_subject'] = 'Note IA appliquée pour « {$a} »';
+$string['notification_ai_grade_body'] = 'Une note générée par l\'IA a été automatiquement appliquée à votre rédaction dans « {$a->activity} » : {$a->grade}/20 dans le cours « {$a->course} ».';
+$string['notification_ai_grade_body_html'] = '<p>Une note générée par l\'IA a été automatiquement appliquée à votre rédaction dans « <em>{$a->activity}</em> » : <strong>{$a->grade}/20</strong> dans le cours « <em>{$a->course}</em> ».</p>';
+$string['notification_ai_grade_small'] = '{$a->activity} : note IA {$a->grade}/20';
+$string['view_evaluation'] = 'Voir l\'évaluation';
+$string['messageprovider:submission_received'] = 'Notification quand un étudiant soumet sa rédaction';
+$string['messageprovider:grade_released'] = 'Notification quand une note est publiée';
+$string['messageprovider:ai_evaluation_complete'] = 'Notification quand une évaluation IA est terminée';
+
+// Opérations en masse.
+$string['bulk_evaluate'] = 'Évaluer tout avec l\'IA';
+$string['bulk_apply_grade'] = 'Appliquer toutes les notes IA';
+$string['js:bulk_evaluating'] = 'Évaluation de toutes les soumissions...';
+$string['js:bulk_evaluate_success'] = '{$a->queued} évaluation(s) en file d\'attente, {$a->skipped} ignorée(s).';
+$string['js:bulk_applying'] = 'Application des notes...';
+$string['js:bulk_apply_success'] = '{$a->applied} note(s) appliquée(s), {$a->skipped} ignorée(s).';
+$string['js:bulk_apply_confirm'] = 'Appliquer toutes les notes IA terminées ? Cette action mettra à jour le carnet de notes.';
+$string['js:no_evaluations'] = 'Aucune évaluation terminée à appliquer.';
+
+// Détection de similarité.
+$string['settings_plagiarism_heading'] = 'Détection de similarité';
+$string['settings_plagiarism_heading_desc'] = 'Configurez le seuil de détection de similarité entre les soumissions des élèves. Utilise le coefficient de similarité de Jaccard.';
+$string['settings_plagiarism_threshold'] = 'Seuil d\'alerte (%)';
+$string['settings_plagiarism_threshold_desc'] = 'Pourcentage de similarité au-dessus duquel une alerte est affichée. Par défaut : 70%.';
+$string['check_similarity'] = 'Vérifier la similarité';
+$string['similarity_results'] = 'Résultats de similarité';
+$string['similarity_alert'] = 'Forte similarité détectée';
+$string['no_similar_submissions'] = 'Aucune soumission similaire trouvée.';
+
+// Support mobile.
+$string['mobile_view_title'] = 'Activité Rédaction';
+$string['mobile_consignes_title'] = 'Consignes';
+$string['mobile_submission_title'] = 'Ma soumission';
+$string['mobile_evaluation_title'] = 'Évaluation';

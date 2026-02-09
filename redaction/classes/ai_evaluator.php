@@ -202,7 +202,17 @@ class ai_evaluator {
 
             // Auto-apply if configured.
             if ($redaction->ai_auto_apply) {
-                self::apply_evaluation($evaluationid, 0); // System auto-apply.
+                $delay = (int) get_config('mod_redaction', 'ai_auto_apply_delay');
+                if ($delay > 0) {
+                    // Delayed auto-apply: set pending status with scheduled timestamp.
+                    $evaluation->status = 'pending_apply';
+                    $evaluation->scheduled_apply_at = time() + ($delay * 60);
+                    $evaluation->timemodified = time();
+                    $DB->update_record('redaction_ai_evaluations', $evaluation);
+                } else {
+                    // Immediate auto-apply (existing behavior).
+                    self::apply_evaluation($evaluationid, 0);
+                }
             }
 
             // Invalidate dashboard cache.

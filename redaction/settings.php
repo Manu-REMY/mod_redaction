@@ -46,6 +46,21 @@ if ($ADMIN->fulltree) {
         PARAM_INT
     ));
 
+    // Auto-apply delay section.
+    $settings->add(new admin_setting_heading(
+        'mod_redaction/autoapplyheading',
+        get_string('settings_auto_apply_delay', 'redaction'),
+        get_string('settings_auto_apply_delay_desc', 'redaction')
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'mod_redaction/ai_auto_apply_delay',
+        get_string('settings_auto_apply_delay', 'redaction'),
+        get_string('settings_auto_apply_delay_desc', 'redaction'),
+        '0',
+        PARAM_INT
+    ));
+
     // Token pricing section.
     $settings->add(new admin_setting_heading(
         'mod_redaction/tokenpricingheading',
@@ -65,5 +80,20 @@ if ($ADMIN->fulltree) {
         get_string('settings_token_pricing', 'redaction'),
         get_string('settings_token_pricing_desc', 'redaction'),
         $defaultpricing
+    ));
+
+    // Plagiarism detection section.
+    $settings->add(new admin_setting_heading(
+        'mod_redaction/plagiarismheading',
+        get_string('settings_plagiarism_heading', 'redaction'),
+        get_string('settings_plagiarism_heading_desc', 'redaction')
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'mod_redaction/plagiarism_threshold',
+        get_string('settings_plagiarism_threshold', 'redaction'),
+        get_string('settings_plagiarism_threshold_desc', 'redaction'),
+        '70',
+        PARAM_INT
     ));
 }

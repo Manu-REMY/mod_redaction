@@ -1,0 +1,50 @@
+{{!
+    @template mod_redaction/grading_navigation
+
+    Grading navigation bar with prev/next buttons and item selector.
+
+    Context variables required for this template:
+    * prevurl - URL for previous item (empty if first)
+    * nexturl - URL for next item (empty if last)
+    * hasprev - Boolean, true if previous exists
+    * hasnext - Boolean, true if next exists
+    * currentpos - Current position (1-based)
+    * totalitems - Total items
+    * navitems - Array of {url, name, selected}
+
+    Example context (json):
+    {
+        "hasprev": true,
+        "prevurl": "/mod/redaction/view.php?id=1&page=grading&itemid=2",
+        "hasnext": true,
+        "nexturl": "/mod/redaction/view.php?id=1&page=grading&itemid=4",
+        "currentpos": 3,
+        "totalitems": 10,
+        "navitems": [{"url": "#", "name": "Group 1", "selected": false}]
+    }
+}}
+<div class="navigation-bar">
+    <div class="nav-buttons">
+        {{#hasprev}}
+            <a href="{{prevurl}}" class="nav-btn">← {{#str}}previous, moodle{{/str}}</a>
+        {{/hasprev}}
+        {{^hasprev}}
+            <span class="nav-btn disabled">← {{#str}}previous, moodle{{/str}}</span>
+        {{/hasprev}}
+
+        <span class="nav-counter">{{currentpos}} / {{totalitems}}</span>
+
+        {{#hasnext}}
+            <a href="{{nexturl}}" class="nav-btn">{{#str}}next, moodle{{/str}} →</a>
+        {{/hasnext}}
+        {{^hasnext}}
+            <span class="nav-btn disabled">{{#str}}next, moodle{{/str}} →</span>
+        {{/hasnext}}
+    </div>
+
+    <select class="item-selector" onchange="location.href=this.value">
+        {{#navitems}}
+            <option value="{{url}}" {{#selected}}selected{{/selected}}>{{name}}</option>
+        {{/navitems}}
+    </select>
+</div>

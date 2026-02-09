@@ -1,0 +1,128 @@
+{{!
+    @template mod_redaction/ai_evaluation
+
+    AI evaluation display with criteria, feedback and action buttons.
+
+    Context variables required for this template:
+    * ai_enabled - Boolean
+    * hassubmission - Boolean
+    * hasevaluation - Boolean
+    * ispending - Boolean
+    * isfailed - Boolean
+    * iscompleted - Boolean
+    * submissionid - Submission ID
+    * evaluationid - Evaluation ID
+    * grade - Formatted grade
+    * error_message - Error message if failed
+    * criteria - Array of {name, score, max, percentage, scoreclass, comment, hascomment}
+    * hascriteria - Boolean
+    * parsed_feedback - Feedback HTML
+    * hasfeedback - Boolean
+
+    Example context (json):
+    {
+        "ai_enabled": true,
+        "hassubmission": true,
+        "hasevaluation": true,
+        "iscompleted": true,
+        "evaluationid": 1,
+        "grade": "15.0",
+        "hascriteria": true,
+        "criteria": [{"name": "Relevance", "score": "4.0", "max": "5", "percentage": 80, "scoreclass": "good"}]
+    }
+}}
+{{#ai_enabled}}
+{{#hassubmission}}
+<div class="ai-evaluation-container">
+    <h4 style="margin-bottom: 12px; font-size: 16px;">&#129302; {{#str}}ai_evaluation, redaction{{/str}}</h4>
+
+    {{^hasevaluation}}
+        <p style="margin-bottom: 12px; font-size: 13px; color: #666;">
+            {{#str}}no_ai_evaluation, redaction{{/str}}
+        </p>
+        <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+            &#128640; {{#str}}evaluate_ai, redaction{{/str}}
+        </button>
+    {{/hasevaluation}}
+
+    {{#hasevaluation}}
+        {{#ispending}}
+            <div class="ai-pending">
+                <div class="spinner"></div>
+                <span>{{#str}}ai_evaluation_pending, redaction{{/str}}</span>
+            </div>
+        {{/ispending}}
+
+        {{#isfailed}}
+            <div class="alert alert-danger" style="margin-bottom: 15px;">
+                {{#str}}ai_evaluation_failed, redaction{{/str}}
+                {{#error_message}}<br><small>{{error_message}}</small>{{/error_message}}
+            </div>
+            <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+                &#128260; {{#str}}retry, moodle{{/str}}
+            </button>
+        {{/isfailed}}
+
+        {{#iscompleted}}
+            <div class="ai-grade-card">
+                <div class="ai-grade-value">{{grade}}/20</div>
+                <div class="ai-grade-label">{{#str}}ai_grade, redaction{{/str}}</div>
+            </div>
+
+            {{#hascriteria}}
+                <div class="ai-criteria-section">
+                    <div class="ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 style="margin: 0;">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
+                        <span class="toggle-icon">&#9660;</span>
+                    </div>
+                    <div class="ai-section-content">
+                        {{#criteria}}
+                            <div class="ai-criterion">
+                                <div class="ai-criterion-header">
+                                    <span class="ai-criterion-name">{{name}}</span>
+                                    <span class="ai-criterion-score {{scoreclass}}">
+                                        {{score}}/{{max}}
+                                    </span>
+                                </div>
+                                <div class="ai-criterion-progress">
+                                    <div class="ai-criterion-progress-bar {{scoreclass}}"
+                                         style="width: {{percentage}}%"></div>
+                                </div>
+                                {{#hascomment}}
+                                    <div class="ai-criterion-comment">
+                                        {{{comment}}}
+                                    </div>
+                                {{/hascomment}}
+                            </div>
+                        {{/criteria}}
+                    </div>
+                </div>
+            {{/hascriteria}}
+
+            {{#hasfeedback}}
+                <div class="ai-criteria-section">
+                    <div class="ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 style="margin: 0;">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
+                        <span class="toggle-icon">&#9660;</span>
+                    </div>
+                    <div class="ai-section-content">
+                        <div class="ai-feedback" style="margin-bottom: 0;">
+                            {{{parsed_feedback}}}
+                        </div>
+                    </div>
+                </div>
+            {{/hasfeedback}}
+
+            <div class="ai-actions">
+                <button type="button" class="btn-ai btn-ai-apply" onclick="applyAIGrade({{evaluationid}})">
+                    &#9989; {{#str}}apply_ai_grade, redaction{{/str}}
+                </button>
+                <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+                    &#128260; {{#str}}reevaluate, redaction{{/str}}
+                </button>
+            </div>
+        {{/iscompleted}}
+    {{/hasevaluation}}
+</div>
+{{/hassubmission}}
+{{/ai_enabled}}

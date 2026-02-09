@@ -83,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
     $feedback = optional_param('feedback', '', PARAM_RAW);
 
     if ($submission) {
-        // Capture old grade before update for event logging.
         $oldgrade = $submission->grade;
 
         $submission->grade = $grade;
@@ -106,7 +105,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
         // Update gradebook.
         redaction_update_grades($redaction);
 
-        // Redirect to next item or stay on current.
         $redirectid = $nextid ?? $currentid;
         $url = new moodle_url('/mod/redaction/view.php', [
             'id' => $cm->id,
@@ -125,7 +123,6 @@ if ($submission && $redaction->ai_enabled) {
         'status' => 'completed'
     ], '*', IGNORE_MULTIPLE);
 
-    // Also check for pending/processing.
     if (!$aievaluation) {
         $records = $DB->get_records_sql(
             'SELECT * FROM {redaction_ai_evaluations} WHERE submissionid = ? ORDER BY timecreated DESC',
@@ -143,6 +140,9 @@ $PAGE->requires->js_call_amd('mod_redaction/grading', 'init', [
     'submissionid' => $submission ? $submission->id : 0
 ]);
 
+// Get renderer.
+$renderer = $PAGE->get_renderer('mod_redaction');
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('grading', 'redaction'));
 
@@ -153,7 +153,6 @@ echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'
 // Render teacher dashboard with statistics and AI synthesis.
 $showDashboard = optional_param('dashboard', 1, PARAM_INT);
 if ($showDashboard) {
-    // Toggle button for dashboard visibility.
     $dashboardToggleUrl = new moodle_url('/mod/redaction/view.php', [
         'id' => $cm->id,
         'page' => 'grading',
@@ -165,11 +164,8 @@ if ($showDashboard) {
     echo '<i class="fa fa-chevron-up mr-1"></i> ' . get_string('dashboard_hide', 'redaction');
     echo '</a>';
     echo '</div>';
-
-    // Render the dashboard.
     echo redaction_render_teacher_dashboard($cm, $redaction);
 } else {
-    // Show button to display dashboard.
     $dashboardToggleUrl = new moodle_url('/mod/redaction/view.php', [
         'id' => $cm->id,
         'page' => 'grading',
@@ -183,270 +179,138 @@ if ($showDashboard) {
     echo '</div>';
 }
 
-?>
+// Build navigation data.
+$navdata = [
+    'hasprev' => ($previd !== null),
+    'prevurl' => ($previd !== null) ? (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $previd]))->out(false) : '',
+    'hasnext' => ($nextid !== null),
+    'nexturl' => ($nextid !== null) ? (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $nextid]))->out(false) : '',
+    'currentpos' => ($currentpos !== false ? $currentpos + 1 : 0),
+    'totalitems' => count($navitems),
+    'navitems' => [],
+];
+foreach ($navitems as $item) {
+    $navdata['navitems'][] = [
+        'url' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $item['id']]))->out(false),
+        'name' => $item['name'],
+        'selected' => ($item['id'] == $currentid),
+    ];
+}
 
-<div class="grading-container">
-    <!-- Navigation Bar -->
-    <div class="navigation-bar">
-        <div class="nav-buttons">
-            <?php if ($previd !== null): ?>
-                <a href="<?php echo new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $previd]); ?>" class="nav-btn">
-                    ← <?php echo get_string('previous', 'moodle'); ?>
-                </a>
-            <?php else: ?>
-                <span class="nav-btn disabled">← <?php echo get_string('previous', 'moodle'); ?></span>
-            <?php endif; ?>
+echo '<div class="grading-container">';
 
-            <span class="nav-counter">
-                <?php echo ($currentpos !== false ? $currentpos + 1 : 0) . ' / ' . count($navitems); ?>
-            </span>
+// Render navigation.
+echo $renderer->render_grading_navigation($navdata);
 
-            <?php if ($nextid !== null): ?>
-                <a href="<?php echo new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $nextid]); ?>" class="nav-btn">
-                    <?php echo get_string('next', 'moodle'); ?> →
-                </a>
-            <?php else: ?>
-                <span class="nav-btn disabled"><?php echo get_string('next', 'moodle'); ?> →</span>
-            <?php endif; ?>
-        </div>
+if (empty($navitems)) {
+    echo '<div class="alert alert-warning">' . get_string('no_submission', 'redaction') . '</div>';
+} else {
+    echo '<div class="submission-panel">';
 
-        <select class="item-selector" onchange="location.href=this.value">
-            <?php foreach ($navitems as $item): ?>
-                <option value="<?php echo new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $item['id']]); ?>"
-                        <?php echo ($item['id'] == $currentid) ? 'selected' : ''; ?>>
-                    <?php echo s($item['name']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </div>
+    // Build submission data.
+    $hascontent = ($submission && !empty($submission->contenu));
+    $subdata = [
+        'hassubmission' => !empty($submission),
+        'hascontent' => $hascontent,
+        'issubmitted' => ($submission && $submission->status == 1),
+        'isdraft' => ($submission && $submission->status == 0),
+        'submissionid' => $submission ? $submission->id : 0,
+        'titre' => $submission && !empty($submission->titre) ? s($submission->titre) : '',
+        'contenu' => $hascontent ? format_text($submission->contenu, $submission->contenuformat ?? FORMAT_HTML) : '',
+        'timesubmitted' => ($submission && $submission->timesubmitted) ? userdate($submission->timesubmitted) : '',
+        'timemodified' => ($submission && $submission->timemodified) ? userdate($submission->timemodified) : '',
+        'wordcount' => 0,
+        'charcount' => 0,
+        'cangrade' => has_capability('mod/redaction:grade', $context),
+        'canviewhistory' => has_capability('mod/redaction:viewhistory', $context),
+    ];
 
-    <?php if (empty($navitems)): ?>
-        <div class="alert alert-warning">
-            <?php echo get_string('no_submission', 'redaction'); ?>
-        </div>
-    <?php else: ?>
-        <div class="submission-panel">
-            <!-- Left: Submission Content -->
-            <div class="submission-content">
-                <?php if (!$submission || empty($submission->contenu)): ?>
-                    <div class="status-bar no-submission">
-                        ❌ <?php echo get_string('no_submission', 'redaction'); ?>
-                    </div>
-                <?php elseif ($submission->status == 1): ?>
-                    <div class="status-bar submitted">
-                        ✅ <?php echo get_string('status_submitted', 'redaction'); ?>
-                        <span style="margin-left: auto; font-size: 13px;">
-                            <?php echo get_string('submitted_on', 'redaction', userdate($submission->timesubmitted)); ?>
-                        </span>
-                        <?php if (has_capability('mod/redaction:grade', $context)): ?>
-                            <button type="button" class="unlock-btn" onclick="unlockSubmission(<?php echo $submission->id; ?>)">
-                                🔓 <?php echo get_string('unlock_submission', 'redaction'); ?>
-                            </button>
-                        <?php endif; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="status-bar draft">
-                        📝 <?php echo get_string('status_draft', 'redaction'); ?>
-                        <span style="margin-left: auto; font-size: 13px;">
-                            <?php echo get_string('lastmodified', 'redaction') . ': ' . userdate($submission->timemodified); ?>
-                        </span>
-                    </div>
-                <?php endif; ?>
+    if ($hascontent) {
+        $plaintext = strip_tags($submission->contenu);
+        $subdata['wordcount'] = str_word_count($plaintext);
+        $subdata['charcount'] = function_exists('mb_strlen') ? mb_strlen($plaintext) : strlen($plaintext);
+    }
 
-                <?php if ($submission && !empty($submission->contenu)): ?>
-                    <?php if (!empty($submission->titre)): ?>
-                        <div class="content-title"><?php echo s($submission->titre); ?></div>
-                    <?php endif; ?>
+    echo $renderer->render_submission_panel($subdata);
 
-                    <div class="content-display">
-                        <?php echo format_text($submission->contenu, $submission->contenuformat ?? FORMAT_HTML); ?>
-                    </div>
+    // Grading sidebar.
+    echo '<div class="grading-sidebar">';
 
-                    <?php
-                    $plaintext = strip_tags($submission->contenu);
-                    $wordcount = str_word_count($plaintext);
-                    $charcount = function_exists('mb_strlen') ? mb_strlen($plaintext) : strlen($plaintext);
-                    ?>
-                    <div class="word-count">
-                        <?php echo get_string('word_count', 'redaction', $wordcount); ?> |
-                        <?php echo get_string('char_count', 'redaction', $charcount); ?>
-                        <?php if (has_capability('mod/redaction:viewhistory', $context)): ?>
-                            | <a href="#" class="history-link" onclick="showHistory(<?php echo $submission->id; ?>); return false;">
-                                📜 <?php echo get_string('version_history', 'redaction'); ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
+    // AI evaluation data.
+    if ($redaction->ai_enabled && $submission) {
+        $aidata = [
+            'ai_enabled' => true,
+            'hassubmission' => true,
+            'hasevaluation' => !empty($aievaluation),
+            'ispending' => ($aievaluation && in_array($aievaluation->status, ['pending', 'processing'])),
+            'isfailed' => ($aievaluation && $aievaluation->status === 'failed'),
+            'iscompleted' => ($aievaluation && in_array($aievaluation->status, ['completed', 'applied'])),
+            'submissionid' => $submission->id,
+            'evaluationid' => $aievaluation ? $aievaluation->id : 0,
+            'grade' => $aievaluation ? number_format($aievaluation->parsed_grade, 1) : '',
+            'error_message' => ($aievaluation && !empty($aievaluation->error_message)) ? s($aievaluation->error_message) : '',
+            'criteria' => [],
+            'hascriteria' => false,
+            'parsed_feedback' => '',
+            'hasfeedback' => false,
+        ];
 
-            <!-- Right: Grading Sidebar -->
-            <div class="grading-sidebar">
-                <?php if ($redaction->ai_enabled && $submission): ?>
-                    <!-- AI Evaluation Section -->
-                    <div class="ai-evaluation-container">
-                        <h4 style="margin-bottom: 12px; font-size: 16px;">🤖 <?php echo get_string('ai_evaluation', 'redaction'); ?></h4>
+        if ($aievaluation && in_array($aievaluation->status, ['completed', 'applied'])) {
+            // Parse criteria.
+            $criteria = [];
+            if (!empty($aievaluation->criteria_json)) {
+                $criteria = json_decode($aievaluation->criteria_json, true);
+                if (!is_array($criteria)) {
+                    $criteria = [];
+                }
+            }
 
-                        <?php if (!$aievaluation): ?>
-                            <p style="margin-bottom: 12px; font-size: 13px; color: #666;">
-                                <?php echo get_string('no_ai_evaluation', 'redaction'); ?>
-                            </p>
-                            <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation(<?php echo $submission->id; ?>)">
-                                🚀 <?php echo get_string('evaluate_ai', 'redaction'); ?>
-                            </button>
+            if (!empty($criteria)) {
+                $aidata['hascriteria'] = true;
+                foreach ($criteria as $criterion) {
+                    $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
+                    $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
+                    $percentage = $max > 0 ? ($score / $max) * 100 : 0;
+                    $scoreClass = $percentage >= 70 ? 'good' : ($percentage >= 50 ? 'medium' : 'low');
 
-                        <?php elseif ($aievaluation->status === 'pending' || $aievaluation->status === 'processing'): ?>
-                            <div class="ai-pending">
-                                <div class="spinner"></div>
-                                <span><?php echo get_string('ai_evaluation_pending', 'redaction'); ?></span>
-                            </div>
+                    $aidata['criteria'][] = [
+                        'name' => s($criterion['name'] ?? 'Critère'),
+                        'score' => number_format($score, 1),
+                        'max' => number_format($max, 0),
+                        'percentage' => $percentage,
+                        'scoreclass' => $scoreClass,
+                        'comment' => !empty($criterion['comment']) ? nl2br(s($criterion['comment'])) : '',
+                        'hascomment' => !empty($criterion['comment']),
+                    ];
+                }
+            }
 
-                        <?php elseif ($aievaluation->status === 'failed'): ?>
-                            <div class="alert alert-danger" style="margin-bottom: 15px;">
-                                <?php echo get_string('ai_evaluation_failed', 'redaction'); ?>
-                                <?php if (!empty($aievaluation->error_message)): ?>
-                                    <br><small><?php echo s($aievaluation->error_message); ?></small>
-                                <?php endif; ?>
-                            </div>
-                            <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation(<?php echo $submission->id; ?>)">
-                                🔄 <?php echo get_string('retry', 'moodle'); ?>
-                            </button>
+            if (!empty($aievaluation->parsed_feedback)) {
+                $aidata['hasfeedback'] = true;
+                $aidata['parsed_feedback'] = nl2br(s($aievaluation->parsed_feedback));
+            }
+        }
 
-                        <?php elseif ($aievaluation->status === 'completed' || $aievaluation->status === 'applied'): ?>
-                            <div class="ai-grade-card">
-                                <div class="ai-grade-value"><?php echo number_format($aievaluation->parsed_grade, 1); ?>/20</div>
-                                <div class="ai-grade-label"><?php echo get_string('ai_grade', 'redaction'); ?></div>
-                            </div>
+        echo $renderer->render_ai_evaluation($aidata);
+    }
 
-                            <?php
-                            // Parse criteria from JSON.
-                            $criteria = [];
-                            if (!empty($aievaluation->criteria_json)) {
-                                $criteria = json_decode($aievaluation->criteria_json, true);
-                                if (!is_array($criteria)) {
-                                    $criteria = [];
-                                }
-                            }
-                            ?>
+    // Grading form data.
+    $formdata = [
+        'sesskey' => sesskey(),
+        'currentgrade' => $submission ? ($submission->grade ?? '') : '',
+        'currentfeedback' => s($submission->feedback ?? ''),
+    ];
+    echo $renderer->render_grading_form($formdata);
 
-                            <?php if (!empty($criteria)): ?>
-                                <div class="ai-criteria-section">
-                                    <div class="ai-section-toggle" onclick="toggleSection(this)">
-                                        <h5 style="margin: 0;">📊 <?php echo get_string('ai_criteria_details', 'redaction'); ?></h5>
-                                        <span class="toggle-icon">▼</span>
-                                    </div>
-                                    <div class="ai-section-content">
-                                        <?php foreach ($criteria as $criterion): ?>
-                                            <?php
-                                            $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
-                                            $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
-                                            $percentage = $max > 0 ? ($score / $max) * 100 : 0;
-                                            $scoreClass = $percentage >= 70 ? 'good' : ($percentage >= 50 ? 'medium' : 'low');
-                                            ?>
-                                            <div class="ai-criterion">
-                                                <div class="ai-criterion-header">
-                                                    <span class="ai-criterion-name"><?php echo s($criterion['name'] ?? 'Critère'); ?></span>
-                                                    <span class="ai-criterion-score <?php echo $scoreClass; ?>">
-                                                        <?php echo number_format($score, 1); ?>/<?php echo number_format($max, 0); ?>
-                                                    </span>
-                                                </div>
-                                                <div class="ai-criterion-progress">
-                                                    <div class="ai-criterion-progress-bar <?php echo $scoreClass; ?>"
-                                                         style="width: <?php echo $percentage; ?>%"></div>
-                                                </div>
-                                                <?php if (!empty($criterion['comment'])): ?>
-                                                    <div class="ai-criterion-comment">
-                                                        <?php echo nl2br(s($criterion['comment'])); ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
+    echo '</div>'; // .grading-sidebar
+    echo '</div>'; // .submission-panel
+}
 
-                            <?php if (!empty($aievaluation->parsed_feedback)): ?>
-                                <div class="ai-criteria-section">
-                                    <div class="ai-section-toggle" onclick="toggleSection(this)">
-                                        <h5 style="margin: 0;">💬 <?php echo get_string('ai_general_feedback', 'redaction'); ?></h5>
-                                        <span class="toggle-icon">▼</span>
-                                    </div>
-                                    <div class="ai-section-content">
-                                        <div class="ai-feedback" style="margin-bottom: 0;">
-                                            <?php echo nl2br(s($aievaluation->parsed_feedback)); ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
+echo '</div>'; // .grading-container
 
-                            <div class="ai-actions">
-                                <button type="button" class="btn-ai btn-ai-apply" onclick="applyAIGrade(<?php echo $aievaluation->id; ?>)">
-                                    ✅ <?php echo get_string('apply_ai_grade', 'redaction'); ?>
-                                </button>
-                                <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation(<?php echo $submission->id; ?>)">
-                                    🔄 <?php echo get_string('reevaluate', 'redaction'); ?>
-                                </button>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
+// History modal.
+echo $renderer->render_history_modal([]);
 
-                <!-- Manual Grading Form -->
-                <div class="grading-form-container">
-                    <h4 style="margin-bottom: 15px; font-size: 16px;">📝 <?php echo get_string('grade', 'redaction'); ?></h4>
-
-                    <form method="post" action="">
-                        <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
-
-                        <div class="form-group">
-                            <label for="grade"><?php echo get_string('grade_outof', 'redaction', 20); ?></label>
-                            <input type="number"
-                                   id="grade"
-                                   name="grade"
-                                   class="form-control grade-input"
-                                   min="0"
-                                   max="20"
-                                   step="0.5"
-                                   value="<?php echo $submission ? ($submission->grade ?? '') : ''; ?>"
-                                   placeholder="0 - 20">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="feedback"><?php echo get_string('feedback', 'redaction'); ?></label>
-                            <textarea id="feedback"
-                                      name="feedback"
-                                      class="form-control"
-                                      rows="6"
-                                      placeholder="<?php echo get_string('feedback_placeholder', 'redaction'); ?>"><?php echo s($submission->feedback ?? ''); ?></textarea>
-                        </div>
-
-                        <button type="submit" class="btn-save">
-                            💾 <?php echo get_string('save_grade', 'redaction'); ?>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-</div>
-
-<!-- History Modal -->
-<div id="history-modal" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><?php echo get_string('version_history', 'redaction'); ?></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body" id="history-content">
-                <!-- Loaded via AJAX -->
-            </div>
-        </div>
-    </div>
-</div>
-
-<?php
 // Pass strings and configuration to the grading module.
 $PAGE->requires->js_call_amd('mod_redaction/grading_actions', 'init', [
     'cmid' => $cm->id,
@@ -463,7 +327,5 @@ $PAGE->requires->js_call_amd('mod_redaction/grading_actions', 'init', [
         'unlock_confirm' => get_string('unlock_confirm', 'redaction'),
     ],
 ]);
-?>
 
-<?php
 echo $OUTPUT->footer();

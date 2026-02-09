@@ -27,6 +27,8 @@ define(['jquery'], function($) {
             window.applyAIGrade = this.applyAIGrade;
             window.toggleSection = this.toggleSection;
             window.showHistory = this.showHistory;
+            window.bulkEvaluate = this.bulkEvaluate;
+            window.bulkApplyGrade = this.bulkApplyGrade;
         },
 
         unlockSubmission: function(submissionId) {
@@ -119,6 +121,137 @@ define(['jquery'], function($) {
             toggleElement.classList.toggle('collapsed');
             var content = toggleElement.nextElementSibling;
             content.classList.toggle('collapsed');
+        },
+
+        bulkEvaluate: function() {
+            // Get all submission IDs from the page.
+            var submissionIds = [];
+            document.querySelectorAll('[data-submissionid]').forEach(function(el) {
+                submissionIds.push(parseInt(el.dataset.submissionid));
+            });
+
+            // Fallback: collect from the current page context if no data attributes.
+            if (submissionIds.length === 0) {
+                // Use AJAX to get all submission IDs for this activity.
+                var formData = new FormData();
+                formData.append('sesskey', config.sesskey);
+                formData.append('id', config.cmid);
+                formData.append('action', 'get_all_submissions');
+
+                // For now, collect from select options.
+                var selector = document.querySelector('.item-selector');
+                if (selector) {
+                    Array.from(selector.options).forEach(function(opt) {
+                        var url = opt.value;
+                        var match = url.match(/itemid=(\d+)/);
+                        if (match) {
+                            submissionIds.push(parseInt(match[1]));
+                        }
+                    });
+                }
+            }
+
+            if (submissionIds.length === 0) {
+                alert('No submissions found.');
+                return;
+            }
+
+            var btn = event ? event.target : null;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner" style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
+                    (config.strings.bulk_evaluating || 'Evaluating all...');
+            }
+
+            var formData = new FormData();
+            formData.append('sesskey', config.sesskey);
+            formData.append('id', config.cmid);
+            formData.append('submissionids', JSON.stringify(submissionIds));
+
+            fetch(config.wwwroot + '/mod/redaction/ajax/bulk_evaluate.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var msg = (config.strings.bulk_evaluate_success || '{queued} queued, {skipped} skipped')
+                        .replace('{queued}', data.queued)
+                        .replace('{skipped}', data.skipped);
+                    alert(msg);
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error');
+                }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '🤖 ' + (config.strings.bulk_evaluate || 'Evaluate all');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                alert(config.strings.connection_error);
+                if (btn) {
+                    btn.disabled = false;
+                }
+            });
+        },
+
+        bulkApplyGrade: function() {
+            // Get all completed evaluation IDs.
+            var evaluationIds = [];
+            document.querySelectorAll('[data-evaluationid]').forEach(function(el) {
+                evaluationIds.push(parseInt(el.dataset.evaluationid));
+            });
+
+            if (evaluationIds.length === 0) {
+                alert(config.strings.no_evaluations || 'No evaluations to apply.');
+                return;
+            }
+
+            if (!confirm(config.strings.bulk_apply_confirm || 'Apply all AI grades?')) {
+                return;
+            }
+
+            var btn = event ? event.target : null;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner" style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
+                    (config.strings.bulk_applying || 'Applying...');
+            }
+
+            var formData = new FormData();
+            formData.append('sesskey', config.sesskey);
+            formData.append('id', config.cmid);
+            formData.append('evaluationids', JSON.stringify(evaluationIds));
+
+            fetch(config.wwwroot + '/mod/redaction/ajax/bulk_apply_grade.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var msg = (config.strings.bulk_apply_success || '{applied} applied, {skipped} skipped')
+                        .replace('{applied}', data.applied)
+                        .replace('{skipped}', data.skipped);
+                    alert(msg);
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error');
+                }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '✅ ' + (config.strings.bulk_apply || 'Apply all grades');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                alert(config.strings.connection_error);
+                if (btn) {
+                    btn.disabled = false;
+                }
+            });
         },
 
         showHistory: function(submissionId) {

@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_redaction';
-$plugin->version = 2026020805;  // YYYYMMDDXX format
+$plugin->version = 2026020901;  // YYYYMMDDXX format
 $plugin->requires = 2024100700; // Moodle 4.5+
 $plugin->maturity = MATURITY_STABLE;
 $plugin->release = '1.0.0';

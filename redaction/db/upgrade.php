@@ -87,5 +87,16 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026020805, 'redaction');
     }
 
+    if ($oldversion < 2026020806) {
+        // Add scheduled_apply_at field to redaction_ai_evaluations for delayed auto-apply.
+        $table = new xmldb_table('redaction_ai_evaluations');
+        $field = new xmldb_field('scheduled_apply_at', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'applied_at');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026020806, 'redaction');
+    }
+
     return true;
 }

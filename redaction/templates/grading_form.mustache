@@ -1,0 +1,50 @@
+{{!
+    @template mod_redaction/grading_form
+
+    Manual grading form with grade input and feedback textarea.
+
+    Context variables required for this template:
+    * sesskey - Session key
+    * currentgrade - Current grade value
+    * currentfeedback - Current feedback text
+
+    Example context (json):
+    {
+        "sesskey": "abc123",
+        "currentgrade": "15.5",
+        "currentfeedback": "Good work"
+    }
+}}
+<div class="grading-form-container">
+    <h4 style="margin-bottom: 15px; font-size: 16px;">&#128221; {{#str}}grade, redaction{{/str}}</h4>
+
+    <form method="post" action="">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+
+        <div class="form-group">
+            <label for="grade">{{#str}}grade_outof, redaction, 20{{/str}}</label>
+            <input type="number"
+                   id="grade"
+                   name="grade"
+                   class="form-control grade-input"
+                   min="0"
+                   max="20"
+                   step="0.5"
+                   value="{{currentgrade}}"
+                   placeholder="0 - 20">
+        </div>
+
+        <div class="form-group">
+            <label for="feedback">{{#str}}feedback, redaction{{/str}}</label>
+            <textarea id="feedback"
+                      name="feedback"
+                      class="form-control"
+                      rows="6"
+                      placeholder="{{#str}}feedback_placeholder, redaction{{/str}}">{{currentfeedback}}</textarea>
+        </div>
+
+        <button type="submit" class="btn-save">
+            &#128190; {{#str}}save_grade, redaction{{/str}}
+        </button>
+    </form>
+</div>

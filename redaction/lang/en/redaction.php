@@ -339,3 +339,57 @@ $string['js:characters'] = 'characters';
 $string['js:no_history'] = 'No history available.';
 $string['js:loading_error'] = 'Loading error.';
 $string['js:connection_error'] = 'Connection error';
+
+// Auto-apply delay.
+$string['settings_auto_apply_delay'] = 'Auto-apply delay (minutes)';
+$string['settings_auto_apply_delay_desc'] = 'Delay in minutes before automatically applying AI grades. Set to 0 for immediate application. This gives teachers time to review AI grades before they are applied.';
+$string['task_apply_ai_grade'] = 'Apply pending AI grades';
+$string['status_pending_apply'] = 'Pending application';
+
+// Notifications.
+$string['notification_submission_subject'] = 'New submission from {$a}';
+$string['notification_submission_body'] = '{$a->student} has submitted their writing in the activity "{$a->activity}" in course "{$a->course}".';
+$string['notification_submission_body_html'] = '<p><strong>{$a->student}</strong> has submitted their writing in the activity "<em>{$a->activity}</em>" in course "<em>{$a->course}</em>".</p>';
+$string['notification_submission_small'] = 'New submission from {$a}';
+$string['notification_grade_subject'] = 'Your writing "{$a}" has been graded';
+$string['notification_grade_body'] = 'Your writing in the activity "{$a->activity}" has been graded: {$a->grade}/20 in course "{$a->course}".';
+$string['notification_grade_body_html'] = '<p>Your writing in the activity "<em>{$a->activity}</em>" has been graded: <strong>{$a->grade}/20</strong> in course "<em>{$a->course}</em>".</p>';
+$string['notification_grade_small'] = '{$a->activity}: {$a->grade}/20';
+$string['notification_ai_eval_subject'] = 'AI evaluation completed';
+$string['notification_ai_eval_body'] = 'The AI evaluation for {$a->student} in activity "{$a->activity}" is complete. Suggested grade: {$a->grade}/20 (provider: {$a->provider}).';
+$string['notification_ai_eval_body_html'] = '<p>The AI evaluation for <strong>{$a->student}</strong> in activity "<em>{$a->activity}</em>" is complete. Suggested grade: <strong>{$a->grade}/20</strong> (provider: {$a->provider}).</p>';
+$string['notification_ai_eval_small'] = 'AI evaluation completed for {$a}';
+$string['notification_ai_grade_subject'] = 'AI grade applied for "{$a}"';
+$string['notification_ai_grade_body'] = 'An AI-generated grade has been automatically applied to your writing in "{$a->activity}": {$a->grade}/20 in course "{$a->course}".';
+$string['notification_ai_grade_body_html'] = '<p>An AI-generated grade has been automatically applied to your writing in "<em>{$a->activity}</em>": <strong>{$a->grade}/20</strong> in course "<em>{$a->course}</em>".</p>';
+$string['notification_ai_grade_small'] = '{$a->activity}: AI grade {$a->grade}/20';
+$string['view_evaluation'] = 'View evaluation';
+$string['messageprovider:submission_received'] = 'Notification when a student submits their writing';
+$string['messageprovider:grade_released'] = 'Notification when a grade is released';
+$string['messageprovider:ai_evaluation_complete'] = 'Notification when an AI evaluation is complete';
+
+// Bulk operations.
+$string['bulk_evaluate'] = 'Evaluate all with AI';
+$string['bulk_apply_grade'] = 'Apply all AI grades';
+$string['js:bulk_evaluating'] = 'Evaluating all submissions...';
+$string['js:bulk_evaluate_success'] = '{$a->queued} evaluation(s) queued, {$a->skipped} skipped.';
+$string['js:bulk_applying'] = 'Applying grades...';
+$string['js:bulk_apply_success'] = '{$a->applied} grade(s) applied, {$a->skipped} skipped.';
+$string['js:bulk_apply_confirm'] = 'Apply all completed AI grades? This action will update the gradebook.';
+$string['js:no_evaluations'] = 'No completed evaluations to apply.';
+
+// Plagiarism detection.
+$string['settings_plagiarism_heading'] = 'Similarity Detection';
+$string['settings_plagiarism_heading_desc'] = 'Configure the similarity detection threshold between student submissions. Uses Jaccard similarity coefficient.';
+$string['settings_plagiarism_threshold'] = 'Alert threshold (%)';
+$string['settings_plagiarism_threshold_desc'] = 'Similarity percentage above which an alert is displayed. Default: 70%.';
+$string['check_similarity'] = 'Check similarity';
+$string['similarity_results'] = 'Similarity results';
+$string['similarity_alert'] = 'High similarity detected';
+$string['no_similar_submissions'] = 'No similar submissions found.';
+
+// Mobile support.
+$string['mobile_view_title'] = 'Writing Activity';
+$string['mobile_consignes_title'] = 'Instructions';
+$string['mobile_submission_title'] = 'My Submission';
+$string['mobile_evaluation_title'] = 'Evaluation';
