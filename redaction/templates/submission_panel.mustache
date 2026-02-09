@@ -77,5 +77,14 @@
                 </a>
             {{/canviewhistory}}
         </div>
+
+        {{#hastraining}}
+        <div style="margin-top: 10px; padding: 8px 14px; background: linear-gradient(135deg, #ebf4ff 0%, #e8f0fe 100%); border: 1px solid #bee3f8; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+            <span>&#127891;</span>
+            <span style="font-weight: 600; color: #2b6cb0;">
+                {{#str}}training_attempts_count, redaction, {{trainingcount}}{{/str}}
+            </span>
+        </div>
+        {{/hastraining}}
     {{/hascontent}}
 </div>

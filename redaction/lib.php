@@ -663,3 +663,136 @@ function redaction_render_teacher_dashboard($cm, $redaction) {
     // Render the template.
     return $OUTPUT->render_from_template('mod_redaction/dashboard_teacher', $context);
 }
+
+/**
+ * Check if a student can submit for training.
+ *
+ * @param stdClass $redaction Activity instance
+ * @param stdClass $submission Submission record
+ * @param stdClass|null $correction Correction record (optional)
+ * @return array ['allowed' => bool, 'reason' => string, 'remaining' => int (seconds, if cooldown)]
+ */
+function redaction_can_training_submit($redaction, $submission, $correction = null) {
+    global $DB;
+
+    // Training mode not enabled.
+    if (empty($redaction->training_enabled)) {
+        return ['allowed' => false, 'reason' => 'training_not_enabled'];
+    }
+
+    // AI must be enabled.
+    if (empty($redaction->ai_enabled)) {
+        return ['allowed' => false, 'reason' => 'training_not_enabled'];
+    }
+
+    // Already final-submitted.
+    if ($submission->status == 1) {
+        return ['allowed' => false, 'reason' => 'already_submitted'];
+    }
+
+    // Check deadline.
+    if ($correction && !empty($correction->deadline_date) && time() > $correction->deadline_date) {
+        return ['allowed' => false, 'reason' => 'deadline_passed'];
+    }
+
+    // Check max attempts (0 = unlimited).
+    if ($redaction->training_max_attempts > 0 && $submission->training_count >= $redaction->training_max_attempts) {
+        return ['allowed' => false, 'reason' => 'max_attempts_reached'];
+    }
+
+    // Check cooldown.
+    if (!empty($submission->last_training_time)) {
+        $elapsed = time() - $submission->last_training_time;
+        if ($elapsed < $redaction->training_cooldown) {
+            $remaining = $redaction->training_cooldown - $elapsed;
+            return ['allowed' => false, 'reason' => 'cooldown_active', 'remaining' => $remaining];
+        }
+    }
+
+    // Check if there's a pending training evaluation.
+    $pending = $DB->record_exists_select(
+        'redaction_ai_evaluations',
+        'submissionid = ? AND is_training = 1 AND status IN (?, ?)',
+        [$submission->id, 'pending', 'processing']
+    );
+    if ($pending) {
+        return ['allowed' => false, 'reason' => 'evaluation_pending'];
+    }
+
+    return ['allowed' => true, 'reason' => ''];
+}
+
+/**
+ * Check if content has changed enough from last training version.
+ *
+ * @param string $newcontent New content (HTML)
+ * @param int $submissionid Submission ID
+ * @param int $minchangepercent Minimum change percentage (0-100)
+ * @return bool True if content has changed enough
+ */
+function redaction_check_min_change($newcontent, $submissionid, $minchangepercent) {
+    global $DB;
+
+    // Get the last history entry.
+    $lasthistory = $DB->get_records_sql(
+        'SELECT contenu FROM {redaction_history} WHERE submissionid = ? ORDER BY version_number DESC',
+        [$submissionid],
+        0,
+        1
+    );
+
+    if (empty($lasthistory)) {
+        return true; // First submission, always allowed.
+    }
+
+    $lastcontent = strip_tags(reset($lasthistory)->contenu ?? '');
+    $newplain = strip_tags($newcontent);
+
+    if (empty($lastcontent)) {
+        return true;
+    }
+
+    // Calculate similarity percentage.
+    similar_text($lastcontent, $newplain, $similarity);
+    $changepercent = 100 - $similarity;
+
+    return $changepercent >= $minchangepercent;
+}
+
+/**
+ * Get all training evaluations for a submission, most recent first.
+ *
+ * @param int $submissionid Submission ID
+ * @return array Array of evaluation records
+ */
+function redaction_get_training_evaluations($submissionid) {
+    global $DB;
+
+    return $DB->get_records_sql(
+        'SELECT * FROM {redaction_ai_evaluations}
+         WHERE submissionid = ? AND is_training = 1
+         ORDER BY timecreated DESC',
+        [$submissionid]
+    );
+}
+
+/**
+ * Get the latest completed training evaluation for a submission.
+ *
+ * @param int $submissionid Submission ID
+ * @return object|null
+ */
+function redaction_get_latest_training_evaluation($submissionid) {
+    global $DB;
+
+    $records = $DB->get_records_sql(
+        'SELECT * FROM {redaction_ai_evaluations}
+         WHERE submissionid = ? AND is_training = 1 AND status = ?
+         ORDER BY timecreated DESC',
+        [$submissionid, 'completed'],
+        0,
+        1
+    );
+
+    return !empty($records) ? reset($records) : null;
+}

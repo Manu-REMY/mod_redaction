@@ -9,14 +9,17 @@ Plugin Moodle permettant aux enseignants de proposer des activités de rédactio
 - **Page Consignes** : Définir un titre, des instructions détaillées, des critères d'évaluation et des ressources documentaires
 - **Verrouillage des consignes** : Empêcher les modifications une fois l'activité lancée
 - **Modèle de correction** : Fournir un exemple de réponse attendue et des instructions spécifiques pour l'IA
+- **Éditeur visuel de critères** : Interface drag & drop pour construire la grille de notation (total /20 en temps réel)
 - **Dates de soumission** : Configurer une date attendue et une date limite
 - **Interface de notation** : Noter manuellement ou appliquer les notes générées par l'IA
+- **Frise chronologique d'entraînement** : Visualiser la progression de chaque élève via une timeline interactive avec sparkline, curseur déplaçable et détail par tentative
 - **Navigation fluide** : Passer d'un élève/groupe à l'autre avec les boutons précédent/suivant
 
 ### Pour les élèves
 
 - **Rédaction en ligne** : Éditeur de texte avec compteur de mots en temps réel
 - **Sauvegarde automatique** : Aucune perte de travail grâce à l'autosave configurable
+- **Mode entraînement** : Soumettre plusieurs versions pour recevoir un feedback IA avant la soumission finale (cooldown, nombre max de tentatives configurable)
 - **Consultation des consignes** : Accès permanent aux instructions et critères
 - **Soumission sécurisée** : Confirmation avant soumission définitive
 - **Affichage de la note** : Visualisation de la note et des commentaires après correction
@@ -88,6 +91,10 @@ Lors de la création d'une activité Rédaction :
 | Fournisseur IA | Service d'IA à utiliser | - |
 | Clé API | Clé pour le fournisseur choisi | - |
 | Application automatique | Appliquer les notes IA sans validation | Non |
+| Mode entraînement | Permettre les soumissions itératives | Non |
+| Cooldown entraînement | Délai entre deux tentatives (secondes) | 900 |
+| Changement minimum | % de modification requis entre tentatives | 10 |
+| Tentatives max | Nombre max de soumissions d'entraînement (0=illimité) | 5 |
 
 ### Configuration Albert (Etalab)
 
@@ -133,11 +140,15 @@ mod_redaction/
 │   ├── submit.php          # Soumission/déverrouillage
 │   ├── evaluate.php        # Déclenchement évaluation IA
 │   ├── apply_ai_grade.php  # Application note IA
+│   ├── generate_criteria.php # Génération critères par IA
+│   ├── training_submit.php # Soumission entraînement
 │   ├── get_evaluation_status.php
 │   └── get_history.php
 ├── amd/src/                 # Modules JavaScript AMD
 │   ├── autosave.js
-│   └── grading.js
+│   ├── grading_actions.js
+│   ├── dashboard.js
+│   └── training_timeline.js # Frise chronologique interactive
 ├── classes/                 # Classes PHP (autoload)
 │   ├── ai_config.php
 │   ├── ai_evaluator.php
@@ -150,8 +161,18 @@ mod_redaction/
 │   │   ├── anthropic_provider.php
 │   │   ├── mistral_provider.php
 │   │   └── albert_provider.php
-│   ├── event/
-│   │   └── course_module_viewed.php
+│   ├── dashboard/           # Tableau de bord enseignant
+│   │   ├── ai_summary_generator.php
+│   │   ├── submission_stats.php
+│   │   └── token_stats.php
+│   ├── event/               # Événements Moodle
+│   │   ├── ai_evaluation_completed.php
+│   │   ├── ai_evaluation_requested.php
+│   │   ├── ai_grade_applied.php
+│   │   ├── course_module_viewed.php
+│   │   └── grade_updated.php
+│   ├── privacy/
+│   │   └── provider.php
 │   └── task/
 │       └── evaluate_submission.php
 ├── db/
@@ -161,6 +182,14 @@ mod_redaction/
 ├── lang/
 │   ├── en/redaction.php    # Anglais
 │   └── fr/redaction.php    # Français
+├── templates/               # Templates Mustache
+│   ├── ai_evaluation.mustache
+│   ├── dashboard_teacher.mustache
+│   ├── grading_form.mustache
+│   ├── grading_navigation.mustache
+│   ├── history_modal.mustache
+│   ├── submission_panel.mustache
+│   └── training_timeline.mustache
 ├── pages/
 │   ├── home.php            # Page d'accueil
 │   ├── consignes.php       # Consignes enseignant
@@ -265,6 +294,27 @@ Ce plugin est distribué sous licence [GNU GPL v3](http://www.gnu.org/copyleft/g
 Copyright 2026
 
 ## Changelog
+
+### Version 1.2.0 (2026-02-10)
+
+- **Mode entraînement** : les élèves peuvent soumettre plusieurs fois pour recevoir un feedback IA itératif avant la soumission finale
+  - Cooldown configurable entre tentatives
+  - Pourcentage minimum de modification exigé
+  - Nombre maximum de tentatives (ou illimité)
+- **Frise chronologique d'entraînement** : vue enseignant interactive montrant la répartition temporelle des tentatives
+  - Sparkline SVG de la progression des notes
+  - Curseur déplaçable (souris/tactile/clavier)
+  - Panneau de détail par tentative (critères, feedback)
+  - Indicateur de tendance (↑ ↓ →)
+  - Fallback liste simple sans JavaScript
+- **Éditeur visuel de critères** : remplacement du textarea JSON par un formulaire interactif
+  - Ajout/suppression dynamique de critères
+  - Total des poids en temps réel (vert si = 20)
+  - Génération IA de la grille de critères
+- **Sécurité** : re-chiffrement des clés API legacy (base64 → `\core\encryption`)
+- **Événements Moodle** : ai_evaluation_completed, ai_evaluation_requested, ai_grade_applied, grade_updated
+- **Backup/restore** : support complet des champs training et is_training
+- Application différée des notes IA (champ `scheduled_apply_at`)
 
 ### Version 1.1.0 (2026-01-28)
 

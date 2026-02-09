@@ -204,6 +204,14 @@ $string['settings_albert_api_key_desc'] = 'API key for the Albert (Etalab) servi
 // AI Evaluation Details.
 $string['ai_criteria_details'] = 'Evaluation criteria details';
 $string['ai_general_feedback'] = 'General feedback';
+$string['ai_confidence'] = 'Evaluation reliability';
+$string['ai_strengths'] = 'Strengths';
+$string['ai_weaknesses'] = 'Areas for improvement';
+$string['ai_keywords'] = 'Keywords analysis';
+$string['ai_keywords_found'] = 'Keywords identified';
+$string['ai_keywords_missing'] = 'Missing keywords';
+$string['ai_suggestions'] = 'Tips for improvement';
+$string['ai_overall_appreciation'] = 'Overall appreciation';
 $string['level_excellent'] = 'Excellent';
 $string['level_good'] = 'Good';
 $string['level_medium'] = 'Needs improvement';
@@ -393,3 +401,64 @@ $string['mobile_view_title'] = 'Writing Activity';
 $string['mobile_consignes_title'] = 'Instructions';
 $string['mobile_submission_title'] = 'My Submission';
 $string['mobile_evaluation_title'] = 'Evaluation';
+
+// Training mode.
+$string['training_settings'] = 'Training mode';
+$string['training_enabled'] = 'Enable training mode';
+$string['training_enabled_help'] = 'Allows students to submit their work multiple times to receive immediate AI feedback before their final submission. Requires AI evaluation to be enabled. Note: AI token usage will be multiplied by the number of attempts.';
+$string['training_cooldown'] = 'Cooldown between submissions';
+$string['training_cooldown_help'] = 'Minimum time to wait between two training submissions.';
+$string['training_min_change'] = 'Minimum change required';
+$string['training_min_change_help'] = 'Minimum percentage of content change required between two training submissions to prevent identical resubmissions.';
+$string['training_max_attempts'] = 'Maximum attempts';
+$string['training_max_attempts_help'] = 'Maximum number of training submissions allowed. 0 = unlimited.';
+$string['training_requires_ai'] = 'Training mode requires AI evaluation to be enabled.';
+$string['training_submit'] = 'Submit for feedback';
+$string['training_submitted'] = 'Training submission sent. Feedback will be available shortly.';
+$string['training_final_submit'] = 'Final submission';
+$string['training_final_confirm'] = 'Are you sure you want to make your final submission? You will no longer be able to edit it. This version will be graded.';
+$string['training_history'] = 'Feedback history';
+$string['training_attempt'] = 'Attempt {$a}';
+$string['training_remaining'] = 'Remaining attempts: {$a}';
+$string['training_status'] = 'Training mode active';
+$string['training_error_training_not_enabled'] = 'Training mode is not enabled for this activity.';
+$string['training_error_already_submitted'] = 'The writing has already been submitted as final.';
+$string['training_error_deadline_passed'] = 'The deadline has passed.';
+$string['training_error_max_attempts_reached'] = 'Maximum number of attempts reached.';
+$string['training_error_cooldown_active'] = 'Please wait before the next submission.';
+$string['training_error_cooldown_remaining'] = 'Please wait {$a} more minute(s) before the next submission.';
+$string['training_error_evaluation_pending'] = 'An evaluation is in progress. Wait for the result before submitting again.';
+$string['training_error_min_change'] = 'The content has not changed enough since the last submission. Make more changes before resubmitting.';
+$string['training_evaluating'] = 'Evaluating...';
+$string['training_feedback_title'] = 'Training feedback';
+$string['training_no_feedback'] = 'No training feedback available.';
+$string['unlimited'] = 'Unlimited';
+
+// Visual criteria editor.
+$string['grille_criteres_visual_help'] = 'Define your evaluation criteria. The sum of weights should ideally equal 20.';
+$string['add_criterion'] = 'Add criterion';
+$string['remove_criterion'] = 'Remove';
+$string['criterion_name'] = 'Criterion name';
+$string['criterion_name_placeholder'] = 'E.g.: Relevance, Structure, Expression...';
+$string['criterion_description'] = 'Description';
+$string['criterion_description_placeholder'] = 'Describe what this criterion evaluates...';
+$string['criterion_weight'] = 'Weight';
+$string['total_weight'] = 'Total weight';
+$string['show_json'] = 'Show raw JSON (advanced)';
+$string['weight_warning_under'] = 'Total weight ({$a}) is less than 20.';
+$string['weight_warning_over'] = 'Total weight ({$a}) exceeds 20.';
+$string['weight_ok'] = 'Total: {$a}/20';
+
+// Training mode - grading view.
+$string['training_attempts_count'] = 'Training attempts: {$a}';
+$string['training_history_teacher'] = 'Training history';
+$string['training_no_attempts'] = 'No training attempts';
+$string['training_attempt_date'] = 'Attempt {$a->num} - {$a->date}';
+$string['training_grade_label'] = 'Training grade';
+
+// Training timeline.
+$string['training_timeline_title'] = 'Training timeline';
+$string['training_timeline_progress'] = 'Progress';
+$string['training_timeline_no_data'] = 'No training attempts';
+$string['training_timeline_final'] = 'Final submission';
+$string['training_timeline_attempt'] = 'Attempt {$a}';

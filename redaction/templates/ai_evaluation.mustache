@@ -1,7 +1,8 @@
 {{!
     @template mod_redaction/ai_evaluation
 
-    AI evaluation display with criteria, feedback and action buttons.
+    AI evaluation display with criteria, feedback, strengths/weaknesses,
+    keywords, suggestions and action buttons.
 
     Context variables required for this template:
     * ai_enabled - Boolean
@@ -13,11 +14,28 @@
     * submissionid - Submission ID
     * evaluationid - Evaluation ID
     * grade - Formatted grade
+    * gradelevel - Level string (excellent/good/medium/low)
+    * gradelevelstr - Translated level string
+    * confidencepercent - Confidence as percentage
+    * confidenceclass - Confidence CSS class
     * error_message - Error message if failed
-    * criteria - Array of {name, score, max, percentage, scoreclass, comment, hascomment}
+    * criteria - Array of {name, score, max, percentage, scoreclass, comment, hascomment, levelstr}
     * hascriteria - Boolean
     * parsed_feedback - Feedback HTML
     * hasfeedback - Boolean
+    * overall_appreciation - Short overall appreciation text
+    * hasappreciation - Boolean
+    * strengths - Array of {text}
+    * hasstrengths - Boolean
+    * weaknesses - Array of {text}
+    * hasweaknesses - Boolean
+    * keywords_found - Array of {word}
+    * haskeywordsfound - Boolean
+    * keywords_missing - Array of {word}
+    * haskeywordsmissing - Boolean
+    * haskeywords - Boolean
+    * suggestions - Array of {text}
+    * hassuggestions - Boolean
 
     Example context (json):
     {
@@ -27,17 +45,25 @@
         "iscompleted": true,
         "evaluationid": 1,
         "grade": "15.0",
+        "gradelevel": "good",
+        "gradelevelstr": "Bien",
+        "confidencepercent": 85,
+        "confidenceclass": "good",
         "hascriteria": true,
-        "criteria": [{"name": "Relevance", "score": "4.0", "max": "5", "percentage": 80, "scoreclass": "good"}]
+        "criteria": [{"name": "Relevance", "score": "4.0", "max": "5", "percentage": 80, "scoreclass": "good", "levelstr": "Bien"}],
+        "hasstrengths": true,
+        "strengths": [{"text": "Good argumentation"}],
+        "hasweaknesses": true,
+        "weaknesses": [{"text": "Needs more structure"}]
     }
 }}
 {{#ai_enabled}}
 {{#hassubmission}}
 <div class="ai-evaluation-container">
-    <h4 style="margin-bottom: 12px; font-size: 16px;">&#129302; {{#str}}ai_evaluation, redaction{{/str}}</h4>
+    <h4 class="ai-eval-title">&#129302; {{#str}}ai_evaluation, redaction{{/str}}</h4>
 
     {{^hasevaluation}}
-        <p style="margin-bottom: 12px; font-size: 13px; color: #666;">
+        <p class="ai-eval-empty-msg">
             {{#str}}no_ai_evaluation, redaction{{/str}}
         </p>
         <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
@@ -54,7 +80,7 @@
         {{/ispending}}
 
         {{#isfailed}}
-            <div class="alert alert-danger" style="margin-bottom: 15px;">
+            <div class="alert alert-danger ai-eval-alert">
                 {{#str}}ai_evaluation_failed, redaction{{/str}}
                 {{#error_message}}<br><small>{{error_message}}</small>{{/error_message}}
             </div>
@@ -64,25 +90,109 @@
         {{/isfailed}}
 
         {{#iscompleted}}
+            {{! Grade Card with Level & Confidence }}
             <div class="ai-grade-card">
-                <div class="ai-grade-value">{{grade}}/20</div>
+                <div class="ai-grade-ring ai-grade-ring-{{gradelevel}}">
+                    <div class="ai-grade-value">{{grade}}<span class="ai-grade-max">/20</span></div>
+                </div>
+                <div class="ai-grade-level ai-level-{{gradelevel}}">{{gradelevelstr}}</div>
                 <div class="ai-grade-label">{{#str}}ai_grade, redaction{{/str}}</div>
+                <div class="ai-confidence" title="{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%">
+                    <div class="ai-confidence-bar">
+                        <div class="ai-confidence-fill {{confidenceclass}}" style="width: {{confidencepercent}}%"></div>
+                    </div>
+                    <small class="ai-confidence-label">{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%</small>
+                </div>
             </div>
 
+            {{! Overall Appreciation }}
+            {{#hasappreciation}}
+            <div class="ai-appreciation">
+                <div class="ai-appreciation-icon">&#128172;</div>
+                <div class="ai-appreciation-text">{{{overall_appreciation}}}</div>
+            </div>
+            {{/hasappreciation}}
+
+            {{! Strengths & Weaknesses Side by Side }}
+            {{#hasstrengths}}{{#hasweaknesses}}
+            <div class="ai-strengths-weaknesses">
+                <div class="ai-sw-column ai-strengths-col">
+                    <div class="ai-sw-header ai-sw-header-strengths">
+                        <span class="ai-sw-icon">&#9989;</span>
+                        {{#str}}ai_strengths, redaction{{/str}}
+                    </div>
+                    <ul class="ai-sw-list">
+                        {{#strengths}}
+                        <li>{{{text}}}</li>
+                        {{/strengths}}
+                    </ul>
+                </div>
+                <div class="ai-sw-column ai-weaknesses-col">
+                    <div class="ai-sw-header ai-sw-header-weaknesses">
+                        <span class="ai-sw-icon">&#128736;</span>
+                        {{#str}}ai_weaknesses, redaction{{/str}}
+                    </div>
+                    <ul class="ai-sw-list">
+                        {{#weaknesses}}
+                        <li>{{{text}}}</li>
+                        {{/weaknesses}}
+                    </ul>
+                </div>
+            </div>
+            {{/hasweaknesses}}{{/hasstrengths}}
+
+            {{! Strengths only }}
+            {{#hasstrengths}}{{^hasweaknesses}}
+            <div class="ai-strengths-weaknesses">
+                <div class="ai-sw-column ai-strengths-col ai-sw-full">
+                    <div class="ai-sw-header ai-sw-header-strengths">
+                        <span class="ai-sw-icon">&#9989;</span>
+                        {{#str}}ai_strengths, redaction{{/str}}
+                    </div>
+                    <ul class="ai-sw-list">
+                        {{#strengths}}
+                        <li>{{{text}}}</li>
+                        {{/strengths}}
+                    </ul>
+                </div>
+            </div>
+            {{/hasweaknesses}}{{/hasstrengths}}
+
+            {{! Weaknesses only }}
+            {{^hasstrengths}}{{#hasweaknesses}}
+            <div class="ai-strengths-weaknesses">
+                <div class="ai-sw-column ai-weaknesses-col ai-sw-full">
+                    <div class="ai-sw-header ai-sw-header-weaknesses">
+                        <span class="ai-sw-icon">&#128736;</span>
+                        {{#str}}ai_weaknesses, redaction{{/str}}
+                    </div>
+                    <ul class="ai-sw-list">
+                        {{#weaknesses}}
+                        <li>{{{text}}}</li>
+                        {{/weaknesses}}
+                    </ul>
+                </div>
+            </div>
+            {{/hasweaknesses}}{{/hasstrengths}}
+
+            {{! Criteria Details (Collapsible) }}
             {{#hascriteria}}
                 <div class="ai-criteria-section">
                     <div class="ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 style="margin: 0;">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
+                        <h5 class="ai-section-title">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
                         <span class="toggle-icon">&#9660;</span>
                     </div>
                     <div class="ai-section-content">
                         {{#criteria}}
-                            <div class="ai-criterion">
+                            <div class="ai-criterion ai-criterion-{{scoreclass}}">
                                 <div class="ai-criterion-header">
                                     <span class="ai-criterion-name">{{name}}</span>
-                                    <span class="ai-criterion-score {{scoreclass}}">
-                                        {{score}}/{{max}}
-                                    </span>
+                                    <div class="ai-criterion-meta">
+                                        <span class="ai-criterion-level-label ai-level-{{scoreclass}}">{{levelstr}}</span>
+                                        <span class="ai-criterion-score {{scoreclass}}">
+                                            {{score}}/{{max}}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="ai-criterion-progress">
                                     <div class="ai-criterion-progress-bar {{scoreclass}}"
@@ -99,20 +209,76 @@
                 </div>
             {{/hascriteria}}
 
-            {{#hasfeedback}}
+            {{! Keywords Analysis (Collapsible) }}
+            {{#haskeywords}}
                 <div class="ai-criteria-section">
                     <div class="ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 style="margin: 0;">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
+                        <h5 class="ai-section-title">&#128273; {{#str}}ai_keywords, redaction{{/str}}</h5>
                         <span class="toggle-icon">&#9660;</span>
                     </div>
                     <div class="ai-section-content">
-                        <div class="ai-feedback" style="margin-bottom: 0;">
+                        <div class="ai-keywords-container">
+                            {{#haskeywordsfound}}
+                            <div class="ai-keywords-group">
+                                <span class="ai-keywords-label ai-keywords-found-label">{{#str}}ai_keywords_found, redaction{{/str}}</span>
+                                <div class="ai-keywords-tags">
+                                    {{#keywords_found}}
+                                    <span class="ai-keyword-tag ai-keyword-found">&#10003; {{word}}</span>
+                                    {{/keywords_found}}
+                                </div>
+                            </div>
+                            {{/haskeywordsfound}}
+                            {{#haskeywordsmissing}}
+                            <div class="ai-keywords-group">
+                                <span class="ai-keywords-label ai-keywords-missing-label">{{#str}}ai_keywords_missing, redaction{{/str}}</span>
+                                <div class="ai-keywords-tags">
+                                    {{#keywords_missing}}
+                                    <span class="ai-keyword-tag ai-keyword-missing">&#10007; {{word}}</span>
+                                    {{/keywords_missing}}
+                                </div>
+                            </div>
+                            {{/haskeywordsmissing}}
+                        </div>
+                    </div>
+                </div>
+            {{/haskeywords}}
+
+            {{! Suggestions (Collapsible) }}
+            {{#hassuggestions}}
+                <div class="ai-criteria-section">
+                    <div class="ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 class="ai-section-title">&#128161; {{#str}}ai_suggestions, redaction{{/str}}</h5>
+                        <span class="toggle-icon">&#9660;</span>
+                    </div>
+                    <div class="ai-section-content">
+                        <ul class="ai-suggestions-list">
+                            {{#suggestions}}
+                            <li class="ai-suggestion-item">
+                                <span class="ai-suggestion-icon">&#10148;</span>
+                                <span class="ai-suggestion-text">{{{text}}}</span>
+                            </li>
+                            {{/suggestions}}
+                        </ul>
+                    </div>
+                </div>
+            {{/hassuggestions}}
+
+            {{! General Feedback (Collapsible) }}
+            {{#hasfeedback}}
+                <div class="ai-criteria-section">
+                    <div class="ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 class="ai-section-title">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
+                        <span class="toggle-icon">&#9660;</span>
+                    </div>
+                    <div class="ai-section-content">
+                        <div class="ai-feedback">
                             {{{parsed_feedback}}}
                         </div>
                     </div>
                 </div>
             {{/hasfeedback}}
 
+            {{! Action Buttons }}
             <div class="ai-actions">
                 <button type="button" class="btn-ai btn-ai-apply" onclick="applyAIGrade({{evaluationid}})">
                     &#9989; {{#str}}apply_ai_grade, redaction{{/str}}

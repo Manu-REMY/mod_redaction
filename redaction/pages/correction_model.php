@@ -229,21 +229,136 @@ echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'
         }
     }
 
-    .criteria-grid-container {
-        background: #f8f9fa;
-        padding: 15px;
+    .criteria-editor {
+        border: 1px solid #ddd;
         border-radius: 8px;
+        padding: 15px;
+        background: #f8f9fa;
+    }
+
+    .criteria-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .criterion-row {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr 80px 40px;
+        gap: 10px;
+        align-items: start;
+        background: white;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        transition: box-shadow 0.2s;
+    }
+
+    .criterion-row:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .criterion-row input,
+    .criterion-row textarea {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 13px;
+        transition: border-color 0.2s;
+    }
+
+    .criterion-row input:focus,
+    .criterion-row textarea:focus {
+        border-color: #667eea;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    .criterion-row textarea {
+        min-height: 36px;
+        resize: vertical;
+    }
+
+    .criterion-weight-input {
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .btn-remove-criterion {
+        background: none;
+        border: none;
+        color: #e53e3e;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 6px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-remove-criterion:hover {
+        background: #fed7d7;
+    }
+
+    .criteria-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .btn-add-criterion {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-add-criterion:hover {
+        background: #5a67d8;
+    }
+
+    .criteria-total {
+        font-weight: 600;
+        font-size: 14px;
+        padding: 6px 14px;
+        border-radius: 20px;
+    }
+
+    .criteria-total.ok {
+        background: #c6f6d5;
+        color: #276749;
+    }
+
+    .criteria-total.warning {
+        background: #fed7d7;
+        color: #9b2c2c;
+    }
+
+    .criteria-json-details {
         margin-top: 10px;
     }
 
-    .criteria-grid-container code {
-        display: block;
-        background: #e9ecef;
-        padding: 10px;
-        border-radius: 5px;
+    .criteria-json-details summary {
+        cursor: pointer;
         font-size: 12px;
-        margin-top: 10px;
-        white-space: pre-wrap;
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .criterion-row {
+            grid-template-columns: 1fr;
+        }
     }
 
     .editor-container {
@@ -427,22 +542,35 @@ echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'
         </div>
 
         <div class="form-group">
-            <label for="grille_criteres"><?php echo get_string('grille_criteres', 'redaction'); ?></label>
-            <div class="help-text"><?php echo get_string('grille_criteres_help', 'redaction'); ?></div>
-            <textarea id="grille_criteres"
-                      name="grille_criteres"
-                      class="form-control"
-                      rows="10"
-                      placeholder="<?php echo get_string('grille_criteres_placeholder', 'redaction'); ?>"><?php echo s($correction->grille_criteres ?? ''); ?></textarea>
-            <div class="criteria-grid-container">
-                <small><?php echo get_string('grille_criteres_example', 'redaction'); ?></small>
-                <code>[
-  {"name": "Pertinence", "weight": 5, "description": "Réponse pertinente au sujet"},
-  {"name": "Structure", "weight": 5, "description": "Organisation logique"},
-  {"name": "Expression", "weight": 5, "description": "Qualité de l'expression écrite"},
-  {"name": "Argumentation", "weight": 5, "description": "Qualité des arguments"}
-]</code>
+            <label><?php echo get_string('grille_criteres', 'redaction'); ?></label>
+            <div class="help-text"><?php echo get_string('grille_criteres_visual_help', 'redaction'); ?></div>
+
+            <!-- Hidden field for JSON storage -->
+            <input type="hidden" id="grille_criteres" name="grille_criteres"
+                   value="<?php echo s($correction->grille_criteres ?? ''); ?>">
+
+            <!-- Visual criteria editor -->
+            <div class="criteria-editor" id="criteria-editor">
+                <div class="criteria-list" id="criteria-list">
+                    <!-- Criterion rows rendered by JS -->
+                </div>
+
+                <div class="criteria-footer">
+                    <button type="button" class="btn-add-criterion" onclick="addCriterion()">
+                        + <?php echo get_string('add_criterion', 'redaction'); ?>
+                    </button>
+                    <div class="criteria-total" id="criteria-total">
+                        <span id="total-weight-text"></span>
+                    </div>
+                </div>
             </div>
+
+            <!-- Collapsible raw JSON (advanced) -->
+            <details class="criteria-json-details">
+                <summary><?php echo get_string('show_json', 'redaction'); ?></summary>
+                <textarea id="grille_criteres_raw" class="form-control" rows="6" readonly
+                          style="font-family: monospace; font-size: 12px; margin-top: 8px;"></textarea>
+            </details>
         </div>
 
         <!-- AI Instructions Section -->
@@ -470,16 +598,173 @@ echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'
     </form>
 </div>
 
-<?php if ($aienabled && $hasconsignes): ?>
 <script>
+// ===== Visual Criteria Editor =====
+let criteriaData = [];
+
+function initCriteriaEditor() {
+    const hiddenField = document.getElementById('grille_criteres');
+    const raw = hiddenField.value.trim();
+
+    if (raw) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                criteriaData = parsed.map(c => ({
+                    name: c.name || '',
+                    description: c.description || '',
+                    weight: parseInt(c.weight) || 0
+                }));
+            }
+        } catch (e) {
+            console.warn('Could not parse existing criteria JSON:', e);
+        }
+    }
+
+    // Add defaults if empty.
+    if (criteriaData.length === 0) {
+        criteriaData = [
+            { name: '', description: '', weight: 5 }
+        ];
+    }
+
+    renderCriteria();
+}
+
+function renderCriteria() {
+    const container = document.getElementById('criteria-list');
+    container.innerHTML = '';
+
+    criteriaData.forEach((criterion, index) => {
+        const row = document.createElement('div');
+        row.className = 'criterion-row';
+        row.innerHTML =
+            '<div>' +
+                '<input type="text" placeholder="<?php echo addslashes_js(get_string('criterion_name_placeholder', 'redaction')); ?>"' +
+                ' value="' + escapeHtml(criterion.name) + '"' +
+                ' onchange="updateCriterion(' + index + ', \'name\', this.value)"' +
+                ' oninput="updateCriterion(' + index + ', \'name\', this.value)">' +
+            '</div>' +
+            '<div>' +
+                '<textarea placeholder="<?php echo addslashes_js(get_string('criterion_description_placeholder', 'redaction')); ?>"' +
+                ' onchange="updateCriterion(' + index + ', \'description\', this.value)"' +
+                ' oninput="updateCriterion(' + index + ', \'description\', this.value)"' +
+                ' rows="1">' + escapeHtml(criterion.description) + '</textarea>' +
+            '</div>' +
+            '<div>' +
+                '<input type="number" min="0" max="20" step="1"' +
+                ' class="criterion-weight-input"' +
+                ' value="' + criterion.weight + '"' +
+                ' onchange="updateCriterion(' + index + ', \'weight\', parseInt(this.value) || 0)"' +
+                ' oninput="updateCriterion(' + index + ', \'weight\', parseInt(this.value) || 0)">' +
+            '</div>' +
+            '<div>' +
+                '<button type="button" class="btn-remove-criterion" onclick="removeCriterion(' + index + ')" title="<?php echo addslashes_js(get_string('remove_criterion', 'redaction')); ?>">' +
+                    '&times;' +
+                '</button>' +
+            '</div>';
+        container.appendChild(row);
+    });
+
+    updateTotalWeight();
+    syncToHiddenField();
+}
+
+function addCriterion() {
+    criteriaData.push({ name: '', description: '', weight: 5 });
+    renderCriteria();
+    // Focus the new name input.
+    const rows = document.querySelectorAll('.criterion-row');
+    if (rows.length > 0) {
+        const lastRow = rows[rows.length - 1];
+        const input = lastRow.querySelector('input[type="text"]');
+        if (input) input.focus();
+    }
+}
+
+function removeCriterion(index) {
+    if (criteriaData.length <= 1) return;
+    criteriaData.splice(index, 1);
+    renderCriteria();
+}
+
+function updateCriterion(index, field, value) {
+    if (criteriaData[index]) {
+        criteriaData[index][field] = value;
+        if (field === 'weight') {
+            updateTotalWeight();
+        }
+        syncToHiddenField();
+    }
+}
+
+function updateTotalWeight() {
+    const total = criteriaData.reduce((sum, c) => sum + (parseInt(c.weight) || 0), 0);
+    const totalEl = document.getElementById('criteria-total');
+    const textEl = document.getElementById('total-weight-text');
+
+    if (total === 20) {
+        totalEl.className = 'criteria-total ok';
+        textEl.textContent = '<?php echo addslashes_js(get_string('weight_ok', 'redaction', '{TOTAL}')); ?>'.replace('{TOTAL}', total);
+    } else if (total < 20) {
+        totalEl.className = 'criteria-total warning';
+        textEl.textContent = '<?php echo addslashes_js(get_string('weight_warning_under', 'redaction', '{TOTAL}')); ?>'.replace('{TOTAL}', total);
+    } else {
+        totalEl.className = 'criteria-total warning';
+        textEl.textContent = '<?php echo addslashes_js(get_string('weight_warning_over', 'redaction', '{TOTAL}')); ?>'.replace('{TOTAL}', total);
+    }
+}
+
+function syncToHiddenField() {
+    // Only sync criteria that have a name.
+    const validCriteria = criteriaData.filter(c => c.name.trim() !== '');
+    const json = JSON.stringify(validCriteria, null, 2);
+    document.getElementById('grille_criteres').value = json;
+
+    // Update raw JSON view if open.
+    const rawTextarea = document.getElementById('grille_criteres_raw');
+    if (rawTextarea) {
+        rawTextarea.value = json;
+    }
+}
+
+function loadCriteriaFromJson(jsonStr) {
+    try {
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed)) {
+            criteriaData = parsed.map(c => ({
+                name: c.name || '',
+                description: c.description || '',
+                weight: parseInt(c.weight) || 0
+            }));
+            renderCriteria();
+            return true;
+        }
+    } catch (e) {
+        console.error('Invalid JSON:', e);
+    }
+    return false;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(text || ''));
+    return div.innerHTML;
+}
+
+// Initialize on page load.
+document.addEventListener('DOMContentLoaded', initCriteriaEditor);
+
+<?php if ($aienabled && $hasconsignes): ?>
+// ===== AI Generation =====
 function generateWithAI() {
     const btn = document.getElementById('btn-generate-ai');
-    const grilleCriteres = document.getElementById('grille_criteres');
+    const hiddenField = document.getElementById('grille_criteres');
     const aiInstructions = document.getElementById('ai_instructions');
 
     // Check if fields already have content.
-    if (grilleCriteres.value.trim() || aiInstructions.value.trim()) {
-        if (!confirm('<?php echo get_string('ai_generate_confirm_overwrite', 'redaction'); ?>')) {
+    if (hiddenField.value.trim() || (aiInstructions && aiInstructions.value.trim())) {
+        if (!confirm('<?php echo addslashes_js(get_string('ai_generate_confirm_overwrite', 'redaction')); ?>')) {
             return;
         }
     }
@@ -499,27 +784,30 @@ function generateWithAI() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Fill in the fields.
-            grilleCriteres.value = data.grille_criteres;
-            aiInstructions.value = data.ai_instructions;
+            // Load criteria into visual editor.
+            loadCriteriaFromJson(data.grille_criteres);
 
-            // Show success message.
-            alert('<?php echo get_string('ai_generate_success', 'redaction'); ?>');
+            // Fill AI instructions.
+            if (aiInstructions) {
+                aiInstructions.value = data.ai_instructions;
+            }
+
+            alert('<?php echo addslashes_js(get_string('ai_generate_success', 'redaction')); ?>');
         } else {
-            alert(data.message || '<?php echo get_string('ai_request_failed', 'redaction'); ?>');
+            alert(data.message || '<?php echo addslashes_js(get_string('ai_request_failed', 'redaction')); ?>');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('<?php echo get_string('ai_request_failed', 'redaction'); ?>');
+        alert('<?php echo addslashes_js(get_string('ai_request_failed', 'redaction')); ?>');
     })
     .finally(() => {
         btn.disabled = false;
         btn.classList.remove('loading');
     });
 }
-</script>
 <?php endif; ?>
+</script>
 
 <?php
 echo $OUTPUT->footer();

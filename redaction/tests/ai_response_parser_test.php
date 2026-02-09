@@ -456,4 +456,259 @@ class ai_response_parser_test extends \advanced_testcase {
         $this->assertEquals(15.0, $result->grade);
         $this->assertIsFloat($result->grade);
     }
+
+    /**
+     * Test strengths extraction.
+     */
+    public function test_strengths_extraction(): void {
+        $json = json_encode([
+            'grade' => 15.0,
+            'feedback' => 'Good.',
+            'strengths' => ['Good argumentation', 'Clear structure', 'Rich vocabulary'],
+        ]);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertCount(3, $result->strengths);
+        $this->assertStringContainsString('Good argumentation', $result->strengths[0]);
+        $this->assertStringContainsString('Clear structure', $result->strengths[1]);
+    }
+
+    /**
+     * Test weaknesses extraction.
+     */
+    public function test_weaknesses_extraction(): void {
+        $json = json_encode([
+            'grade' => 12.0,
+            'feedback' => 'Average.',
+            'weaknesses' => ['Needs better transitions', 'Lack of examples'],
+        ]);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertCount(2, $result->weaknesses);
+        $this->assertStringContainsString('Needs better transitions', $result->weaknesses[0]);
+    }
+
+    /**
+     * Test empty strengths/weaknesses default to empty arrays.
+     */
+    public function test_empty_strengths_weaknesses(): void {
+        $json = json_encode(['grade' => 10.0, 'feedback' => 'Ok']);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertIsArray($result->strengths);
+        $this->assertEmpty($result->strengths);
+        $this->assertIsArray($result->weaknesses);
+        $this->assertEmpty($result->weaknesses);
+    }
+
+    /**
+     * Test overall_appreciation extraction.
+     */
+    public function test_overall_appreciation(): void {
+        $json = json_encode([
+            'grade' => 16.0,
+            'feedback' => 'Good work.',
+            'overall_appreciation' => 'An excellent essay showing clear understanding.',
+        ]);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertStringContainsString('excellent essay', $result->overall_appreciation);
+    }
+
+    /**
+     * Test empty overall_appreciation defaults to empty string.
+     */
+    public function test_empty_overall_appreciation(): void {
+        $json = json_encode(['grade' => 10.0, 'feedback' => 'Ok']);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertEquals('', $result->overall_appreciation);
+    }
+
+    /**
+     * Test criteria level extraction from explicit value.
+     */
+    public function test_criteria_level_explicit(): void {
+        $json = json_encode([
+            'grade' => 15.0,
+            'feedback' => 'Good.',
+            'criteria' => [
+                ['name' => 'Pertinence', 'score' => 4, 'max' => 5, 'comment' => 'Good', 'level' => 'good'],
+                ['name' => 'Structure', 'score' => 2, 'max' => 5, 'comment' => 'Weak', 'level' => 'medium'],
+            ],
+        ]);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertEquals('good', $result->criteria[0]->level);
+        $this->assertEquals('medium', $result->criteria[1]->level);
+    }
+
+    /**
+     * Test criteria level is calculated when not provided.
+     */
+    public function test_criteria_level_calculated(): void {
+        $json = json_encode([
+            'grade' => 15.0,
+            'feedback' => 'Good.',
+            'criteria' => [
+                ['name' => 'Pertinence', 'score' => 5, 'max' => 5, 'comment' => 'Perfect'],
+                ['name' => 'Structure', 'score' => 3.5, 'max' => 5, 'comment' => 'Good'],
+                ['name' => 'Expression', 'score' => 2, 'max' => 5, 'comment' => 'Average'],
+                ['name' => 'Argumentation', 'score' => 1, 'max' => 5, 'comment' => 'Weak'],
+            ],
+        ]);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertEquals('excellent', $result->criteria[0]->level); // 100%
+        $this->assertEquals('good', $result->criteria[1]->level);      // 70%
+        $this->assertEquals('medium', $result->criteria[2]->level);    // 40%
+        $this->assertEquals('low', $result->criteria[3]->level);       // 20%
+    }
+
+    /**
+     * Test invalid criteria level falls back to calculated.
+     */
+    public function test_criteria_level_invalid_falls_back(): void {
+        $json = json_encode([
+            'grade' => 15.0,
+            'feedback' => 'Good.',
+            'criteria' => [
+                ['name' => 'Test', 'score' => 4, 'max' => 5, 'comment' => 'Good', 'level' => 'invalid_value'],
+            ],
+        ]);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertEquals('excellent', $result->criteria[0]->level); // 80% = excellent
+    }
+
+    /**
+     * Test calculate_level static method.
+     */
+    public function test_calculate_level(): void {
+        $this->assertEquals('excellent', ai_response_parser::calculate_level(80));
+        $this->assertEquals('excellent', ai_response_parser::calculate_level(100));
+        $this->assertEquals('good', ai_response_parser::calculate_level(60));
+        $this->assertEquals('good', ai_response_parser::calculate_level(79));
+        $this->assertEquals('medium', ai_response_parser::calculate_level(40));
+        $this->assertEquals('medium', ai_response_parser::calculate_level(59));
+        $this->assertEquals('low', ai_response_parser::calculate_level(39));
+        $this->assertEquals('low', ai_response_parser::calculate_level(0));
+    }
+
+    /**
+     * Test get_grade_level static method.
+     */
+    public function test_get_grade_level(): void {
+        $this->assertEquals('excellent', ai_response_parser::get_grade_level(16.0)); // 80%
+        $this->assertEquals('excellent', ai_response_parser::get_grade_level(20.0)); // 100%
+        $this->assertEquals('good', ai_response_parser::get_grade_level(12.0));      // 60%
+        $this->assertEquals('medium', ai_response_parser::get_grade_level(8.0));     // 40%
+        $this->assertEquals('low', ai_response_parser::get_grade_level(4.0));        // 20%
+        $this->assertEquals('low', ai_response_parser::get_grade_level(0.0));        // 0%
+    }
+
+    /**
+     * Test full enhanced response parsing with all new fields.
+     */
+    public function test_parse_full_enhanced_response(): void {
+        $json = json_encode([
+            'grade' => 15.0,
+            'feedback' => 'Ton paragraphe est bien structuré et montre une bonne compréhension.',
+            'criteria' => [
+                ['name' => 'Clarté', 'score' => 4, 'max' => 5, 'comment' => 'Clear', 'level' => 'excellent'],
+                ['name' => 'Pertinence', 'score' => 4, 'max' => 5, 'comment' => 'Relevant', 'level' => 'good'],
+                ['name' => 'Structure', 'score' => 3, 'max' => 5, 'comment' => 'Ok', 'level' => 'medium'],
+                ['name' => 'Originalité', 'score' => 2, 'max' => 5, 'comment' => 'Basic', 'level' => 'medium'],
+            ],
+            'strengths' => ['Good examples', 'Clear language'],
+            'weaknesses' => ['Needs more depth', 'Missing conclusion'],
+            'keywords_found' => ['IA', 'technologie'],
+            'keywords_missing' => ['éthique', 'données'],
+            'suggestions' => ['Add a conclusion', 'Explore ethical aspects'],
+            'overall_appreciation' => 'A solid effort with room for growth.',
+            'confidence' => 0.88,
+        ]);
+
+        $result = ai_response_parser::parse($json);
+
+        // Grade & confidence.
+        $this->assertEquals(15.0, $result->grade);
+        $this->assertEquals(0.88, $result->confidence);
+
+        // Criteria with levels.
+        $this->assertCount(4, $result->criteria);
+        $this->assertEquals('excellent', $result->criteria[0]->level);
+        $this->assertEquals('good', $result->criteria[1]->level);
+        $this->assertEquals('medium', $result->criteria[2]->level);
+
+        // Strengths & Weaknesses.
+        $this->assertCount(2, $result->strengths);
+        $this->assertCount(2, $result->weaknesses);
+
+        // Keywords.
+        $this->assertCount(2, $result->keywords_found);
+        $this->assertCount(2, $result->keywords_missing);
+
+        // Suggestions.
+        $this->assertCount(2, $result->suggestions);
+
+        // Overall appreciation.
+        $this->assertStringContainsString('solid effort', $result->overall_appreciation);
+    }
+
+    /**
+     * Test format_for_display includes new fields.
+     */
+    public function test_format_for_display_enhanced(): void {
+        $result = (object) [
+            'grade' => 16.0,
+            'feedback' => 'Excellent work.',
+            'criteria' => [
+                (object) ['name' => 'Pertinence', 'score' => 4.5, 'max' => 5, 'comment' => 'Great', 'level' => 'excellent'],
+            ],
+            'strengths' => ['Strong argument', 'Clear writing'],
+            'weaknesses' => ['Missing counterpoints'],
+            'keywords_found' => ['democracy'],
+            'keywords_missing' => ['constitution'],
+            'suggestions' => ['Add counterarguments', 'Improve conclusion'],
+            'overall_appreciation' => 'Outstanding essay.',
+            'confidence' => 0.92,
+        ];
+
+        $html = ai_response_parser::format_for_display($result);
+
+        // Check grade and level.
+        $this->assertStringContainsString('16.0', $html);
+        $this->assertStringContainsString('/20', $html);
+        $this->assertStringContainsString('ai-level-excellent', $html);
+
+        // Check overall appreciation.
+        $this->assertStringContainsString('Outstanding essay.', $html);
+
+        // Check strengths & weaknesses.
+        $this->assertStringContainsString('Strong argument', $html);
+        $this->assertStringContainsString('Missing counterpoints', $html);
+
+        // Check suggestions.
+        $this->assertStringContainsString('Add counterarguments', $html);
+        $this->assertStringContainsString('Improve conclusion', $html);
+    }
+
+    /**
+     * Test strengths/weaknesses HTML sanitization.
+     */
+    public function test_strengths_weaknesses_sanitization(): void {
+        $json = json_encode([
+            'grade' => 10.0,
+            'feedback' => 'Ok',
+            'strengths' => ['<script>bad()</script>Good point'],
+            'weaknesses' => ['<img onerror="bad()" src="">Needs work'],
+        ]);
+
+        $result = ai_response_parser::parse($json);
+        $this->assertStringNotContainsString('<script>', $result->strengths[0]);
+        $this->assertStringContainsString('Good point', $result->strengths[0]);
+        $this->assertStringNotContainsString('onerror', $result->weaknesses[0]);
+        $this->assertStringContainsString('Needs work', $result->weaknesses[0]);
+    }
 }

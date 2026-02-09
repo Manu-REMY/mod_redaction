@@ -4,7 +4,7 @@
 
 Le plugin **mod_redaction** est un module d'activité Moodle permettant aux enseignants de proposer des activités de rédaction avec évaluation manuelle ou assistée par IA. Il inclut un tableau de bord enseignant avec synthèse automatique des feedbacks.
 
-**Version actuelle** : 2026012901
+**Version actuelle** : 1.2.0 (2026021001)
 **Compatibilité** : Moodle 4.5+
 **Auteur** : Emmanuel REMY
 
@@ -21,17 +21,20 @@ mod_redaction/
 │   ├── generate_criteria.php      # Générer critères via IA
 │   ├── get_evaluation_status.php  # Statut d'évaluation
 │   ├── get_history.php            # Historique versions
-│   └── submit.php                 # Soumettre/déverrouiller
+│   ├── submit.php                 # Soumettre/déverrouiller
+│   └── training_submit.php        # Soumission entraînement
 │
 ├── amd/                           # Modules JavaScript AMD
 │   ├── build/                     # Fichiers minifiés
 │   │   ├── autosave.min.js
 │   │   ├── dashboard.min.js
-│   │   └── grading.min.js
+│   │   ├── grading_actions.min.js
+│   │   └── training_timeline.min.js
 │   └── src/                       # Sources
 │       ├── autosave.js            # Sauvegarde auto côté client
 │       ├── dashboard.js           # Tableau de bord enseignant
-│       └── grading.js             # Interface de notation
+│       ├── grading_actions.js     # Actions interface de notation
+│       └── training_timeline.js   # Frise chronologique entraînement
 │
 ├── backup/moodle2/                # Sauvegarde/restauration
 │
@@ -58,7 +61,11 @@ mod_redaction/
 │   │   └── generate_ai_summary.php    # API synthèse IA
 │   │
 │   ├── event/                     # Événements Moodle
-│   │   └── course_module_viewed.php
+│   │   ├── ai_evaluation_completed.php
+│   │   ├── ai_evaluation_requested.php
+│   │   ├── ai_grade_applied.php
+│   │   ├── course_module_viewed.php
+│   │   └── grade_updated.php
 │   │
 │   ├── privacy/                   # RGPD
 │   │   └── provider.php
@@ -83,7 +90,13 @@ mod_redaction/
 │   └── redaction.php              # Interface élève
 │
 ├── templates/                     # Templates Mustache
-│   └── dashboard_teacher.mustache # Tableau de bord
+│   ├── ai_evaluation.mustache
+│   ├── dashboard_teacher.mustache
+│   ├── grading_form.mustache
+│   ├── grading_navigation.mustache
+│   ├── history_modal.mustache
+│   ├── submission_panel.mustache
+│   └── training_timeline.mustache
 │
 ├── grading.php                    # Interface de notation
 ├── lib.php                        # Fonctions principales
@@ -112,6 +125,10 @@ mod_redaction/
 | ai_provider | VARCHAR(20) | openai/anthropic/mistral/albert |
 | ai_api_key | TEXT | Clé API chiffrée |
 | ai_auto_apply | TINYINT | Application auto des notes IA |
+| training_enabled | TINYINT | Mode entraînement activé |
+| training_cooldown | INT | Délai entre tentatives (sec, défaut 900) |
+| training_min_change | INT | % modification minimum (défaut 10) |
+| training_max_attempts | INT | Max tentatives (0=illimité, défaut 5) |
 
 #### `redaction_consignes` - Consignes enseignant
 | Champ | Type | Description |
@@ -136,6 +153,8 @@ mod_redaction/
 | status | TINYINT | 0=brouillon, 1=soumis |
 | grade | DECIMAL(10,2) | Note /20 |
 | feedback | TEXT | Commentaires enseignant |
+| training_count | INT | Nombre de soumissions d'entraînement |
+| last_training_time | INT | Timestamp dernière tentative entraînement |
 | timesubmitted | INT | Timestamp soumission |
 
 **Index unique** : `(redactionid, groupid, userid)`
@@ -171,6 +190,8 @@ mod_redaction/
 | error_message | TEXT | Message d'erreur |
 | applied_by | INT | Enseignant qui a appliqué |
 | applied_at | INT | Timestamp application |
+| scheduled_apply_at | INT | Application différée programmée |
+| is_training | TINYINT | 1=évaluation d'entraînement |
 
 #### `redaction_ai_summaries` - Synthèses IA (tableau de bord)
 | Champ | Type | Description |
@@ -529,6 +550,75 @@ Export et suppression des données implémentés selon les standards Moodle.
 
 ---
 
+## Mode entraînement
+
+### Principe
+
+Le mode entraînement permet aux élèves de soumettre plusieurs versions de leur rédaction pour recevoir un feedback IA itératif avant la soumission finale. L'enseignant configure les garde-fous (cooldown, % de modification, max tentatives).
+
+### Flux élève
+
+```
+1. Élève modifie sa rédaction
+        │
+        ▼
+2. Clique "Soumettre pour entraînement"
+        │
+        ▼
+3. ajax/training_submit.php
+   - Vérifie training_enabled
+   - Vérifie cooldown (last_training_time + training_cooldown < now)
+   - Vérifie changement minimum (similar_text >= training_min_change%)
+   - Vérifie tentatives restantes (training_count < training_max_attempts)
+        │
+        ▼
+4. Incrémente training_count, met à jour last_training_time
+        │
+        ▼
+5. Queue évaluation IA (is_training = 1)
+        │
+        ▼
+6. Élève reçoit le feedback IA
+   - Peut modifier et resoumettre
+```
+
+### Flux enseignant (frise chronologique)
+
+La vue notation (`grading.php`) affiche une frise chronologique interactive au-dessus du panneau de soumission. La frise montre la répartition temporelle des tentatives, leur progression et permet de naviguer entre elles.
+
+### Module AMD `training_timeline.js`
+
+```javascript
+define(['jquery'], function($) {
+    return {
+        init: function(params) {
+            // params.attempts : tableau de tentatives
+            // params.strings : chaînes localisées
+        },
+        selectAttempt: function(index) { /* Affiche le détail */ },
+        renderSparkline: function() { /* Courbe SVG */ },
+        renderTrend: function() { /* Indicateur ↑↓→ */ },
+        bindDrag: function() { /* Curseur déplaçable */ },
+        bindKeyboard: function() { /* Navigation clavier */ }
+    };
+});
+```
+
+**Interactions** :
+- Clic sur un marqueur → sélectionne la tentative
+- Drag du curseur → snap vers le marqueur le plus proche
+- Clavier : ←/→ = tentative précédente/suivante, Home/End = première/dernière
+
+**Données par tentative** :
+- `positionpercent` : position sur la timeline (0-100, clampé [2,98])
+- `gradelevel` : excellent/good/medium/low/pending/failed
+- `criteria` : tableau de `{name, score, max, percentage, scoreclass}`
+- `shortfeedback` : feedback tronqué (150 car.)
+
+**Fallback no-JS** : Liste simple visible par défaut, masquée quand `.js-active` est ajouté.
+
+---
+
 ## Migrations (upgrade.php)
 
 ### Version 2026012901
@@ -547,6 +637,21 @@ if ($oldversion < 2026012901) {
     upgrade_mod_savepoint(true, 2026012901, 'redaction');
 }
 ```
+
+### Version 2026020805
+
+Re-chiffrement des clés API legacy (base64 → `\core\encryption`).
+
+### Version 2026020806
+
+Ajout champ `scheduled_apply_at` sur `redaction_ai_evaluations` pour l'application différée.
+
+### Version 2026021001
+
+Mode entraînement et frise chronologique :
+- `redaction` : `training_enabled`, `training_cooldown`, `training_min_change`, `training_max_attempts`
+- `redaction_submission` : `training_count`, `last_training_time`
+- `redaction_ai_evaluations` : `is_training`
 
 ---
 

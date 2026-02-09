@@ -204,6 +204,14 @@ $string['settings_albert_api_key_desc'] = 'Clé API pour le service Albert (Etal
 // AI Evaluation Details.
 $string['ai_criteria_details'] = 'Détail des critères d\'évaluation';
 $string['ai_general_feedback'] = 'Commentaire général';
+$string['ai_confidence'] = 'Fiabilité de l\'évaluation';
+$string['ai_strengths'] = 'Points forts';
+$string['ai_weaknesses'] = 'Axes d\'amélioration';
+$string['ai_keywords'] = 'Analyse des mots-clés';
+$string['ai_keywords_found'] = 'Mots-clés identifiés';
+$string['ai_keywords_missing'] = 'Mots-clés manquants';
+$string['ai_suggestions'] = 'Conseils pour progresser';
+$string['ai_overall_appreciation'] = 'Appréciation globale';
 $string['level_excellent'] = 'Excellent';
 $string['level_good'] = 'Bien';
 $string['level_medium'] = 'À améliorer';
@@ -393,3 +401,64 @@ $string['mobile_view_title'] = 'Activité Rédaction';
 $string['mobile_consignes_title'] = 'Consignes';
 $string['mobile_submission_title'] = 'Ma soumission';
 $string['mobile_evaluation_title'] = 'Évaluation';
+
+// Training mode.
+$string['training_settings'] = 'Mode entraînement';
+$string['training_enabled'] = 'Activer le mode entraînement';
+$string['training_enabled_help'] = 'Permet aux élèves de soumettre plusieurs fois leur travail pour obtenir un retour IA immédiat avant la soumission finale. Nécessite que l\'évaluation IA soit activée. Attention : la consommation de tokens IA sera multipliée par le nombre de tentatives.';
+$string['training_cooldown'] = 'Délai entre les soumissions';
+$string['training_cooldown_help'] = 'Temps minimum à attendre entre deux soumissions d\'entraînement.';
+$string['training_min_change'] = 'Modification minimum requise';
+$string['training_min_change_help'] = 'Pourcentage minimum de modification du contenu requis entre deux soumissions d\'entraînement pour éviter les soumissions identiques.';
+$string['training_max_attempts'] = 'Nombre maximum de tentatives';
+$string['training_max_attempts_help'] = 'Nombre maximum de soumissions d\'entraînement autorisées. 0 = illimité.';
+$string['training_requires_ai'] = 'Le mode entraînement nécessite que l\'évaluation IA soit activée.';
+$string['training_submit'] = 'Soumettre pour feedback';
+$string['training_submitted'] = 'Soumission d\'entraînement envoyée. Le feedback sera disponible dans quelques instants.';
+$string['training_final_submit'] = 'Soumission finale';
+$string['training_final_confirm'] = 'Êtes-vous sûr de vouloir effectuer votre soumission finale ? Vous ne pourrez plus la modifier. C\'est cette version qui sera notée.';
+$string['training_history'] = 'Historique des feedbacks';
+$string['training_attempt'] = 'Tentative {$a}';
+$string['training_remaining'] = 'Tentatives restantes : {$a}';
+$string['training_status'] = 'Mode entraînement actif';
+$string['training_error_training_not_enabled'] = 'Le mode entraînement n\'est pas activé pour cette activité.';
+$string['training_error_already_submitted'] = 'La rédaction a déjà été soumise définitivement.';
+$string['training_error_deadline_passed'] = 'La date limite est dépassée.';
+$string['training_error_max_attempts_reached'] = 'Nombre maximum de tentatives atteint.';
+$string['training_error_cooldown_active'] = 'Veuillez patienter avant la prochaine soumission.';
+$string['training_error_cooldown_remaining'] = 'Veuillez patienter encore {$a} minute(s) avant la prochaine soumission.';
+$string['training_error_evaluation_pending'] = 'Une évaluation est en cours. Attendez le résultat avant de soumettre à nouveau.';
+$string['training_error_min_change'] = 'Le contenu n\'a pas assez changé depuis la dernière soumission. Modifiez davantage votre texte avant de resoumettre.';
+$string['training_evaluating'] = 'Évaluation en cours...';
+$string['training_feedback_title'] = 'Feedback d\'entraînement';
+$string['training_no_feedback'] = 'Aucun feedback d\'entraînement disponible.';
+$string['unlimited'] = 'Illimité';
+
+// Visual criteria editor.
+$string['grille_criteres_visual_help'] = 'Définissez vos critères d\'évaluation. La somme des poids devrait idéalement être égale à 20.';
+$string['add_criterion'] = 'Ajouter un critère';
+$string['remove_criterion'] = 'Supprimer';
+$string['criterion_name'] = 'Nom du critère';
+$string['criterion_name_placeholder'] = 'Ex: Pertinence, Structure, Expression...';
+$string['criterion_description'] = 'Description';
+$string['criterion_description_placeholder'] = 'Décrivez ce que ce critère évalue...';
+$string['criterion_weight'] = 'Poids';
+$string['total_weight'] = 'Total des poids';
+$string['show_json'] = 'Afficher le JSON brut (avancé)';
+$string['weight_warning_under'] = 'La somme des poids ({$a}) est inférieure à 20.';
+$string['weight_warning_over'] = 'La somme des poids ({$a}) dépasse 20.';
+$string['weight_ok'] = 'Total : {$a}/20';
+
+// Training mode - grading view.
+$string['training_attempts_count'] = 'Tentatives d\'entraînement : {$a}';
+$string['training_history_teacher'] = 'Historique d\'entraînement';
+$string['training_no_attempts'] = 'Aucune tentative d\'entraînement';
+$string['training_attempt_date'] = 'Tentative {$a->num} - {$a->date}';
+$string['training_grade_label'] = 'Note entraînement';
+
+// Training timeline.
+$string['training_timeline_title'] = 'Chronologie d\'entraînement';
+$string['training_timeline_progress'] = 'Progression';
+$string['training_timeline_no_data'] = 'Aucune tentative d\'entraînement';
+$string['training_timeline_final'] = 'Soumission finale';
+$string['training_timeline_attempt'] = 'Tentative {$a}';

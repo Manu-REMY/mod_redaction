@@ -72,4 +72,14 @@ class renderer extends \plugin_renderer_base {
     public function render_history_modal(array $data): string {
         return $this->render_from_template('mod_redaction/history_modal', $data);
     }
+
+    /**
+     * Render the training timeline panel.
+     *
+     * @param array $data Template data
+     * @return string HTML
+     */
+    public function render_training_timeline(array $data): string {
+        return $this->render_from_template('mod_redaction/training_timeline', $data);
+    }
 }

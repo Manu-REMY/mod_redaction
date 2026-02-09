@@ -1,0 +1,152 @@
+{{!
+    @template mod_redaction/training_timeline
+
+    Training timeline panel for the grading sidebar.
+    Shows a horizontal chronological timeline of training attempts with
+    interactive markers, sparkline, and detail panel.
+
+    Context variables required for this template:
+    * hasattempts - Boolean
+    * attemptcount - Number of attempts
+    * attempts - Array of attempt objects:
+        * index - Zero-based index
+        * num - 1-based attempt number
+        * positionpercent - Position on timeline (0-100)
+        * gradelevel - Grade level string (excellent/good/medium/low/pending/failed)
+        * gradestr - Formatted grade string
+        * datestr - Full date string
+        * dateshort - Short date string
+        * status - Evaluation status
+    * timelinestartstr - Start date label
+    * timelineendstr - End date label
+    * elapsedpercent - Elapsed time percentage
+    * hasfinalsubmission - Boolean
+    * finalpositionpercent - Final submission position
+    * finaldate - Final submission date string
+    * hasdeadline - Boolean
+    * deadlinedatestr - Deadline date string
+
+    Example context (json):
+    {
+        "hasattempts": true,
+        "attemptcount": 3,
+        "attempts": [
+            {"index": 0, "num": 1, "positionpercent": 25, "gradelevel": "low", "gradestr": "8.0/20", "datestr": "15 Jan 2026", "dateshort": "15/01 14:30", "status": "completed"}
+        ],
+        "timelinestartstr": "15 Jan",
+        "timelineendstr": "10 Feb",
+        "elapsedpercent": 60,
+        "hasfinalsubmission": false,
+        "hasdeadline": true,
+        "deadlinedatestr": "10 Feb 2026"
+    }
+}}
+<div class="grading-form-container training-timeline-container" id="training-timeline">
+    <h5 class="training-timeline-title">
+        &#128202; {{#str}}training_timeline_title, redaction{{/str}}
+        {{#hasattempts}}
+            <span class="training-timeline-badge">{{attemptcount}}</span>
+        {{/hasattempts}}
+    </h5>
+
+    {{^hasattempts}}
+        <p class="text-muted" style="font-size: 13px; font-style: italic; margin: 0;">
+            {{#str}}training_timeline_no_data, redaction{{/str}}
+        </p>
+    {{/hasattempts}}
+
+    {{#hasattempts}}
+        {{! Trend indicator - populated by JS }}
+        <div class="training-timeline-trend" id="timeline-trend">
+            <span class="trend-label">{{#str}}training_timeline_progress, redaction{{/str}} :</span>
+            <span class="trend-arrow trend-flat"></span>
+            <span class="trend-summary"></span>
+        </div>
+
+        {{! Timeline track }}
+        <div class="training-timeline-track-wrapper">
+            <div class="timeline-time-labels">
+                <span class="timeline-time-start">{{timelinestartstr}}</span>
+                <span class="timeline-time-end">{{timelineendstr}}</span>
+            </div>
+
+            <div class="timeline-track" id="timeline-track"
+                 role="slider"
+                 aria-label="{{#str}}training_timeline_title, redaction{{/str}}"
+                 aria-valuemin="1"
+                 aria-valuemax="{{attemptcount}}"
+                 tabindex="0">
+
+                {{! Background bar }}
+                <div class="timeline-track-bg"></div>
+
+                {{! Elapsed time fill }}
+                <div class="timeline-track-elapsed" style="width: {{elapsedpercent}}%"></div>
+
+                {{! Attempt markers }}
+                {{#attempts}}
+                <button type="button"
+                        class="timeline-marker timeline-marker-{{gradelevel}}"
+                        style="left: {{positionpercent}}%"
+                        data-attempt-index="{{index}}"
+                        data-grade="{{gradestr}}"
+                        title="{{#str}}training_timeline_attempt, redaction, {{num}}{{/str}} - {{gradestr}} - {{dateshort}}">
+                    <span class="marker-dot"></span>
+                    <span class="marker-label">{{num}}</span>
+                </button>
+                {{/attempts}}
+
+                {{! Final submission marker }}
+                {{#hasfinalsubmission}}
+                <div class="timeline-marker timeline-marker-final"
+                     style="left: {{finalpositionpercent}}%"
+                     title="{{#str}}training_timeline_final, redaction{{/str}} - {{finaldate}}">
+                    <span class="marker-flag">&#9873;</span>
+                </div>
+                {{/hasfinalsubmission}}
+
+                {{! Draggable cursor }}
+                <div class="timeline-cursor" id="timeline-cursor">
+                    <div class="cursor-handle"></div>
+                </div>
+
+                {{! Deadline marker }}
+                {{#hasdeadline}}
+                <div class="timeline-deadline-marker"
+                     style="left: 100%"
+                     title="Deadline: {{deadlinedatestr}}">
+                    <span class="deadline-line"></span>
+                </div>
+                {{/hasdeadline}}
+            </div>
+
+            {{! Sparkline SVG }}
+            <div class="timeline-sparkline" id="timeline-sparkline">
+                <svg viewBox="0 0 300 40" preserveAspectRatio="none" class="sparkline-svg">
+                    <polyline class="sparkline-line" points="" fill="none"/>
+                </svg>
+            </div>
+        </div>
+
+        {{! Detail panel - populated by JS on marker selection }}
+        <div class="timeline-detail-panel" id="timeline-detail" style="display:none;">
+            <div class="detail-header">
+                <span class="detail-attempt-num" id="detail-attempt-num"></span>
+                <span class="detail-date" id="detail-date"></span>
+                <span class="detail-grade" id="detail-grade"></span>
+            </div>
+            <div class="detail-criteria" id="detail-criteria"></div>
+            <div class="detail-feedback" id="detail-feedback"></div>
+        </div>
+
+        {{! No-JS fallback: simple list }}
+        <div class="training-timeline-fallback" id="timeline-fallback">
+            {{#attempts}}
+            <div class="timeline-fallback-item">
+                <span>{{#str}}training_timeline_attempt, redaction, {{num}}{{/str}} - {{dateshort}}</span>
+                <span class="ai-level-{{gradelevel}}" style="font-weight: 600; padding: 2px 8px; border-radius: 10px; font-size: 12px;">{{gradestr}}</span>
+            </div>
+            {{/attempts}}
+        </div>
+    {{/hasattempts}}
+</div>

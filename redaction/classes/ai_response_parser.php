@@ -94,18 +94,37 @@ class ai_response_parser {
         // Feedback: sanitize HTML.
         $result->feedback = isset($data['feedback']) ? self::sanitize_text($data['feedback']) : '';
 
-        // Criteria array.
+        // Criteria array with level support.
         $result->criteria = [];
         if (isset($data['criteria']) && is_array($data['criteria'])) {
             foreach ($data['criteria'] as $criterion) {
+                $score = isset($criterion['score']) ? (float) $criterion['score'] : 0;
+                $max = isset($criterion['max']) ? (float) $criterion['max'] : 5;
+                $percentage = $max > 0 ? ($score / $max) * 100 : 0;
+
+                // Determine level from explicit value or calculate from percentage.
+                $level = $criterion['level'] ?? self::calculate_level($percentage);
+                if (!in_array($level, ['excellent', 'good', 'medium', 'low'])) {
+                    $level = self::calculate_level($percentage);
+                }
+
                 $result->criteria[] = (object) [
                     'name' => $criterion['name'] ?? 'Critère',
-                    'score' => isset($criterion['score']) ? (float) $criterion['score'] : 0,
-                    'max' => isset($criterion['max']) ? (float) $criterion['max'] : 5,
+                    'score' => $score,
+                    'max' => $max,
                     'comment' => isset($criterion['comment']) ? self::sanitize_text($criterion['comment']) : '',
+                    'level' => $level,
                 ];
             }
         }
+
+        // Strengths.
+        $result->strengths = isset($data['strengths']) && is_array($data['strengths'])
+            ? array_map([self::class, 'sanitize_text'], $data['strengths']) : [];
+
+        // Weaknesses.
+        $result->weaknesses = isset($data['weaknesses']) && is_array($data['weaknesses'])
+            ? array_map([self::class, 'sanitize_text'], $data['weaknesses']) : [];
 
         // Keywords found/missing.
         $result->keywords_found = isset($data['keywords_found']) && is_array($data['keywords_found'])
@@ -117,11 +136,42 @@ class ai_response_parser {
         $result->suggestions = isset($data['suggestions']) && is_array($data['suggestions'])
             ? array_map([self::class, 'sanitize_text'], $data['suggestions']) : [];
 
+        // Overall appreciation.
+        $result->overall_appreciation = isset($data['overall_appreciation'])
+            ? self::sanitize_text($data['overall_appreciation']) : '';
+
         // Confidence score.
         $confidence = isset($data['confidence']) ? (float) $data['confidence'] : 0.8;
         $result->confidence = max(0.0, min(1.0, $confidence));
 
         return $result;
+    }
+
+    /**
+     * Calculate performance level from percentage.
+     *
+     * @param float $percentage
+     * @return string
+     */
+    public static function calculate_level(float $percentage): string {
+        if ($percentage >= 80) {
+            return 'excellent';
+        } else if ($percentage >= 60) {
+            return 'good';
+        } else if ($percentage >= 40) {
+            return 'medium';
+        }
+        return 'low';
+    }
+
+    /**
+     * Get the overall grade level.
+     *
+     * @param float $grade Grade out of 20
+     * @return string
+     */
+    public static function get_grade_level(float $grade): string {
+        return self::calculate_level(($grade / 20.0) * 100);
     }
 
     /**
@@ -178,10 +228,39 @@ class ai_response_parser {
     public static function format_for_display(object $result): string {
         $html = '<div class="ai-result">';
 
-        // Grade.
+        // Grade with level.
+        $level = self::get_grade_level($result->grade);
         $html .= '<div class="ai-grade-display">';
         $html .= '<strong>Note :</strong> ' . number_format($result->grade, 1) . '/20';
+        $html .= ' <span class="ai-level-badge ai-level-' . $level . '">' . $level . '</span>';
         $html .= '</div>';
+
+        // Overall appreciation.
+        if (!empty($result->overall_appreciation)) {
+            $html .= '<div class="ai-overall-appreciation">';
+            $html .= '<em>' . $result->overall_appreciation . '</em>';
+            $html .= '</div>';
+        }
+
+        // Strengths & Weaknesses.
+        if (!empty($result->strengths) || !empty($result->weaknesses)) {
+            $html .= '<div class="ai-strengths-weaknesses">';
+            if (!empty($result->strengths)) {
+                $html .= '<div class="ai-strengths"><strong>Points forts :</strong><ul>';
+                foreach ($result->strengths as $strength) {
+                    $html .= '<li>' . $strength . '</li>';
+                }
+                $html .= '</ul></div>';
+            }
+            if (!empty($result->weaknesses)) {
+                $html .= '<div class="ai-weaknesses"><strong>Axes d\'amélioration :</strong><ul>';
+                foreach ($result->weaknesses as $weakness) {
+                    $html .= '<li>' . $weakness . '</li>';
+                }
+                $html .= '</ul></div>';
+            }
+            $html .= '</div>';
+        }
 
         // Feedback.
         if (!empty($result->feedback)) {
@@ -204,6 +283,18 @@ class ai_response_parser {
                     $html .= ' - ' . $criterion->comment;
                 }
                 $html .= '</li>';
+            }
+            $html .= '</ul>';
+            $html .= '</div>';
+        }
+
+        // Suggestions.
+        if (!empty($result->suggestions)) {
+            $html .= '<div class="ai-suggestions-display">';
+            $html .= '<strong>Suggestions :</strong>';
+            $html .= '<ul>';
+            foreach ($result->suggestions as $suggestion) {
+                $html .= '<li>' . $suggestion . '</li>';
             }
             $html .= '</ul>';
             $html .= '</div>';

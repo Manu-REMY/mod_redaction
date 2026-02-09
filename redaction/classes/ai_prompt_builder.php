@@ -37,11 +37,12 @@ class ai_prompt_builder {
      * @param object $studentsubmission Student's submission
      * @param object $consignes Teacher's instructions
      * @param object $correctionmodel Teacher's correction model
+     * @param bool $istraining Whether this is a training (formative) evaluation
      * @return array ['system' => string, 'user' => string]
      */
-    public static function build_prompt(object $studentsubmission, object $consignes, object $correctionmodel): array {
+    public static function build_prompt(object $studentsubmission, object $consignes, object $correctionmodel, bool $istraining = false): array {
         return [
-            'system' => self::build_system_prompt($consignes, $correctionmodel),
+            'system' => self::build_system_prompt($consignes, $correctionmodel, $istraining),
             'user' => self::build_user_prompt($studentsubmission, $consignes, $correctionmodel),
         ];
     }
@@ -51,9 +52,10 @@ class ai_prompt_builder {
      *
      * @param object $consignes
      * @param object $correctionmodel
+     * @param bool $istraining Whether this is a training (formative) evaluation
      * @return string
      */
-    protected static function build_system_prompt(object $consignes, object $correctionmodel): string {
+    protected static function build_system_prompt(object $consignes, object $correctionmodel, bool $istraining = false): string {
         $prompt = "Tu es un assistant pédagogique expert en évaluation de rédactions d'élèves. ";
         $prompt .= "Tu dois évaluer la production d'un élève de manière juste, bienveillante et constructive.\n\n";
 
@@ -85,22 +87,44 @@ class ai_prompt_builder {
         $prompt .= "```json\n";
         $prompt .= "{\n";
         $prompt .= "  \"grade\": <note de 0 à 20>,\n";
-        $prompt .= "  \"feedback\": \"<commentaire détaillé et constructif>\",\n";
+        $prompt .= "  \"feedback\": \"<commentaire détaillé et constructif adressé directement à l'élève>\",\n";
         $prompt .= "  \"criteria\": [\n";
-        $prompt .= "    {\"name\": \"<nom du critère>\", \"score\": <note>, \"max\": <max>, \"comment\": \"<commentaire>\"}\n";
+        $prompt .= "    {\n";
+        $prompt .= "      \"name\": \"<nom du critère>\",\n";
+        $prompt .= "      \"score\": <note>,\n";
+        $prompt .= "      \"max\": <max>,\n";
+        $prompt .= "      \"comment\": \"<commentaire détaillé sur ce critère>\",\n";
+        $prompt .= "      \"level\": \"<excellent|good|medium|low>\"\n";
+        $prompt .= "    }\n";
         $prompt .= "  ],\n";
+        $prompt .= "  \"strengths\": [\"<point fort 1>\", \"<point fort 2>\"],\n";
+        $prompt .= "  \"weaknesses\": [\"<axe d'amélioration 1>\", \"<axe d'amélioration 2>\"],\n";
         $prompt .= "  \"keywords_found\": [\"<mots-clés trouvés>\"],\n";
         $prompt .= "  \"keywords_missing\": [\"<mots-clés attendus mais absents>\"],\n";
-        $prompt .= "  \"suggestions\": [\"<conseils d'amélioration>\"],\n";
+        $prompt .= "  \"suggestions\": [\"<conseil d'amélioration concret et actionnable 1>\", \"<conseil 2>\"],\n";
+        $prompt .= "  \"overall_appreciation\": \"<appréciation globale courte, 1-2 phrases, encourageante>\",\n";
         $prompt .= "  \"confidence\": <0.0 à 1.0>\n";
         $prompt .= "}\n";
         $prompt .= "```\n\n";
 
+        if ($istraining) {
+            $prompt .= "\n## CONTEXTE : MODE ENTRAÎNEMENT\n";
+            $prompt .= "Cette évaluation est un retour formatif pour aider l'élève à s'améliorer AVANT sa soumission finale.\n";
+            $prompt .= "- Sois particulièrement détaillé dans tes suggestions d'amélioration.\n";
+            $prompt .= "- Identifie clairement ce qui doit être retravaillé.\n";
+            $prompt .= "- Donne des exemples concrets de reformulation ou d'ajouts possibles.\n";
+            $prompt .= "- La note n'est qu'indicative, insiste sur les pistes d'amélioration.\n\n";
+        }
+
         $prompt .= "## Consignes importantes\n";
-        $prompt .= "- Sois bienveillant et encourageant dans tes commentaires.\n";
-        $prompt .= "- Mets en valeur les points positifs avant de mentionner les axes d'amélioration.\n";
-        $prompt .= "- Donne des suggestions concrètes et réalisables.\n";
+        $prompt .= "- Adresse-toi directement à l'élève avec bienveillance et encouragement (utilise \"tu\").\n";
+        $prompt .= "- Commence TOUJOURS par valoriser les points positifs avant les axes d'amélioration.\n";
+        $prompt .= "- Pour chaque critère, attribue un level: \"excellent\" (>=80%), \"good\" (>=60%), \"medium\" (>=40%), \"low\" (<40%).\n";
+        $prompt .= "- Liste 2 à 4 points forts (strengths) et 2 à 4 axes d'amélioration (weaknesses).\n";
+        $prompt .= "- Donne 2 à 4 suggestions concrètes, actionnables et réalisables pour s'améliorer.\n";
+        $prompt .= "- L'appréciation globale (overall_appreciation) doit être encourageante et résumer l'essentiel en 1-2 phrases.\n";
         $prompt .= "- La note doit être cohérente avec les scores des critères.\n";
+        $prompt .= "- Le feedback doit être structuré et lisible.\n";
 
         return $prompt;
     }

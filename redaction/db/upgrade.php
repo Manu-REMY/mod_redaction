@@ -98,5 +98,54 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026020806, 'redaction');
     }
 
+    // Training mode and visual criteria editor.
+    if ($oldversion < 2026021001) {
+        // Table redaction: training mode fields.
+        $table = new xmldb_table('redaction');
+
+        $field = new xmldb_field('training_enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'ai_auto_apply');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('training_cooldown', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '900', 'training_enabled');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('training_min_change', XMLDB_TYPE_INTEGER, '3', null, XMLDB_NOTNULL, null, '10', 'training_cooldown');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('training_max_attempts', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '5', 'training_min_change');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Table redaction_submission: training count and timing.
+        $table = new xmldb_table('redaction_submission');
+
+        $field = new xmldb_field('training_count', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'timemodified');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('last_training_time', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'training_count');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Table redaction_ai_evaluations: training flag.
+        $table = new xmldb_table('redaction_ai_evaluations');
+
+        $field = new xmldb_field('is_training', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'scheduled_apply_at');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026021001, 'redaction');
+    }
+
     return true;
 }
