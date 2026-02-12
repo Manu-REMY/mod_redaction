@@ -59,80 +59,80 @@
 }}
 {{#ai_enabled}}
 {{#hassubmission}}
-<div class="ai-evaluation-container">
-    <h4 class="ai-eval-title">&#129302; {{#str}}ai_evaluation, redaction{{/str}}</h4>
+<div class="mod_redaction-ai-evaluation-container">
+    <h4 class="mod_redaction-ai-eval-title">&#129302; {{#str}}ai_evaluation, redaction{{/str}}</h4>
 
     {{^hasevaluation}}
-        <p class="ai-eval-empty-msg">
+        <p class="mod_redaction-ai-eval-empty-msg">
             {{#str}}no_ai_evaluation, redaction{{/str}}
         </p>
-        <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+        <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
             &#128640; {{#str}}evaluate_ai, redaction{{/str}}
         </button>
     {{/hasevaluation}}
 
     {{#hasevaluation}}
         {{#ispending}}
-            <div class="ai-pending">
-                <div class="spinner"></div>
+            <div class="mod_redaction-ai-pending">
+                <div class="mod_redaction-spinner"></div>
                 <span>{{#str}}ai_evaluation_pending, redaction{{/str}}</span>
             </div>
         {{/ispending}}
 
         {{#isfailed}}
-            <div class="alert alert-danger ai-eval-alert">
+            <div class="alert alert-danger mod_redaction-ai-eval-alert">
                 {{#str}}ai_evaluation_failed, redaction{{/str}}
                 {{#error_message}}<br><small>{{error_message}}</small>{{/error_message}}
             </div>
-            <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+            <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
                 &#128260; {{#str}}retry, moodle{{/str}}
             </button>
         {{/isfailed}}
 
         {{#iscompleted}}
             {{! Grade Card with Level & Confidence }}
-            <div class="ai-grade-card">
-                <div class="ai-grade-ring ai-grade-ring-{{gradelevel}}">
-                    <div class="ai-grade-value">{{grade}}<span class="ai-grade-max">/20</span></div>
+            <div class="mod_redaction-ai-grade-card">
+                <div class="mod_redaction-ai-grade-ring mod_redaction-ai-grade-ring-{{gradelevel}}">
+                    <div class="mod_redaction-ai-grade-value">{{grade}}<span class="mod_redaction-ai-grade-max">/20</span></div>
                 </div>
-                <div class="ai-grade-level ai-level-{{gradelevel}}">{{gradelevelstr}}</div>
-                <div class="ai-grade-label">{{#str}}ai_grade, redaction{{/str}}</div>
-                <div class="ai-confidence" title="{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%">
-                    <div class="ai-confidence-bar">
-                        <div class="ai-confidence-fill {{confidenceclass}}" style="width: {{confidencepercent}}%"></div>
+                <div class="mod_redaction-ai-grade-level mod_redaction-ai-level-{{gradelevel}}">{{gradelevelstr}}</div>
+                <div class="mod_redaction-ai-grade-label">{{#str}}ai_grade, redaction{{/str}}</div>
+                <div class="mod_redaction-ai-confidence" title="{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%">
+                    <div class="mod_redaction-ai-confidence-bar">
+                        <div class="mod_redaction-ai-confidence-fill mod_redaction-{{confidenceclass}}" style="width: {{confidencepercent}}%"></div>
                     </div>
-                    <small class="ai-confidence-label">{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%</small>
+                    <small class="mod_redaction-ai-confidence-label">{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%</small>
                 </div>
             </div>
 
             {{! Overall Appreciation }}
             {{#hasappreciation}}
-            <div class="ai-appreciation">
-                <div class="ai-appreciation-icon">&#128172;</div>
-                <div class="ai-appreciation-text">{{{overall_appreciation}}}</div>
+            <div class="mod_redaction-ai-appreciation">
+                <div class="mod_redaction-ai-appreciation-icon">&#128172;</div>
+                <div class="mod_redaction-ai-appreciation-text">{{{overall_appreciation}}}</div>
             </div>
             {{/hasappreciation}}
 
             {{! Strengths & Weaknesses Side by Side }}
             {{#hasstrengths}}{{#hasweaknesses}}
-            <div class="ai-strengths-weaknesses">
-                <div class="ai-sw-column ai-strengths-col">
-                    <div class="ai-sw-header ai-sw-header-strengths">
-                        <span class="ai-sw-icon">&#9989;</span>
+            <div class="mod_redaction-ai-strengths-weaknesses">
+                <div class="mod_redaction-ai-sw-column mod_redaction-ai-strengths-col">
+                    <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-strengths">
+                        <span class="mod_redaction-ai-sw-icon">&#9989;</span>
                         {{#str}}ai_strengths, redaction{{/str}}
                     </div>
-                    <ul class="ai-sw-list">
+                    <ul class="mod_redaction-ai-sw-list">
                         {{#strengths}}
                         <li>{{{text}}}</li>
                         {{/strengths}}
                     </ul>
                 </div>
-                <div class="ai-sw-column ai-weaknesses-col">
-                    <div class="ai-sw-header ai-sw-header-weaknesses">
-                        <span class="ai-sw-icon">&#128736;</span>
+                <div class="mod_redaction-ai-sw-column mod_redaction-ai-weaknesses-col">
+                    <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-weaknesses">
+                        <span class="mod_redaction-ai-sw-icon">&#128736;</span>
                         {{#str}}ai_weaknesses, redaction{{/str}}
                     </div>
-                    <ul class="ai-sw-list">
+                    <ul class="mod_redaction-ai-sw-list">
                         {{#weaknesses}}
                         <li>{{{text}}}</li>
                         {{/weaknesses}}
@@ -143,13 +143,13 @@
 
             {{! Strengths only }}
             {{#hasstrengths}}{{^hasweaknesses}}
-            <div class="ai-strengths-weaknesses">
-                <div class="ai-sw-column ai-strengths-col ai-sw-full">
-                    <div class="ai-sw-header ai-sw-header-strengths">
-                        <span class="ai-sw-icon">&#9989;</span>
+            <div class="mod_redaction-ai-strengths-weaknesses">
+                <div class="mod_redaction-ai-sw-column mod_redaction-ai-strengths-col mod_redaction-ai-sw-full">
+                    <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-strengths">
+                        <span class="mod_redaction-ai-sw-icon">&#9989;</span>
                         {{#str}}ai_strengths, redaction{{/str}}
                     </div>
-                    <ul class="ai-sw-list">
+                    <ul class="mod_redaction-ai-sw-list">
                         {{#strengths}}
                         <li>{{{text}}}</li>
                         {{/strengths}}
@@ -160,13 +160,13 @@
 
             {{! Weaknesses only }}
             {{^hasstrengths}}{{#hasweaknesses}}
-            <div class="ai-strengths-weaknesses">
-                <div class="ai-sw-column ai-weaknesses-col ai-sw-full">
-                    <div class="ai-sw-header ai-sw-header-weaknesses">
-                        <span class="ai-sw-icon">&#128736;</span>
+            <div class="mod_redaction-ai-strengths-weaknesses">
+                <div class="mod_redaction-ai-sw-column mod_redaction-ai-weaknesses-col mod_redaction-ai-sw-full">
+                    <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-weaknesses">
+                        <span class="mod_redaction-ai-sw-icon">&#128736;</span>
                         {{#str}}ai_weaknesses, redaction{{/str}}
                     </div>
-                    <ul class="ai-sw-list">
+                    <ul class="mod_redaction-ai-sw-list">
                         {{#weaknesses}}
                         <li>{{{text}}}</li>
                         {{/weaknesses}}
@@ -177,29 +177,29 @@
 
             {{! Criteria Details (Collapsible) }}
             {{#hascriteria}}
-                <div class="ai-criteria-section">
-                    <div class="ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 class="ai-section-title">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
-                        <span class="toggle-icon">&#9660;</span>
+                <div class="mod_redaction-ai-criteria-section">
+                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 class="mod_redaction-ai-section-title">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
+                        <span class="mod_redaction-toggle-icon">&#9660;</span>
                     </div>
-                    <div class="ai-section-content">
+                    <div class="mod_redaction-ai-section-content">
                         {{#criteria}}
-                            <div class="ai-criterion ai-criterion-{{scoreclass}}">
-                                <div class="ai-criterion-header">
-                                    <span class="ai-criterion-name">{{name}}</span>
-                                    <div class="ai-criterion-meta">
-                                        <span class="ai-criterion-level-label ai-level-{{scoreclass}}">{{levelstr}}</span>
-                                        <span class="ai-criterion-score {{scoreclass}}">
+                            <div class="mod_redaction-ai-criterion mod_redaction-ai-criterion-{{scoreclass}}">
+                                <div class="mod_redaction-ai-criterion-header">
+                                    <span class="mod_redaction-ai-criterion-name">{{name}}</span>
+                                    <div class="mod_redaction-ai-criterion-meta">
+                                        <span class="mod_redaction-ai-criterion-level-label mod_redaction-ai-level-{{scoreclass}}">{{levelstr}}</span>
+                                        <span class="mod_redaction-ai-criterion-score mod_redaction-{{scoreclass}}">
                                             {{score}}/{{max}}
                                         </span>
                                     </div>
                                 </div>
-                                <div class="ai-criterion-progress">
-                                    <div class="ai-criterion-progress-bar {{scoreclass}}"
+                                <div class="mod_redaction-ai-criterion-progress">
+                                    <div class="mod_redaction-ai-criterion-progress-bar mod_redaction-{{scoreclass}}"
                                          style="width: {{percentage}}%"></div>
                                 </div>
                                 {{#hascomment}}
-                                    <div class="ai-criterion-comment">
+                                    <div class="mod_redaction-ai-criterion-comment">
                                         {{{comment}}}
                                     </div>
                                 {{/hascomment}}
@@ -211,29 +211,29 @@
 
             {{! Keywords Analysis (Collapsible) }}
             {{#haskeywords}}
-                <div class="ai-criteria-section">
-                    <div class="ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 class="ai-section-title">&#128273; {{#str}}ai_keywords, redaction{{/str}}</h5>
-                        <span class="toggle-icon">&#9660;</span>
+                <div class="mod_redaction-ai-criteria-section">
+                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 class="mod_redaction-ai-section-title">&#128273; {{#str}}ai_keywords, redaction{{/str}}</h5>
+                        <span class="mod_redaction-toggle-icon">&#9660;</span>
                     </div>
-                    <div class="ai-section-content">
-                        <div class="ai-keywords-container">
+                    <div class="mod_redaction-ai-section-content">
+                        <div class="mod_redaction-ai-keywords-container">
                             {{#haskeywordsfound}}
-                            <div class="ai-keywords-group">
-                                <span class="ai-keywords-label ai-keywords-found-label">{{#str}}ai_keywords_found, redaction{{/str}}</span>
-                                <div class="ai-keywords-tags">
+                            <div class="mod_redaction-ai-keywords-group">
+                                <span class="mod_redaction-ai-keywords-label mod_redaction-ai-keywords-found-label">{{#str}}ai_keywords_found, redaction{{/str}}</span>
+                                <div class="mod_redaction-ai-keywords-tags">
                                     {{#keywords_found}}
-                                    <span class="ai-keyword-tag ai-keyword-found">&#10003; {{word}}</span>
+                                    <span class="mod_redaction-ai-keyword-tag mod_redaction-ai-keyword-found">&#10003; {{word}}</span>
                                     {{/keywords_found}}
                                 </div>
                             </div>
                             {{/haskeywordsfound}}
                             {{#haskeywordsmissing}}
-                            <div class="ai-keywords-group">
-                                <span class="ai-keywords-label ai-keywords-missing-label">{{#str}}ai_keywords_missing, redaction{{/str}}</span>
-                                <div class="ai-keywords-tags">
+                            <div class="mod_redaction-ai-keywords-group">
+                                <span class="mod_redaction-ai-keywords-label mod_redaction-ai-keywords-missing-label">{{#str}}ai_keywords_missing, redaction{{/str}}</span>
+                                <div class="mod_redaction-ai-keywords-tags">
                                     {{#keywords_missing}}
-                                    <span class="ai-keyword-tag ai-keyword-missing">&#10007; {{word}}</span>
+                                    <span class="mod_redaction-ai-keyword-tag mod_redaction-ai-keyword-missing">&#10007; {{word}}</span>
                                     {{/keywords_missing}}
                                 </div>
                             </div>
@@ -245,17 +245,17 @@
 
             {{! Suggestions (Collapsible) }}
             {{#hassuggestions}}
-                <div class="ai-criteria-section">
-                    <div class="ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 class="ai-section-title">&#128161; {{#str}}ai_suggestions, redaction{{/str}}</h5>
-                        <span class="toggle-icon">&#9660;</span>
+                <div class="mod_redaction-ai-criteria-section">
+                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 class="mod_redaction-ai-section-title">&#128161; {{#str}}ai_suggestions, redaction{{/str}}</h5>
+                        <span class="mod_redaction-toggle-icon">&#9660;</span>
                     </div>
-                    <div class="ai-section-content">
-                        <ul class="ai-suggestions-list">
+                    <div class="mod_redaction-ai-section-content">
+                        <ul class="mod_redaction-ai-suggestions-list">
                             {{#suggestions}}
-                            <li class="ai-suggestion-item">
-                                <span class="ai-suggestion-icon">&#10148;</span>
-                                <span class="ai-suggestion-text">{{{text}}}</span>
+                            <li class="mod_redaction-ai-suggestion-item">
+                                <span class="mod_redaction-ai-suggestion-icon">&#10148;</span>
+                                <span class="mod_redaction-ai-suggestion-text">{{{text}}}</span>
                             </li>
                             {{/suggestions}}
                         </ul>
@@ -265,13 +265,13 @@
 
             {{! General Feedback (Collapsible) }}
             {{#hasfeedback}}
-                <div class="ai-criteria-section">
-                    <div class="ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 class="ai-section-title">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
-                        <span class="toggle-icon">&#9660;</span>
+                <div class="mod_redaction-ai-criteria-section">
+                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 class="mod_redaction-ai-section-title">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
+                        <span class="mod_redaction-toggle-icon">&#9660;</span>
                     </div>
-                    <div class="ai-section-content">
-                        <div class="ai-feedback">
+                    <div class="mod_redaction-ai-section-content">
+                        <div class="mod_redaction-ai-feedback">
                             {{{parsed_feedback}}}
                         </div>
                     </div>
@@ -279,11 +279,11 @@
             {{/hasfeedback}}
 
             {{! Action Buttons }}
-            <div class="ai-actions">
-                <button type="button" class="btn-ai btn-ai-apply" onclick="applyAIGrade({{evaluationid}})">
+            <div class="mod_redaction-ai-actions">
+                <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-apply" onclick="applyAIGrade({{evaluationid}})">
                     &#9989; {{#str}}apply_ai_grade, redaction{{/str}}
                 </button>
-                <button type="button" class="btn-ai btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+                <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
                     &#128260; {{#str}}reevaluate, redaction{{/str}}
                 </button>
             </div>

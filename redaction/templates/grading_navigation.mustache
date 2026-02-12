@@ -23,26 +23,26 @@
         "navitems": [{"url": "#", "name": "Group 1", "selected": false}]
     }
 }}
-<div class="navigation-bar">
-    <div class="nav-buttons">
+<div class="mod_redaction-navigation-bar">
+    <div class="mod_redaction-nav-buttons">
         {{#hasprev}}
-            <a href="{{prevurl}}" class="nav-btn">← {{#str}}previous, moodle{{/str}}</a>
+            <a href="{{prevurl}}" class="mod_redaction-nav-btn">← {{#str}}previous, moodle{{/str}}</a>
         {{/hasprev}}
         {{^hasprev}}
-            <span class="nav-btn disabled">← {{#str}}previous, moodle{{/str}}</span>
+            <span class="mod_redaction-nav-btn disabled">← {{#str}}previous, moodle{{/str}}</span>
         {{/hasprev}}
 
-        <span class="nav-counter">{{currentpos}} / {{totalitems}}</span>
+        <span class="mod_redaction-nav-counter">{{currentpos}} / {{totalitems}}</span>
 
         {{#hasnext}}
-            <a href="{{nexturl}}" class="nav-btn">{{#str}}next, moodle{{/str}} →</a>
+            <a href="{{nexturl}}" class="mod_redaction-nav-btn">{{#str}}next, moodle{{/str}} →</a>
         {{/hasnext}}
         {{^hasnext}}
-            <span class="nav-btn disabled">{{#str}}next, moodle{{/str}} →</span>
+            <span class="mod_redaction-nav-btn disabled">{{#str}}next, moodle{{/str}} →</span>
         {{/hasnext}}
     </div>
 
-    <select class="item-selector" onchange="location.href=this.value">
+    <select class="mod_redaction-item-selector" onchange="location.href=this.value">
         {{#navitems}}
             <option value="{{url}}" {{#selected}}selected{{/selected}}>{{name}}</option>
         {{/navitems}}

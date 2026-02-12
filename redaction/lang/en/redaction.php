@@ -462,3 +462,86 @@ $string['training_timeline_progress'] = 'Progress';
 $string['training_timeline_no_data'] = 'No training attempts';
 $string['training_timeline_final'] = 'Final submission';
 $string['training_timeline_attempt'] = 'Attempt {$a}';
+
+// Home page additional strings.
+$string['submissions_count'] = '{$a} submission(s)';
+$string['no_group_error'] = 'You are not in any group. Contact your teacher.';
+$string['group_working'] = 'You are working in a group:';
+$string['view_consignes'] = 'View instructions';
+$string['consultation'] = 'Viewing';
+$string['to_complete'] = 'To complete';
+$string['view_my_redaction'] = 'View my writing';
+$string['work_on_it'] = 'Work';
+$string['grade_label'] = 'Grade:';
+
+// Redaction page additional strings.
+$string['group_required'] = 'You must belong to a group to access this activity.';
+$string['group_label'] = 'Group:';
+$string['submitted_graded'] = '{$a} - Graded';
+
+// Consignes page additional strings.
+$string['criteres_placeholder'] = '- Criterion 1\n- Criterion 2\n- Criterion 3';
+
+// AI prompt builder strings.
+$string['ai_default_criterion_relevance'] = 'Relevance';
+$string['ai_default_criterion_relevance_desc'] = 'The answer is relevant to the topic';
+$string['ai_default_criterion_structure'] = 'Structure';
+$string['ai_default_criterion_structure_desc'] = 'Logical and clear organisation of the text';
+$string['ai_default_criterion_expression'] = 'Expression';
+$string['ai_default_criterion_expression_desc'] = 'Quality of written expression (spelling, grammar, vocabulary)';
+$string['ai_default_criterion_argumentation'] = 'Argumentation';
+$string['ai_default_criterion_argumentation_desc'] = 'Quality and relevance of the arguments presented';
+$string['ai_criterion_default'] = 'Criterion';
+
+// AI prompt system strings.
+$string['ai_prompt_system_intro'] = 'You are an expert educational assistant in evaluating student writings. You must evaluate a student\'s work fairly, kindly and constructively.';
+$string['ai_prompt_activity_context'] = 'Activity context';
+$string['ai_prompt_title_label'] = 'Title:';
+$string['ai_prompt_criteria_section'] = 'Evaluation criteria';
+$string['ai_prompt_specific_instructions'] = 'Specific instructions';
+$string['ai_prompt_response_format'] = 'Response format';
+$string['ai_prompt_response_format_intro'] = 'You MUST respond in JSON with the following structure:';
+$string['ai_prompt_grade_desc'] = 'grade from 0 to 20';
+$string['ai_prompt_feedback_desc'] = 'detailed and constructive comment addressed directly to the student';
+$string['ai_prompt_criterion_name_desc'] = 'criterion name';
+$string['ai_prompt_criterion_comment_desc'] = 'detailed comment on this criterion';
+$string['ai_prompt_strengths_desc'] = 'strength';
+$string['ai_prompt_weaknesses_desc'] = 'area for improvement';
+$string['ai_prompt_keywords_found_desc'] = 'keywords found';
+$string['ai_prompt_keywords_missing_desc'] = 'expected keywords but absent';
+$string['ai_prompt_suggestions_desc'] = 'concrete and actionable improvement advice';
+$string['ai_prompt_appreciation_desc'] = 'short overall appreciation, 1-2 sentences, encouraging';
+$string['ai_prompt_confidence_desc'] = '0.0 to 1.0';
+$string['ai_prompt_training_context'] = 'CONTEXT: TRAINING MODE';
+$string['ai_prompt_training_intro'] = 'This evaluation is formative feedback to help the student improve BEFORE their final submission.';
+$string['ai_prompt_training_detailed'] = 'Be particularly detailed in your improvement suggestions.';
+$string['ai_prompt_training_identify'] = 'Clearly identify what needs to be reworked.';
+$string['ai_prompt_training_examples'] = 'Give concrete examples of possible reformulations or additions.';
+$string['ai_prompt_training_indicative'] = 'The grade is only indicative, emphasise areas for improvement.';
+$string['ai_prompt_important_instructions'] = 'Important instructions';
+$string['ai_prompt_address_student'] = 'Address the student directly with kindness and encouragement (use "you").';
+$string['ai_prompt_start_positive'] = 'ALWAYS start by highlighting positive points before areas for improvement.';
+$string['ai_prompt_level_criteria'] = 'For each criterion, assign a level: "excellent" (>=80%), "good" (>=60%), "medium" (>=40%), "low" (<40%).';
+$string['ai_prompt_list_strengths'] = 'List 2 to 4 strengths and 2 to 4 areas for improvement.';
+$string['ai_prompt_give_suggestions'] = 'Give 2 to 4 concrete, actionable and achievable suggestions for improvement.';
+$string['ai_prompt_appreciation_instructions'] = 'The overall appreciation must be encouraging and summarise the essentials in 1-2 sentences.';
+$string['ai_prompt_grade_coherence'] = 'The grade must be consistent with the criteria scores.';
+$string['ai_prompt_feedback_structured'] = 'The feedback must be structured and readable.';
+$string['ai_prompt_student_instructions'] = 'Instructions given to students';
+$string['ai_prompt_criteria_communicated'] = 'Criteria communicated to students:';
+$string['ai_prompt_model_answer'] = 'Expected answer model';
+$string['ai_prompt_student_work'] = 'Student\'s work';
+$string['ai_prompt_content_label'] = 'Content:';
+$string['ai_prompt_evaluate_instruction'] = 'Evaluate this work according to the defined criteria and provide your response in JSON.';
+
+// AI response parser display strings.
+$string['ai_display_grade'] = 'Grade:';
+$string['ai_display_strengths'] = 'Strengths:';
+$string['ai_display_weaknesses'] = 'Areas for improvement:';
+$string['ai_display_comments'] = 'Comments:';
+$string['ai_display_criteria'] = 'Criteria:';
+$string['ai_display_suggestions'] = 'Suggestions:';
+
+// AI criteria generation prompts.
+$string['ai_generate_criteria_system_prompt'] = 'You are an expert educational assistant. Your task is to generate evaluation criteria for a student writing activity. Respond ONLY in JSON format with the following structure: {"grille_criteres": [{"name": "Criterion name", "weight": 5, "description": "What this criterion evaluates"}], "ai_instructions": "Specific instructions for the AI evaluator"}. The total weight should equal 20. Generate 3 to 5 relevant criteria.';
+$string['ai_generate_criteria_user_prompt'] = 'Generate evaluation criteria for the following writing activity:\n\nTitle: {$a->titre}\n\nInstructions: {$a->consignes}\n\nExisting criteria: {$a->criteres}\n\nGenerate a criteria grid and AI evaluation instructions adapted to this activity.';

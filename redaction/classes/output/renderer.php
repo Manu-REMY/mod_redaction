@@ -82,4 +82,44 @@ class renderer extends \plugin_renderer_base {
     public function render_training_timeline(array $data): string {
         return $this->render_from_template('mod_redaction/training_timeline', $data);
     }
+
+    /**
+     * Render the home page.
+     *
+     * @param array $data Template data
+     * @return string HTML
+     */
+    public function render_home(array $data): string {
+        return $this->render_from_template('mod_redaction/home', $data);
+    }
+
+    /**
+     * Render the consignes page.
+     *
+     * @param array $data Template data
+     * @return string HTML
+     */
+    public function render_consignes(array $data): string {
+        return $this->render_from_template('mod_redaction/consignes', $data);
+    }
+
+    /**
+     * Render the correction model page.
+     *
+     * @param array $data Template data
+     * @return string HTML
+     */
+    public function render_correction_model(array $data): string {
+        return $this->render_from_template('mod_redaction/correction_model', $data);
+    }
+
+    /**
+     * Render the student redaction page.
+     *
+     * @param array $data Template data
+     * @return string HTML
+     */
+    public function render_redaction(array $data): string {
+        return $this->render_from_template('mod_redaction/redaction', $data);
+    }
 }

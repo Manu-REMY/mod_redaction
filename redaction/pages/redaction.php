@@ -38,7 +38,7 @@ $usergroup = redaction_get_user_group($cm, $USER->id);
 // Check group requirement.
 if ($redaction->group_submission && $usergroup == 0) {
     echo $OUTPUT->header();
-    echo $OUTPUT->notification('Vous devez appartenir à un groupe pour accéder à cette activité.', 'error');
+    echo $OUTPUT->notification(get_string('group_required', 'redaction'), 'error');
     echo $OUTPUT->footer();
     exit;
 }
@@ -210,929 +210,185 @@ echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'
 if ($redaction->group_submission && $usergroup > 0) {
     $groupinfo = $DB->get_record('groups', ['id' => $usergroup]);
     if ($groupinfo) {
-        echo '<div class="alert alert-info mb-3">👥 Groupe : <strong>' . s($groupinfo->name) . '</strong></div>';
+        echo '<div class="alert alert-info mb-3">' . get_string('group_label', 'redaction') .
+             ' <strong>' . s($groupinfo->name) . '</strong></div>';
     }
 }
 
-?>
-
-<style>
-    .redaction-container {
-        max-width: 1000px;
-        margin: 20px auto;
-    }
-
-    .consignes-panel {
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
-        padding: 25px;
-        margin-bottom: 25px;
-    }
-
-    .consignes-panel h3 {
-        color: #667eea;
-        margin-bottom: 15px;
-        font-size: 18px;
-    }
-
-    .consignes-content {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        border-left: 4px solid #667eea;
-    }
-
-    .criteres-panel {
-        margin-top: 15px;
-        padding: 15px;
-        background: #fff3cd;
-        border-radius: 8px;
-    }
-
-    .criteres-panel h4 {
-        color: #856404;
-        margin-bottom: 10px;
-        font-size: 14px;
-    }
-
-    .redaction-form {
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .form-group {
-        margin-bottom: 25px;
-    }
-
-    .form-group label {
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 8px;
-        display: block;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 12px 15px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 15px;
-        transition: border-color 0.3s;
-    }
-
-    .form-control:focus {
-        border-color: #48bb78;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.1);
-    }
-
-    .form-control:disabled,
-    .form-control:read-only {
-        background: #f8f9fa;
-        cursor: not-allowed;
-    }
-
-    .editor-container {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .submission-status {
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .submission-status.draft {
-        background: #fff3cd;
-        color: #856404;
-    }
-
-    .submission-status.submitted {
-        background: #cce5ff;
-        color: #004085;
-    }
-
-    .submission-status.graded {
-        background: #d4edda;
-        color: #155724;
-    }
-
-    .grade-display {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px;
-        border-radius: 12px;
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    .grade-display .grade-value {
-        font-size: 36px;
-        font-weight: bold;
-    }
-
-    .feedback-panel {
-        background: #e7f3ff;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-
-    .feedback-panel h4 {
-        color: #004085;
-        margin-bottom: 10px;
-    }
-
-    .ai-evaluation-detail {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .ai-evaluation-detail h4 {
-        color: #667eea;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #e9ecef;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .ai-criteria-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-
-    .ai-criterion-card {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 15px;
-        border-left: 4px solid #667eea;
-    }
-
-    .ai-criterion-card.excellent {
-        border-left-color: #48bb78;
-    }
-
-    .ai-criterion-card.good {
-        border-left-color: #38a169;
-    }
-
-    .ai-criterion-card.medium {
-        border-left-color: #ed8936;
-    }
-
-    .ai-criterion-card.low {
-        border-left-color: #f56565;
-    }
-
-    .criterion-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-
-    .criterion-name {
-        font-weight: 600;
-        color: #333;
-        font-size: 15px;
-    }
-
-    .criterion-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        color: white;
-    }
-
-    .criterion-badge.excellent {
-        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-    }
-
-    .criterion-badge.good {
-        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
-    }
-
-    .criterion-badge.medium {
-        background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
-    }
-
-    .criterion-badge.low {
-        background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-    }
-
-    .criterion-progress-bar {
-        height: 8px;
-        background: #e2e8f0;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-bottom: 10px;
-    }
-
-    .criterion-progress-fill {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 0.5s ease;
-    }
-
-    .criterion-progress-fill.excellent {
-        background: linear-gradient(90deg, #48bb78, #38a169);
-    }
-
-    .criterion-progress-fill.good {
-        background: linear-gradient(90deg, #38a169, #2f855a);
-    }
-
-    .criterion-progress-fill.medium {
-        background: linear-gradient(90deg, #ed8936, #dd6b20);
-    }
-
-    .criterion-progress-fill.low {
-        background: linear-gradient(90deg, #f56565, #e53e3e);
-    }
-
-    .criterion-comment {
-        font-size: 14px;
-        color: #555;
-        line-height: 1.6;
-        background: white;
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 10px;
-    }
-
-    .ai-general-feedback {
-        background: #f0f4ff;
-        border-radius: 10px;
-        padding: 15px;
-        margin-top: 15px;
-    }
-
-    .ai-general-feedback h5 {
-        color: #667eea;
-        margin-bottom: 10px;
-        font-size: 14px;
-    }
-
-    .ai-general-feedback p {
-        color: #555;
-        line-height: 1.7;
-        margin: 0;
-    }
-
-    .collapsible-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        padding: 5px 0;
-    }
-
-    .collapsible-header:hover {
-        opacity: 0.8;
-    }
-
-    .collapse-icon {
-        font-size: 12px;
-        transition: transform 0.3s ease;
-    }
-
-    .collapsible-header.collapsed .collapse-icon {
-        transform: rotate(-90deg);
-    }
-
-    .collapsible-content {
-        overflow: hidden;
-        max-height: 2000px;
-        transition: max-height 0.3s ease;
-    }
-
-    .collapsible-content.collapsed {
-        max-height: 0;
-    }
-
-    .btn-save {
-        background: #667eea;
-        color: white;
-        border: none;
-        padding: 12px 25px;
-        border-radius: 8px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-save:hover {
-        background: #5a67d8;
-        transform: scale(1.02);
-    }
-
-    .btn-submit {
-        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-submit:hover {
-        transform: scale(1.02);
-    }
-
-    .btn-submit:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .action-buttons {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #eee;
-    }
-
-    /* Training mode styles */
-    .training-status-panel {
-        background: linear-gradient(135deg, #ebf4ff 0%, #e8f0fe 100%);
-        border: 1px solid #bee3f8;
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
-    }
-
-    .training-status-panel h4 {
-        color: #2b6cb0;
-        margin: 0 0 10px 0;
-        font-size: 15px;
-    }
-
-    .training-status-info {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-        flex-wrap: wrap;
-        font-size: 13px;
-        color: #4a5568;
-        margin-bottom: 10px;
-    }
-
-    .training-counter {
-        font-weight: 600;
-        color: #2b6cb0;
-    }
-
-    .btn-training {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-training:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-
-    .btn-training:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    .training-blocked-reason {
-        color: #9b2c2c;
-        font-size: 13px;
-        margin-top: 8px;
-        padding: 6px 12px;
-        background: #fff5f5;
-        border-radius: 6px;
-    }
-
-    .training-spinner {
-        width: 18px;
-        height: 18px;
-        border: 3px solid #e2e8f0;
-        border-top: 3px solid #667eea;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        display: inline-block;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .training-pending {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 15px;
-        color: #4a5568;
-        font-size: 13px;
-    }
-
-    #training-progress {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px;
-        background: #f0f4ff;
-        border-radius: 8px;
-        margin-top: 10px;
-        font-size: 13px;
-        color: #4a5568;
-    }
-
-    /* Training history section */
-    .training-history {
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
-
-    .training-history h4 {
-        font-size: 15px;
-        font-weight: 600;
-        color: #2d3748;
-    }
-
-    /* Training evaluation cards */
-    .training-eval-card {
-        background: white;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        margin-bottom: 12px;
-        overflow: hidden;
-    }
-
-    .training-eval-card:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    .training-eval-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 15px;
-        background: #f7fafc;
-        border-bottom: 1px solid #e2e8f0;
-        gap: 10px;
-    }
-
-    .training-eval-attempt {
-        font-weight: 600;
-        font-size: 13px;
-        color: #2d3748;
-    }
-
-    .training-eval-date {
-        font-size: 12px;
-        color: #a0aec0;
-    }
-
-    .training-eval-grade {
-        font-weight: 700;
-        font-size: 14px;
-        padding: 2px 10px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-</style>
-
-<div class="redaction-container">
-    <!-- Panel Consignes -->
-    <div class="consignes-panel">
-        <h3>📋 <?php echo s($consignes->titre ?? get_string('consignes', 'redaction')); ?></h3>
-        <div class="consignes-content">
-            <?php echo format_text($consignes->consignes, $consignes->consignesformat ?? FORMAT_HTML); ?>
-        </div>
-
-        <?php if (!empty($consignes->criteres)): ?>
-            <div class="criteres-panel">
-                <h4>📝 <?php echo get_string('consignes_criteres', 'redaction'); ?></h4>
-                <?php echo nl2br(s($consignes->criteres)); ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($consignes->documents)): ?>
-            <div class="mt-3">
-                <strong>📎 <?php echo get_string('consignes_documents', 'redaction'); ?></strong>
-                <div><?php echo nl2br(s($consignes->documents)); ?></div>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <!-- Status and Grade Display -->
-    <?php if ($isgraded): ?>
-        <div class="grade-display">
-            <div><?php echo get_string('grade', 'redaction'); ?></div>
-            <div class="grade-value"><?php echo number_format($submission->grade, 1); ?> / 20</div>
-        </div>
-
-        <?php
-        // Parse AI criteria if available.
-        $criteria = [];
-        if ($aievaluation && !empty($aievaluation->criteria_json)) {
-            $criteria = json_decode($aievaluation->criteria_json, true);
-            if (!is_array($criteria)) {
-                $criteria = [];
-            }
-        }
-        ?>
-
-        <?php if (!empty($criteria)): ?>
-            <div class="ai-evaluation-detail">
-                <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                    <h4 style="margin: 0;">📊 <?php echo get_string('ai_criteria_details', 'redaction'); ?></h4>
-                    <span class="collapse-icon">▼</span>
-                </div>
-                <div class="collapsible-content">
-                    <div class="ai-criteria-grid">
-                        <?php foreach ($criteria as $criterion): ?>
-                            <?php
-                            $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
-                            $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
-                            $percentage = $max > 0 ? ($score / $max) * 100 : 0;
-
-                            // Determine level class.
-                            if ($percentage >= 80) {
-                                $levelClass = 'excellent';
-                                $levelText = get_string('level_excellent', 'redaction');
-                            } elseif ($percentage >= 65) {
-                                $levelClass = 'good';
-                                $levelText = get_string('level_good', 'redaction');
-                            } elseif ($percentage >= 50) {
-                                $levelClass = 'medium';
-                                $levelText = get_string('level_medium', 'redaction');
-                            } else {
-                                $levelClass = 'low';
-                                $levelText = get_string('level_low', 'redaction');
-                            }
-                            ?>
-                            <div class="ai-criterion-card <?php echo $levelClass; ?>">
-                                <div class="criterion-header">
-                                    <span class="criterion-name"><?php echo s($criterion['name'] ?? 'Critère'); ?></span>
-                                    <span class="criterion-badge <?php echo $levelClass; ?>">
-                                        <?php echo number_format($score, 1); ?>/<?php echo number_format($max, 0); ?>
-                                        <span style="font-size: 11px; opacity: 0.9;">(<?php echo $levelText; ?>)</span>
-                                    </span>
-                                </div>
-                                <div class="criterion-progress-bar">
-                                    <div class="criterion-progress-fill <?php echo $levelClass; ?>"
-                                         style="width: <?php echo $percentage; ?>%"></div>
-                                </div>
-                                <?php if (!empty($criterion['comment'])): ?>
-                                    <div class="criterion-comment">
-                                        <?php echo nl2br(s($criterion['comment'])); ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <?php if ($aievaluation && !empty($aievaluation->parsed_feedback)): ?>
-                        <div class="ai-general-feedback">
-                            <h5>💬 <?php echo get_string('ai_general_feedback', 'redaction'); ?></h5>
-                            <p><?php echo nl2br(s($aievaluation->parsed_feedback)); ?></p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        <?php elseif (!empty($submission->feedback)): ?>
-            <div class="feedback-panel">
-                <h4><?php echo get_string('feedback', 'redaction'); ?></h4>
-                <?php echo format_text($submission->feedback, $submission->feedbackformat ?? FORMAT_HTML); ?>
-            </div>
-        <?php endif; ?>
-    <?php endif; ?>
-
-    <?php if ($issubmitted): ?>
-        <div class="submission-status <?php echo $isgraded ? 'graded' : 'submitted'; ?>">
-            <?php if ($isgraded): ?>
-                ✓ <?php echo get_string('status_submitted', 'redaction'); ?> - Noté
-            <?php else: ?>
-                ✓ <?php echo get_string('submitted_on', 'redaction', userdate($submission->timesubmitted)); ?>
-            <?php endif; ?>
-        </div>
-    <?php else: ?>
-        <div class="submission-status draft">
-            📝 <?php echo get_string('status_draft', 'redaction'); ?>
-        </div>
-    <?php endif; ?>
-
-    <?php // Training mode panel. ?>
-    <?php if ($trainingenabled && !$issubmitted): ?>
-        <div class="training-status-panel">
-            <div class="training-header">
-                <h4>🏋️ <?php echo get_string('training_status', 'redaction'); ?></h4>
-            </div>
-            <div class="training-info">
-                <span class="training-counter">
-                    <?php echo get_string('training_attempt', 'redaction', $submission->training_count ?? 0); ?>
-                    / <?php echo $redaction->training_max_attempts > 0 ? $redaction->training_max_attempts : get_string('unlimited', 'redaction'); ?>
-                </span>
-                <?php if ($redaction->training_max_attempts > 0): ?>
-                    <?php $remaining = $redaction->training_max_attempts - ($submission->training_count ?? 0); ?>
-                    <span class="training-remaining"><?php echo get_string('training_remaining', 'redaction', max(0, $remaining)); ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="training-actions">
-                <button type="button"
-                        id="btn-training-submit"
-                        class="btn-training"
-                        <?php echo $cantraining['allowed'] ? '' : 'disabled'; ?>
-                        onclick="submitTraining()">
-                    🔄 <?php echo get_string('training_submit', 'redaction'); ?>
-                </button>
-                <?php if (!$cantraining['allowed'] && !empty($cantraining['reason'])): ?>
-                    <div class="training-blocked-reason">
-                        <?php
-                        $reason = $cantraining['reason'];
-                        if ($reason === 'cooldown_active' && isset($cantraining['remaining'])) {
-                            $minutes = ceil($cantraining['remaining'] / 60);
-                            echo get_string('training_error_cooldown_remaining', 'redaction', $minutes);
-                        } else {
-                            echo get_string('training_error_' . $reason, 'redaction');
-                        }
-                        ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-            <div id="training-progress" style="display:none;">
-                <div class="training-spinner"></div>
-                <span><?php echo get_string('training_evaluating', 'redaction'); ?></span>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <?php // Training feedback history. ?>
-    <?php if ($trainingenabled): ?>
-        <div class="training-history">
-            <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                <h4 style="margin: 0;">📋 <?php echo get_string('training_history', 'redaction'); ?> (<?php echo count($trainingevals); ?>)</h4>
-                <span class="collapse-icon">▼</span>
-            </div>
-            <div class="collapsible-content">
-                <?php if (empty($trainingevals)): ?>
-                    <p class="text-muted" style="padding: 12px; font-size: 13px; font-style: italic;">
-                        <?php echo get_string('training_no_attempts', 'redaction'); ?>
-                    </p>
-                <?php else: ?>
-                    <?php $attemptnum = count($trainingevals); ?>
-                    <?php foreach ($trainingevals as $eval): ?>
-                        <div class="training-eval-card <?php echo $eval->status; ?>">
-                            <div class="training-eval-header">
-                                <span class="training-eval-attempt"><?php echo get_string('training_attempt', 'redaction', $attemptnum); ?></span>
-                                <span class="training-eval-date"><?php echo userdate($eval->timecreated); ?></span>
-                                <?php if ($eval->status === 'completed' && $eval->parsed_grade !== null): ?>
-                                    <span class="training-eval-grade"><?php echo number_format($eval->parsed_grade, 1); ?>/20</span>
-                                <?php endif; ?>
-                            </div>
-                            <?php if ($eval->status === 'completed'): ?>
-                                <?php
-                                $evalcriteria = [];
-                                if (!empty($eval->criteria_json)) {
-                                    $evalcriteria = json_decode($eval->criteria_json, true);
-                                    if (!is_array($evalcriteria)) {
-                                        $evalcriteria = [];
-                                    }
-                                }
-                                ?>
-                                <?php if (!empty($evalcriteria)): ?>
-                                    <div class="ai-criteria-grid">
-                                        <?php foreach ($evalcriteria as $criterion): ?>
-                                            <?php
-                                            $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
-                                            $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
-                                            $percentage = $max > 0 ? ($score / $max) * 100 : 0;
-                                            $levelClass = $percentage >= 80 ? 'excellent' : ($percentage >= 65 ? 'good' : ($percentage >= 50 ? 'medium' : 'low'));
-                                            ?>
-                                            <div class="ai-criterion-card <?php echo $levelClass; ?>">
-                                                <div class="criterion-header">
-                                                    <span class="criterion-name"><?php echo s($criterion['name'] ?? ''); ?></span>
-                                                    <span class="criterion-badge <?php echo $levelClass; ?>">
-                                                        <?php echo number_format($score, 1); ?>/<?php echo number_format($max, 0); ?>
-                                                    </span>
-                                                </div>
-                                                <div class="criterion-progress-bar">
-                                                    <div class="criterion-progress-fill <?php echo $levelClass; ?>"
-                                                         style="width: <?php echo $percentage; ?>%"></div>
-                                                </div>
-                                                <?php if (!empty($criterion['comment'])): ?>
-                                                    <div class="criterion-comment"><?php echo nl2br(s($criterion['comment'])); ?></div>
-                                                <?php endif; ?>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if (!empty($eval->parsed_feedback)): ?>
-                                    <div class="ai-general-feedback">
-                                        <h5>💬 <?php echo get_string('ai_general_feedback', 'redaction'); ?></h5>
-                                        <p><?php echo nl2br(s($eval->parsed_feedback)); ?></p>
-                                    </div>
-                                <?php endif; ?>
-                            <?php elseif ($eval->status === 'pending' || $eval->status === 'processing'): ?>
-                                <div class="training-pending">
-                                    <div class="training-spinner"></div>
-                                    <span><?php echo get_string('training_evaluating', 'redaction'); ?></span>
-                                </div>
-                            <?php elseif ($eval->status === 'failed'): ?>
-                                <div class="alert alert-danger"><?php echo s($eval->error_message ?? get_string('ai_evaluation_failed', 'redaction')); ?></div>
-                            <?php endif; ?>
-                        </div>
-                        <?php $attemptnum--; ?>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <!-- Formulaire de rédaction -->
-    <div class="redaction-form">
-        <form id="redaction-form" method="post" action="<?php echo $PAGE->url; ?>">
-            <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
-            <input type="hidden" name="groupid" value="<?php echo $usergroup; ?>">
-
-            <div class="form-group">
-                <label for="titre"><?php echo get_string('redaction_title', 'redaction'); ?></label>
-                <input type="text"
-                       id="titre"
-                       name="titre"
-                       class="form-control"
-                       value="<?php echo s($submission->titre ?? ''); ?>"
-                       <?php echo $issubmitted ? 'readonly' : ''; ?>
-                       placeholder="<?php echo get_string('redaction_title_placeholder', 'redaction'); ?>">
-            </div>
-
-            <div class="form-group">
-                <label for="contenu_editor_text"><?php echo get_string('redaction_content', 'redaction'); ?></label>
-                <?php if ($issubmitted): ?>
-                    <div class="editor-container" style="padding: 15px; background: #f8f9fa;">
-                        <?php echo format_text($submission->contenu ?? '', $submission->contenuformat ?? FORMAT_HTML); ?>
-                    </div>
-                <?php else: ?>
-                    <div class="editor-container">
-                        <?php
-                        // Use Moodle's standard editor.
-                        $editor = editors_get_preferred_editor($submission->contenuformat ?? FORMAT_HTML);
-                        $editor->set_text($submission->contenu_editor['text'] ?? '');
-                        $editor->use_editor('contenu_editor_text', $editoroptions, ['context' => $context]);
-                        ?>
-                        <textarea id="contenu_editor_text"
-                                  name="contenu_editor[text]"
-                                  rows="20"
-                                  style="width: 100%;"><?php echo s($submission->contenu_editor['text'] ?? ''); ?></textarea>
-                        <input type="hidden" name="contenu_editor[format]" value="<?php echo $submission->contenuformat ?? FORMAT_HTML; ?>">
-                        <input type="hidden" name="contenu_editor[itemid]" value="<?php echo $submission->contenu_editor['itemid'] ?? 0; ?>">
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <?php if (!$issubmitted): ?>
-                <div class="action-buttons">
-                    <button type="submit" name="action" value="save" class="btn-save">
-                        💾 <?php echo get_string('savechanges', 'moodle'); ?>
-                    </button>
-                    <?php if ($trainingenabled): ?>
-                        <button type="submit" name="action" value="submit" class="btn-submit btn-final"
-                                onclick="return confirm('<?php echo get_string('training_final_confirm', 'redaction'); ?>');">
-                            ✓ <?php echo get_string('training_final_submit', 'redaction'); ?>
-                        </button>
-                    <?php else: ?>
-                        <button type="submit" name="action" value="submit" class="btn-submit"
-                                onclick="return confirm('<?php echo get_string('submit_confirm', 'redaction'); ?>');">
-                            ✓ <?php echo get_string('submit_redaction', 'redaction'); ?>
-                        </button>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
-        </form>
-    </div>
-</div>
-
-<script>
-function toggleCollapsible(header) {
-    header.classList.toggle('collapsed');
-    const content = header.nextElementSibling;
-    content.classList.toggle('collapsed');
+// Pre-render editor HTML for template injection.
+$editorhtml = '';
+if (!$issubmitted) {
+    ob_start();
+    $editor = editors_get_preferred_editor($submission->contenuformat ?? FORMAT_HTML);
+    $editor->set_text($submission->contenu_editor['text'] ?? '');
+    $editor->use_editor('contenu_editor_text', $editoroptions, ['context' => $context]);
+    echo '<textarea id="contenu_editor_text"
+                    name="contenu_editor[text]"
+                    rows="20"
+                    style="width: 100%;">' . s($submission->contenu_editor['text'] ?? '') . '</textarea>';
+    echo '<input type="hidden" name="contenu_editor[format]" value="' . ($submission->contenuformat ?? FORMAT_HTML) . '">';
+    echo '<input type="hidden" name="contenu_editor[itemid]" value="' . ($submission->contenu_editor['itemid'] ?? 0) . '">';
+    $editorhtml = ob_get_clean();
 }
 
-<?php if ($trainingenabled && !$issubmitted): ?>
-function submitTraining() {
-    const btn = document.getElementById('btn-training-submit');
-    const progress = document.getElementById('training-progress');
+// Helper to build criteria template data from JSON.
+$buildcriteriatemplatedata = function(array $rawcriteria): array {
+    $result = [];
+    foreach ($rawcriteria as $criterion) {
+        $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
+        $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
+        $percentage = $max > 0 ? ($score / $max) * 100 : 0;
 
-    // First, save the current content by triggering autosave.
-    const form = document.getElementById('redaction-form');
-    const formData = new FormData(form);
-    formData.set('action', 'save');
-
-    // Disable button and show progress.
-    btn.disabled = true;
-    if (progress) progress.style.display = 'flex';
-
-    // Step 1: Save current content.
-    fetch('<?php echo $PAGE->url; ?>', {
-        method: 'POST',
-        body: formData
-    }).then(() => {
-        // Step 2: Submit for training evaluation.
-        const trainingData = new FormData();
-        trainingData.append('id', '<?php echo $cm->id; ?>');
-        trainingData.append('sesskey', '<?php echo sesskey(); ?>');
-
-        return fetch('<?php echo $CFG->wwwroot; ?>/mod/redaction/ajax/training_submit.php', {
-            method: 'POST',
-            body: trainingData
-        });
-    }).then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Start polling for result.
-            pollTrainingResult(data.evaluationid);
+        if ($percentage >= 80) {
+            $levelclass = 'excellent';
+            $leveltext = get_string('level_excellent', 'redaction');
+        } else if ($percentage >= 65) {
+            $levelclass = 'good';
+            $leveltext = get_string('level_good', 'redaction');
+        } else if ($percentage >= 50) {
+            $levelclass = 'medium';
+            $leveltext = get_string('level_medium', 'redaction');
         } else {
-            alert(data.message || '<?php echo get_string('ai_request_failed', 'redaction'); ?>');
-            btn.disabled = false;
-            if (progress) progress.style.display = 'none';
+            $levelclass = 'low';
+            $leveltext = get_string('level_low', 'redaction');
         }
-    }).catch(error => {
-        console.error('Training submit error:', error);
-        alert('<?php echo get_string('ai_request_failed', 'redaction'); ?>');
-        btn.disabled = false;
-        if (progress) progress.style.display = 'none';
-    });
+
+        $result[] = [
+            'name' => s($criterion['name'] ?? get_string('ai_criterion_default', 'redaction')),
+            'scoreformatted' => number_format($score, 1),
+            'maxformatted' => number_format($max, 0),
+            'percentage' => $percentage,
+            'levelclass' => $levelclass,
+            'leveltext' => $leveltext,
+            'hascomment' => !empty($criterion['comment']),
+            'comment' => nl2br(s($criterion['comment'] ?? '')),
+        ];
+    }
+    return $result;
+};
+
+// Parse main AI criteria.
+$criteriadata = [];
+if ($aievaluation && !empty($aievaluation->criteria_json)) {
+    $rawcriteria = json_decode($aievaluation->criteria_json, true);
+    if (is_array($rawcriteria)) {
+        $criteriadata = $buildcriteriatemplatedata($rawcriteria);
+    }
 }
 
-function pollTrainingResult(evaluationId) {
-    let attempts = 0;
-    const maxAttempts = 120; // 10 minutes at 5s intervals.
-    const interval = 5000;
+// Build training evaluations template data.
+$trainingevalsdata = [];
+if ($trainingenabled) {
+    $attemptnum = count($trainingevals);
+    foreach ($trainingevals as $eval) {
+        $evaldata = [
+            'attemptlabel' => get_string('training_attempt', 'redaction', $attemptnum),
+            'dateformatted' => userdate($eval->timecreated),
+            'hasgrade' => ($eval->status === 'completed' && $eval->parsed_grade !== null),
+            'gradeformatted' => ($eval->parsed_grade !== null) ? number_format($eval->parsed_grade, 1) : '',
+            'iscompleted' => ($eval->status === 'completed'),
+            'ispending' => ($eval->status === 'pending' || $eval->status === 'processing'),
+            'isfailed' => ($eval->status === 'failed'),
+            'errormessage' => s($eval->error_message ?? get_string('ai_evaluation_failed', 'redaction')),
+            'hasevalcriteria' => false,
+            'evalcriteria' => [],
+            'hasevalfeedback' => !empty($eval->parsed_feedback),
+            'evalfeedback' => nl2br(s($eval->parsed_feedback ?? '')),
+        ];
 
-    const poll = setInterval(() => {
-        attempts++;
-        if (attempts > maxAttempts) {
-            clearInterval(poll);
-            location.reload();
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('id', '<?php echo $cm->id; ?>');
-        formData.append('submissionid', '<?php echo $submission->id; ?>');
-        formData.append('sesskey', '<?php echo sesskey(); ?>');
-
-        fetch('<?php echo $CFG->wwwroot; ?>/mod/redaction/ajax/get_evaluation_status.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'completed' || data.status === 'failed') {
-                clearInterval(poll);
-                // Reload page to show results.
-                location.reload();
+        if ($eval->status === 'completed' && !empty($eval->criteria_json)) {
+            $evalrawcriteria = json_decode($eval->criteria_json, true);
+            if (is_array($evalrawcriteria) && !empty($evalrawcriteria)) {
+                $evaldata['hasevalcriteria'] = true;
+                $evaldata['evalcriteria'] = $buildcriteriatemplatedata($evalrawcriteria);
             }
-        })
-        .catch(() => {
-            // Ignore polling errors, continue.
-        });
-    }, interval);
-}
-<?php endif; ?>
-</script>
+        }
 
-<?php
+        $trainingevalsdata[] = $evaldata;
+        $attemptnum--;
+    }
+}
+
+// Training blocked reason.
+$trainingblockedreason = '';
+if (!$cantraining['allowed'] && !empty($cantraining['reason'])) {
+    $reason = $cantraining['reason'];
+    if ($reason === 'cooldown_active' && isset($cantraining['remaining'])) {
+        $minutes = ceil($cantraining['remaining'] / 60);
+        $trainingblockedreason = get_string('training_error_cooldown_remaining', 'redaction', $minutes);
+    } else {
+        $trainingblockedreason = get_string('training_error_' . $reason, 'redaction');
+    }
+}
+
+// Training counter string.
+$trainingcounterstr = '';
+if ($trainingenabled) {
+    $trainingcounterstr = get_string('training_attempt', 'redaction', $submission->training_count ?? 0)
+        . ' / '
+        . ($redaction->training_max_attempts > 0
+            ? $redaction->training_max_attempts
+            : get_string('unlimited', 'redaction'));
+}
+
+// Build template data.
+$templatedata = [
+    'consignestitre' => s($consignes->titre ?? get_string('consignes', 'redaction')),
+    'consignescontent' => format_text($consignes->consignes, $consignes->consignesformat ?? FORMAT_HTML),
+    'hascriteres' => !empty($consignes->criteres),
+    'criteres' => nl2br(s($consignes->criteres ?? '')),
+    'hasdocuments' => !empty($consignes->documents),
+    'documents' => nl2br(s($consignes->documents ?? '')),
+    'isgraded' => $isgraded,
+    'gradeformatted' => $isgraded ? number_format($submission->grade, 1) : '',
+    'hascriteriadata' => !empty($criteriadata),
+    'criteria' => $criteriadata,
+    'hasaifeedback' => ($aievaluation && !empty($aievaluation->parsed_feedback)),
+    'aifeedback' => $aievaluation ? nl2br(s($aievaluation->parsed_feedback ?? '')) : '',
+    'hasteacherfeedback' => !empty($submission->feedback),
+    'teacherfeedback' => !empty($submission->feedback) ? format_text($submission->feedback, $submission->feedbackformat ?? FORMAT_HTML) : '',
+    'issubmitted' => $issubmitted,
+    'submittedon' => $issubmitted ? get_string('submitted_on', 'redaction', userdate($submission->timesubmitted)) : '',
+    'submittedgradedstr' => $isgraded
+        ? get_string('submitted_graded', 'redaction', get_string('status_submitted', 'redaction'))
+        : '',
+    'trainingenabled' => $trainingenabled,
+    'cantraining' => $cantraining['allowed'],
+    'trainingblockedreason' => $trainingblockedreason,
+    'trainingcounterstr' => $trainingcounterstr,
+    'hasremainingstr' => ($trainingenabled && $redaction->training_max_attempts > 0),
+    'trainingremainingstr' => $trainingenabled && $redaction->training_max_attempts > 0
+        ? get_string('training_remaining', 'redaction', max(0, $redaction->training_max_attempts - ($submission->training_count ?? 0)))
+        : '',
+    'trainingevalcount' => count($trainingevals),
+    'trainingevals' => $trainingevalsdata,
+    'formurl' => $PAGE->url->out(false),
+    'sesskey' => sesskey(),
+    'usergroup' => $usergroup,
+    'titre' => s($submission->titre ?? ''),
+    'editorhtml' => $editorhtml,
+    'submittedcontent' => $issubmitted ? format_text($submission->contenu ?? '', $submission->contenuformat ?? FORMAT_HTML) : '',
+    'trainingfinalconfirm' => get_string('training_final_confirm', 'redaction'),
+    'submitconfirm' => get_string('submit_confirm', 'redaction'),
+];
+
+// Render using the Output API.
+/** @var \mod_redaction\output\renderer $renderer */
+$renderer = $PAGE->get_renderer('mod_redaction');
+echo $renderer->render_redaction($templatedata);
+
+// Initialise the redaction page AMD module.
+$jsparams = [
+    'cmid' => $cm->id,
+    'sesskey' => sesskey(),
+    'wwwroot' => $CFG->wwwroot,
+    'formurl' => $PAGE->url->out(false),
+    'submissionid' => $submission->id,
+    'trainingenabled' => $trainingenabled && !$issubmitted,
+    'strings' => [
+        'ai_request_failed' => get_string('ai_request_failed', 'redaction'),
+    ],
+];
+$PAGE->requires->js_call_amd('mod_redaction/redaction_page', 'init', [$jsparams]);
+
 echo $OUTPUT->footer();

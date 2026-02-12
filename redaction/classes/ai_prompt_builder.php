@@ -23,14 +23,6 @@ defined('MOODLE_INTERNAL') || die();
  */
 class ai_prompt_builder {
 
-    /** @var array Default evaluation criteria */
-    const DEFAULT_CRITERIA = [
-        ['name' => 'Pertinence', 'weight' => 5, 'description' => 'La réponse est pertinente par rapport au sujet'],
-        ['name' => 'Structure', 'weight' => 5, 'description' => 'Organisation logique et claire du texte'],
-        ['name' => 'Expression', 'weight' => 5, 'description' => 'Qualité de l\'expression écrite (orthographe, grammaire, vocabulaire)'],
-        ['name' => 'Argumentation', 'weight' => 5, 'description' => 'Qualité et pertinence des arguments présentés'],
-    ];
-
     /**
      * Build prompts for evaluation.
      *
@@ -56,20 +48,19 @@ class ai_prompt_builder {
      * @return string
      */
     protected static function build_system_prompt(object $consignes, object $correctionmodel, bool $istraining = false): string {
-        $prompt = "Tu es un assistant pédagogique expert en évaluation de rédactions d'élèves. ";
-        $prompt .= "Tu dois évaluer la production d'un élève de manière juste, bienveillante et constructive.\n\n";
+        $prompt = get_string('ai_prompt_system_intro', 'mod_redaction') . "\n\n";
 
-        $prompt .= "## Contexte de l'activité\n";
+        $prompt .= "## " . get_string('ai_prompt_activity_context', 'mod_redaction') . "\n";
         if (!empty($consignes->titre)) {
-            $prompt .= "**Titre :** " . strip_tags($consignes->titre) . "\n";
+            $prompt .= "**" . get_string('ai_prompt_title_label', 'mod_redaction') . "** " . strip_tags($consignes->titre) . "\n";
         }
 
-        $prompt .= "\n## Critères d'évaluation\n";
+        $prompt .= "\n## " . get_string('ai_prompt_criteria_section', 'mod_redaction') . "\n";
 
         // Use custom criteria if available, otherwise default.
         $criteria = self::parse_criteria($correctionmodel->grille_criteres ?? '');
         if (empty($criteria)) {
-            $criteria = self::DEFAULT_CRITERIA;
+            $criteria = self::get_default_criteria();
         }
 
         foreach ($criteria as $criterion) {
@@ -78,53 +69,53 @@ class ai_prompt_builder {
 
         // Add teacher's AI instructions if available.
         if (!empty($correctionmodel->ai_instructions)) {
-            $prompt .= "\n## Instructions spécifiques\n";
+            $prompt .= "\n## " . get_string('ai_prompt_specific_instructions', 'mod_redaction') . "\n";
             $prompt .= strip_tags($correctionmodel->ai_instructions) . "\n";
         }
 
-        $prompt .= "\n## Format de réponse\n";
-        $prompt .= "Tu DOIS répondre en JSON avec la structure suivante :\n";
+        $prompt .= "\n## " . get_string('ai_prompt_response_format', 'mod_redaction') . "\n";
+        $prompt .= get_string('ai_prompt_response_format_intro', 'mod_redaction') . "\n";
         $prompt .= "```json\n";
         $prompt .= "{\n";
-        $prompt .= "  \"grade\": <note de 0 à 20>,\n";
-        $prompt .= "  \"feedback\": \"<commentaire détaillé et constructif adressé directement à l'élève>\",\n";
+        $prompt .= "  \"grade\": <" . get_string('ai_prompt_grade_desc', 'mod_redaction') . ">,\n";
+        $prompt .= "  \"feedback\": \"<" . get_string('ai_prompt_feedback_desc', 'mod_redaction') . ">\",\n";
         $prompt .= "  \"criteria\": [\n";
         $prompt .= "    {\n";
-        $prompt .= "      \"name\": \"<nom du critère>\",\n";
-        $prompt .= "      \"score\": <note>,\n";
+        $prompt .= "      \"name\": \"<" . get_string('ai_prompt_criterion_name_desc', 'mod_redaction') . ">\",\n";
+        $prompt .= "      \"score\": <score>,\n";
         $prompt .= "      \"max\": <max>,\n";
-        $prompt .= "      \"comment\": \"<commentaire détaillé sur ce critère>\",\n";
+        $prompt .= "      \"comment\": \"<" . get_string('ai_prompt_criterion_comment_desc', 'mod_redaction') . ">\",\n";
         $prompt .= "      \"level\": \"<excellent|good|medium|low>\"\n";
         $prompt .= "    }\n";
         $prompt .= "  ],\n";
-        $prompt .= "  \"strengths\": [\"<point fort 1>\", \"<point fort 2>\"],\n";
-        $prompt .= "  \"weaknesses\": [\"<axe d'amélioration 1>\", \"<axe d'amélioration 2>\"],\n";
-        $prompt .= "  \"keywords_found\": [\"<mots-clés trouvés>\"],\n";
-        $prompt .= "  \"keywords_missing\": [\"<mots-clés attendus mais absents>\"],\n";
-        $prompt .= "  \"suggestions\": [\"<conseil d'amélioration concret et actionnable 1>\", \"<conseil 2>\"],\n";
-        $prompt .= "  \"overall_appreciation\": \"<appréciation globale courte, 1-2 phrases, encourageante>\",\n";
-        $prompt .= "  \"confidence\": <0.0 à 1.0>\n";
+        $prompt .= "  \"strengths\": [\"<" . get_string('ai_prompt_strengths_desc', 'mod_redaction') . " 1>\", \"<" . get_string('ai_prompt_strengths_desc', 'mod_redaction') . " 2>\"],\n";
+        $prompt .= "  \"weaknesses\": [\"<" . get_string('ai_prompt_weaknesses_desc', 'mod_redaction') . " 1>\", \"<" . get_string('ai_prompt_weaknesses_desc', 'mod_redaction') . " 2>\"],\n";
+        $prompt .= "  \"keywords_found\": [\"<" . get_string('ai_prompt_keywords_found_desc', 'mod_redaction') . ">\"],\n";
+        $prompt .= "  \"keywords_missing\": [\"<" . get_string('ai_prompt_keywords_missing_desc', 'mod_redaction') . ">\"],\n";
+        $prompt .= "  \"suggestions\": [\"<" . get_string('ai_prompt_suggestions_desc', 'mod_redaction') . " 1>\", \"<" . get_string('ai_prompt_suggestions_desc', 'mod_redaction') . " 2>\"],\n";
+        $prompt .= "  \"overall_appreciation\": \"<" . get_string('ai_prompt_appreciation_desc', 'mod_redaction') . ">\",\n";
+        $prompt .= "  \"confidence\": <" . get_string('ai_prompt_confidence_desc', 'mod_redaction') . ">\n";
         $prompt .= "}\n";
         $prompt .= "```\n\n";
 
         if ($istraining) {
-            $prompt .= "\n## CONTEXTE : MODE ENTRAÎNEMENT\n";
-            $prompt .= "Cette évaluation est un retour formatif pour aider l'élève à s'améliorer AVANT sa soumission finale.\n";
-            $prompt .= "- Sois particulièrement détaillé dans tes suggestions d'amélioration.\n";
-            $prompt .= "- Identifie clairement ce qui doit être retravaillé.\n";
-            $prompt .= "- Donne des exemples concrets de reformulation ou d'ajouts possibles.\n";
-            $prompt .= "- La note n'est qu'indicative, insiste sur les pistes d'amélioration.\n\n";
+            $prompt .= "\n## " . get_string('ai_prompt_training_context', 'mod_redaction') . "\n";
+            $prompt .= get_string('ai_prompt_training_intro', 'mod_redaction') . "\n";
+            $prompt .= "- " . get_string('ai_prompt_training_detailed', 'mod_redaction') . "\n";
+            $prompt .= "- " . get_string('ai_prompt_training_identify', 'mod_redaction') . "\n";
+            $prompt .= "- " . get_string('ai_prompt_training_examples', 'mod_redaction') . "\n";
+            $prompt .= "- " . get_string('ai_prompt_training_indicative', 'mod_redaction') . "\n\n";
         }
 
-        $prompt .= "## Consignes importantes\n";
-        $prompt .= "- Adresse-toi directement à l'élève avec bienveillance et encouragement (utilise \"tu\").\n";
-        $prompt .= "- Commence TOUJOURS par valoriser les points positifs avant les axes d'amélioration.\n";
-        $prompt .= "- Pour chaque critère, attribue un level: \"excellent\" (>=80%), \"good\" (>=60%), \"medium\" (>=40%), \"low\" (<40%).\n";
-        $prompt .= "- Liste 2 à 4 points forts (strengths) et 2 à 4 axes d'amélioration (weaknesses).\n";
-        $prompt .= "- Donne 2 à 4 suggestions concrètes, actionnables et réalisables pour s'améliorer.\n";
-        $prompt .= "- L'appréciation globale (overall_appreciation) doit être encourageante et résumer l'essentiel en 1-2 phrases.\n";
-        $prompt .= "- La note doit être cohérente avec les scores des critères.\n";
-        $prompt .= "- Le feedback doit être structuré et lisible.\n";
+        $prompt .= "## " . get_string('ai_prompt_important_instructions', 'mod_redaction') . "\n";
+        $prompt .= "- " . get_string('ai_prompt_address_student', 'mod_redaction') . "\n";
+        $prompt .= "- " . get_string('ai_prompt_start_positive', 'mod_redaction') . "\n";
+        $prompt .= "- " . get_string('ai_prompt_level_criteria', 'mod_redaction') . "\n";
+        $prompt .= "- " . get_string('ai_prompt_list_strengths', 'mod_redaction') . "\n";
+        $prompt .= "- " . get_string('ai_prompt_give_suggestions', 'mod_redaction') . "\n";
+        $prompt .= "- " . get_string('ai_prompt_appreciation_instructions', 'mod_redaction') . "\n";
+        $prompt .= "- " . get_string('ai_prompt_grade_coherence', 'mod_redaction') . "\n";
+        $prompt .= "- " . get_string('ai_prompt_feedback_structured', 'mod_redaction') . "\n";
 
         return $prompt;
     }
@@ -138,33 +129,33 @@ class ai_prompt_builder {
      * @return string
      */
     protected static function build_user_prompt(object $studentsubmission, object $consignes, object $correctionmodel): string {
-        $prompt = "## Consignes données aux élèves\n";
+        $prompt = "## " . get_string('ai_prompt_student_instructions', 'mod_redaction') . "\n";
         if (!empty($consignes->consignes)) {
             $prompt .= strip_tags($consignes->consignes) . "\n";
         }
 
         if (!empty($consignes->criteres)) {
-            $prompt .= "\n**Critères communiqués aux élèves :**\n";
+            $prompt .= "\n**" . get_string('ai_prompt_criteria_communicated', 'mod_redaction') . "**\n";
             $prompt .= strip_tags($consignes->criteres) . "\n";
         }
 
         // Add teacher's model answer if available.
         if (!empty($correctionmodel->modele_reponse)) {
-            $prompt .= "\n## Modèle de réponse attendue\n";
+            $prompt .= "\n## " . get_string('ai_prompt_model_answer', 'mod_redaction') . "\n";
             $prompt .= strip_tags($correctionmodel->modele_reponse) . "\n";
         }
 
-        $prompt .= "\n## Production de l'élève\n";
+        $prompt .= "\n## " . get_string('ai_prompt_student_work', 'mod_redaction') . "\n";
 
         if (!empty($studentsubmission->titre)) {
-            $prompt .= "**Titre :** " . strip_tags($studentsubmission->titre) . "\n\n";
+            $prompt .= "**" . get_string('ai_prompt_title_label', 'mod_redaction') . "** " . strip_tags($studentsubmission->titre) . "\n\n";
         }
 
-        $prompt .= "**Contenu :**\n";
+        $prompt .= "**" . get_string('ai_prompt_content_label', 'mod_redaction') . "**\n";
         $prompt .= strip_tags($studentsubmission->contenu ?? '') . "\n";
 
         $prompt .= "\n---\n";
-        $prompt .= "Évalue cette production selon les critères définis et fournis ta réponse en JSON.";
+        $prompt .= get_string('ai_prompt_evaluate_instruction', 'mod_redaction');
 
         return $prompt;
     }
@@ -205,6 +196,27 @@ class ai_prompt_builder {
      * @return array
      */
     public static function get_default_criteria(): array {
-        return self::DEFAULT_CRITERIA;
+        return [
+            [
+                'name' => get_string('ai_default_criterion_relevance', 'mod_redaction'),
+                'weight' => 5,
+                'description' => get_string('ai_default_criterion_relevance_desc', 'mod_redaction'),
+            ],
+            [
+                'name' => get_string('ai_default_criterion_structure', 'mod_redaction'),
+                'weight' => 5,
+                'description' => get_string('ai_default_criterion_structure_desc', 'mod_redaction'),
+            ],
+            [
+                'name' => get_string('ai_default_criterion_expression', 'mod_redaction'),
+                'weight' => 5,
+                'description' => get_string('ai_default_criterion_expression_desc', 'mod_redaction'),
+            ],
+            [
+                'name' => get_string('ai_default_criterion_argumentation', 'mod_redaction'),
+                'weight' => 5,
+                'description' => get_string('ai_default_criterion_argumentation_desc', 'mod_redaction'),
+            ],
+        ];
     }
 }

@@ -74,15 +74,6 @@ try {
         $submission->userid
     );
 
-    // Trigger AI evaluation requested event.
-    $event = \mod_redaction\event\ai_evaluation_requested::create([
-        'objectid' => $evaluationid,
-        'context' => $context,
-        'userid' => $USER->id,
-        'other' => ['submissionid' => $submissionid],
-    ]);
-    $event->trigger();
-
     $result = [
         'success' => true,
         'evaluationid' => $evaluationid,

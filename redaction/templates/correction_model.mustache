@@ -1,0 +1,163 @@
+{{!
+    @template mod_redaction/correction_model
+
+    Teacher correction model editing page.
+
+    Context variables required for this template:
+    * aienabled - Boolean, true if AI evaluation is enabled
+    * aiprovider - AI provider name (capitalised)
+    * hasconsignes - Boolean, true if consignes exist and are locked
+    * formurl - URL for form action
+    * sesskey - Session key for CSRF protection
+    * submissiondatevalue - Value for submission date input
+    * deadlinedatevalue - Value for deadline date input
+    * editorhtml - Pre-rendered Moodle editor HTML
+    * grillecriteresjson - JSON string for criteria
+    * aiinstructions - Current AI instructions text
+    * cmid - Course module ID
+    * wwwroot - Moodle root URL
+
+    Example context (json):
+    {
+        "aienabled": true,
+        "aiprovider": "Openai",
+        "hasconsignes": true,
+        "formurl": "/mod/redaction/view.php?id=1&page=correction",
+        "sesskey": "abc123",
+        "submissiondatevalue": "2026-01-15T10:00",
+        "deadlinedatevalue": "2026-02-15T23:59",
+        "editorhtml": "<textarea>...</textarea>",
+        "grillecriteresjson": "[]",
+        "aiinstructions": "",
+        "cmid": "1",
+        "wwwroot": "https://moodle.example.com"
+    }
+}}
+<div class="mod_redaction-correction-form">
+    {{#aienabled}}
+        <div class="mod_redaction-ai-status mod_redaction-ai-status-enabled">
+            &#x2705; {{#str}}ai_enabled, mod_redaction{{/str}}
+            ({{aiprovider}})
+        </div>
+
+        {{#hasconsignes}}
+            <div class="mod_redaction-ai-generate-section">
+                <h4>&#x1F916; {{#str}}ai_generate_criteria, mod_redaction{{/str}}</h4>
+                <p>{{#str}}ai_generate_criteria_help, mod_redaction{{/str}}</p>
+                <button type="button" id="btn-generate-ai" class="mod_redaction-btn-ai-generate" onclick="generateWithAI()">
+                    <span class="mod_redaction-spinner-inline">&#x23F3;</span>
+                    <span class="mod_redaction-btn-text">&#x2728; {{#str}}ai_generate_button, mod_redaction{{/str}}</span>
+                </button>
+            </div>
+        {{/hasconsignes}}
+        {{^hasconsignes}}
+            <div class="mod_redaction-warning-box">
+                &#x26A0;&#xFE0F; {{#str}}ai_generate_need_consignes, mod_redaction{{/str}}
+            </div>
+        {{/hasconsignes}}
+    {{/aienabled}}
+    {{^aienabled}}
+        <div class="mod_redaction-ai-status mod_redaction-ai-status-disabled">
+            &#x26A0;&#xFE0F; {{#str}}ai_disabled_warning, mod_redaction{{/str}}
+        </div>
+    {{/aienabled}}
+
+    <form id="correction-form" method="post" action="{{formurl}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+
+        {{! Dates Section }}
+        <div class="mod_redaction-section-header">
+            <span>&#x1F4C5; {{#str}}dates_section, mod_redaction{{/str}}</span>
+        </div>
+
+        <div class="mod_redaction-dates-container">
+            <div class="mod_redaction-form-group">
+                <label for="submission_date">{{#str}}submission_date, mod_redaction{{/str}}</label>
+                <input type="datetime-local"
+                       id="submission_date"
+                       name="submission_date"
+                       class="mod_redaction-form-control"
+                       value="{{submissiondatevalue}}">
+            </div>
+
+            <div class="mod_redaction-form-group">
+                <label for="deadline_date">{{#str}}deadline_date, mod_redaction{{/str}}</label>
+                <input type="datetime-local"
+                       id="deadline_date"
+                       name="deadline_date"
+                       class="mod_redaction-form-control"
+                       value="{{deadlinedatevalue}}">
+            </div>
+        </div>
+
+        {{! Answer Model Section }}
+        <div class="mod_redaction-section-header">
+            <span>&#x1F4DD; {{#str}}modele_reponse, mod_redaction{{/str}}</span>
+        </div>
+
+        <div class="mod_redaction-form-group">
+            <label for="modele_reponse_editor_text">{{#str}}modele_reponse, mod_redaction{{/str}}</label>
+            <div class="mod_redaction-help-text">{{#str}}modele_reponse_help, mod_redaction{{/str}}</div>
+            <div class="mod_redaction-editor-container">
+                {{{editorhtml}}}
+            </div>
+        </div>
+
+        {{! Criteria Grid Section }}
+        <div class="mod_redaction-section-header">
+            <span>&#x1F4CA; {{#str}}grille_criteres, mod_redaction{{/str}}</span>
+        </div>
+
+        <div class="mod_redaction-form-group">
+            <label>{{#str}}grille_criteres, mod_redaction{{/str}}</label>
+            <div class="mod_redaction-help-text">{{#str}}grille_criteres_visual_help, mod_redaction{{/str}}</div>
+
+            <input type="hidden" id="grille_criteres" name="grille_criteres"
+                   value="{{grillecriteresjson}}">
+
+            <div class="mod_redaction-criteria-editor" id="criteria-editor">
+                <div class="mod_redaction-criteria-list" id="criteria-list">
+                    {{! Criterion rows rendered by JS }}
+                </div>
+
+                <div class="mod_redaction-criteria-footer">
+                    <button type="button" class="mod_redaction-btn-add-criterion" onclick="addCriterion()">
+                        + {{#str}}add_criterion, mod_redaction{{/str}}
+                    </button>
+                    <div class="mod_redaction-criteria-total" id="criteria-total">
+                        <span id="total-weight-text"></span>
+                    </div>
+                </div>
+            </div>
+
+            <details class="mod_redaction-criteria-json-details">
+                <summary>{{#str}}show_json, mod_redaction{{/str}}</summary>
+                <textarea id="grille_criteres_raw" class="mod_redaction-form-control" rows="6" readonly
+                          style="font-family: monospace; font-size: 12px; margin-top: 8px;"></textarea>
+            </details>
+        </div>
+
+        {{! AI Instructions Section }}
+        {{#aienabled}}
+        <div class="mod_redaction-section-header">
+            <span>&#x1F916; {{#str}}ai_instructions, mod_redaction{{/str}}</span>
+        </div>
+
+        <div class="mod_redaction-form-group">
+            <label for="ai_instructions">{{#str}}ai_instructions, mod_redaction{{/str}}</label>
+            <div class="mod_redaction-help-text">{{#str}}ai_instructions_help, mod_redaction{{/str}}</div>
+            <textarea id="ai_instructions"
+                      name="ai_instructions"
+                      class="mod_redaction-form-control"
+                      rows="10"
+                      placeholder="{{#str}}ai_instructions_placeholder, mod_redaction{{/str}}">{{aiinstructions}}</textarea>
+        </div>
+        {{/aienabled}}
+
+        <div class="mod_redaction-action-buttons">
+            <button type="submit" class="mod_redaction-btn-save">
+                &#x1F4BE; {{#str}}savechanges, moodle{{/str}}
+            </button>
+        </div>
+    </form>
+</div>

@@ -127,235 +127,39 @@ echo $OUTPUT->heading(get_string('consignes', 'redaction'));
 $homeurl = new moodle_url('/mod/redaction/view.php', ['id' => $cm->id]);
 echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'), ['class' => 'btn btn-secondary mb-3']);
 
-?>
+// Pre-render editor HTML for template injection.
+$editorhtml = '';
+if (!$islocked) {
+    ob_start();
+    $editor = editors_get_preferred_editor($consignes->consignesformat ?? FORMAT_HTML);
+    $editor->set_text($consignes->consignes_editor['text'] ?? '');
+    $editor->use_editor('consignes_editor_text', $editoroptions, ['context' => $context]);
+    echo '<textarea id="consignes_editor_text"
+                    name="consignes_editor[text]"
+                    rows="15"
+                    style="width: 100%;">' . s($consignes->consignes_editor['text'] ?? '') . '</textarea>';
+    echo '<input type="hidden" name="consignes_editor[format]" value="' . ($consignes->consignesformat ?? FORMAT_HTML) . '">';
+    echo '<input type="hidden" name="consignes_editor[itemid]" value="' . ($consignes->consignes_editor['itemid'] ?? 0) . '">';
+    $editorhtml = ob_get_clean();
+}
 
-<style>
-    .consignes-form {
-        max-width: 900px;
-        margin: 20px auto;
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
+// Build template data.
+$templatedata = [
+    'islocked' => (bool)$islocked,
+    'formurl' => $PAGE->url->out(false),
+    'sesskey' => sesskey(),
+    'titre' => s($consignes->titre ?? ''),
+    'hasconsignescontent' => (bool)$islocked,
+    'consignescontent' => $islocked ? format_text($consignes->consignes ?? '', $consignes->consignesformat ?? FORMAT_HTML) : '',
+    'editorhtml' => $editorhtml,
+    'criteres' => s($consignes->criteres ?? ''),
+    'documents' => s($consignes->documents ?? ''),
+    'criteresplaceholder' => get_string('criteres_placeholder', 'redaction'),
+];
 
-    .form-group {
-        margin-bottom: 25px;
-    }
+// Render using the Output API.
+/** @var \mod_redaction\output\renderer $renderer */
+$renderer = $PAGE->get_renderer('mod_redaction');
+echo $renderer->render_consignes($templatedata);
 
-    .form-group label {
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 8px;
-        display: block;
-    }
-
-    .form-group .help-text {
-        font-size: 13px;
-        color: #666;
-        margin-top: 5px;
-        margin-bottom: 10px;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 10px 15px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 15px;
-        transition: border-color 0.3s;
-    }
-
-    .form-control:focus {
-        border-color: #667eea;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .lock-status {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-
-    .lock-status.locked {
-        background: #f8d7da;
-        color: #721c24;
-    }
-
-    .lock-status.unlocked {
-        background: #d4edda;
-        color: #155724;
-    }
-
-    .btn-lock {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-lock.lock {
-        background: #e53e3e;
-        color: white;
-    }
-
-    .btn-lock.unlock {
-        background: #48bb78;
-        color: white;
-    }
-
-    .btn-lock:hover {
-        transform: scale(1.02);
-    }
-
-    .btn-save {
-        padding: 12px 30px;
-        background: #667eea;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-save:hover {
-        background: #5a67d8;
-        transform: scale(1.02);
-    }
-
-    .btn-save:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .editor-container {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .editor-container .editor_atto_wrap {
-        border: none !important;
-    }
-
-    .action-buttons {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #eee;
-    }
-</style>
-
-<div class="consignes-form">
-    <?php if ($islocked): ?>
-        <div class="lock-status locked">
-            🔒 <?php echo get_string('consignes_locked', 'redaction'); ?>
-        </div>
-    <?php else: ?>
-        <div class="lock-status unlocked">
-            🔓 <?php echo get_string('consignes_unlocked', 'redaction'); ?>
-        </div>
-    <?php endif; ?>
-
-    <form id="consignes-form" method="post" action="<?php echo $PAGE->url; ?>">
-        <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
-        <input type="hidden" name="action" value="save">
-
-        <div class="form-group">
-            <label for="titre"><?php echo get_string('consignes_title', 'redaction'); ?></label>
-            <input type="text"
-                   id="titre"
-                   name="titre"
-                   class="form-control"
-                   value="<?php echo s($consignes->titre ?? ''); ?>"
-                   <?php echo $islocked ? 'readonly' : ''; ?>
-                   placeholder="<?php echo get_string('consignes_title', 'redaction'); ?>">
-        </div>
-
-        <div class="form-group">
-            <label for="consignes_editor"><?php echo get_string('consignes_content', 'redaction'); ?></label>
-            <div class="help-text"><?php echo get_string('consignes_content_help', 'redaction'); ?></div>
-            <?php if ($islocked): ?>
-                <div class="editor-container" style="padding: 15px; background: #f8f9fa;">
-                    <?php echo format_text($consignes->consignes ?? '', $consignes->consignesformat ?? FORMAT_HTML); ?>
-                </div>
-            <?php else: ?>
-                <div class="editor-container">
-                    <?php
-                    // Use Moodle's standard editor.
-                    $editor = editors_get_preferred_editor($consignes->consignesformat ?? FORMAT_HTML);
-                    $editor->set_text($consignes->consignes_editor['text'] ?? '');
-                    $editor->use_editor('consignes_editor_text', $editoroptions, ['context' => $context]);
-                    ?>
-                    <textarea id="consignes_editor_text"
-                              name="consignes_editor[text]"
-                              rows="15"
-                              style="width: 100%;"><?php echo s($consignes->consignes_editor['text'] ?? ''); ?></textarea>
-                    <input type="hidden" name="consignes_editor[format]" value="<?php echo $consignes->consignesformat ?? FORMAT_HTML; ?>">
-                    <input type="hidden" name="consignes_editor[itemid]" value="<?php echo $consignes->consignes_editor['itemid'] ?? 0; ?>">
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <div class="form-group">
-            <label for="criteres"><?php echo get_string('consignes_criteres', 'redaction'); ?></label>
-            <div class="help-text"><?php echo get_string('consignes_criteres_help', 'redaction'); ?></div>
-            <textarea id="criteres"
-                      name="criteres"
-                      class="form-control"
-                      rows="6"
-                      <?php echo $islocked ? 'readonly' : ''; ?>
-                      placeholder="- Critère 1&#10;- Critère 2&#10;- Critère 3"><?php echo s($consignes->criteres ?? ''); ?></textarea>
-        </div>
-
-        <div class="form-group">
-            <label for="documents"><?php echo get_string('consignes_documents', 'redaction'); ?></label>
-            <div class="help-text"><?php echo get_string('consignes_documents_help', 'redaction'); ?></div>
-            <textarea id="documents"
-                      name="documents"
-                      class="form-control"
-                      rows="4"
-                      <?php echo $islocked ? 'readonly' : ''; ?>
-                      placeholder="https://exemple.com/ressource"><?php echo s($consignes->documents ?? ''); ?></textarea>
-        </div>
-
-        <?php if (!$islocked): ?>
-            <div class="action-buttons">
-                <button type="submit" class="btn-save">
-                    💾 <?php echo get_string('savechanges', 'moodle'); ?>
-                </button>
-                <input type="hidden" name="locked" value="1">
-                <button type="submit" name="action" value="lock" class="btn-lock lock" onclick="return confirm('<?php echo get_string('confirm_lock', 'redaction'); ?>');">
-                    🔒 <?php echo get_string('lock_consignes', 'redaction'); ?>
-                </button>
-            </div>
-        <?php endif; ?>
-    </form>
-
-    <?php if ($islocked): ?>
-        <form method="post" action="<?php echo $PAGE->url; ?>" class="mt-4">
-            <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
-            <input type="hidden" name="action" value="lock">
-            <input type="hidden" name="locked" value="0">
-            <div class="action-buttons">
-                <div></div>
-                <button type="submit" class="btn-lock unlock">
-                    🔓 <?php echo get_string('unlock_consignes', 'redaction'); ?>
-                </button>
-            </div>
-        </form>
-    <?php endif; ?>
-</div>
-
-<?php
 echo $OUTPUT->footer();

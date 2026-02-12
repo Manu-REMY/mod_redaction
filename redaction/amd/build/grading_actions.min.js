@@ -13,7 +13,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery'], function($) {
+define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notification) {
 
     var config = {};
 
@@ -36,91 +36,81 @@ define(['jquery'], function($) {
                 return;
             }
 
-            var formData = new FormData();
-            formData.append('sesskey', config.sesskey);
-            formData.append('id', config.cmid);
-            formData.append('action', 'unlock');
-            formData.append('submissionid', submissionId);
-
-            fetch(config.wwwroot + '/mod/redaction/ajax/submit.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert(data.message || 'Error');
+            Ajax.call([{
+                methodname: 'mod_redaction_submit_action',
+                args: {
+                    cmid: config.cmid,
+                    action: 'unlock',
+                    submissionid: submissionId
+                },
+                done: function(data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Error');
+                    }
+                },
+                fail: function(error) {
+                    console.error('Error:', error);
+                    alert(config.strings.connection_error);
                 }
-            })
-            .catch(function(error) {
-                console.error('Error:', error);
-                alert(config.strings.connection_error);
-            });
+            }]);
         },
 
         triggerAIEvaluation: function(submissionId) {
             var btn = event.target;
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner" style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
+            btn.innerHTML = '<span class="mod_redaction-spinner" ' +
+                'style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
                 config.strings.evaluating;
 
-            var formData = new FormData();
-            formData.append('sesskey', config.sesskey);
-            formData.append('id', config.cmid);
-            formData.append('action', 'evaluate');
-            formData.append('submissionid', submissionId);
-
-            fetch(config.wwwroot + '/mod/redaction/ajax/evaluate.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    setTimeout(function() { location.reload(); }, 2000);
-                } else {
-                    alert(data.message || 'Error');
+            Ajax.call([{
+                methodname: 'mod_redaction_evaluate_submission',
+                args: {
+                    cmid: config.cmid,
+                    submissionid: submissionId
+                },
+                done: function(data) {
+                    if (data.success) {
+                        setTimeout(function() { location.reload(); }, 2000);
+                    } else {
+                        alert(data.message || 'Error');
+                        btn.disabled = false;
+                        btn.innerHTML = config.strings.evaluate_with_ai;
+                    }
+                },
+                fail: function(error) {
+                    Notification.exception(error);
                     btn.disabled = false;
-                    btn.innerHTML = '🚀 ' + config.strings.evaluate_with_ai;
                 }
-            })
-            .catch(function(error) {
-                console.error('Error:', error);
-                alert(config.strings.connection_error);
-                btn.disabled = false;
-            });
+            }]);
         },
 
         applyAIGrade: function(evaluationId) {
-            var formData = new FormData();
-            formData.append('sesskey', config.sesskey);
-            formData.append('id', config.cmid);
-            formData.append('evaluationid', evaluationId);
-
-            fetch(config.wwwroot + '/mod/redaction/ajax/apply_ai_grade.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert(data.message || 'Error');
+            Ajax.call([{
+                methodname: 'mod_redaction_apply_ai_grade',
+                args: {
+                    cmid: config.cmid,
+                    evaluationid: evaluationId
+                },
+                done: function(data) {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Error');
+                    }
+                },
+                fail: function(error) {
+                    console.error('Error:', error);
+                    alert(config.strings.connection_error);
                 }
-            })
-            .catch(function(error) {
-                console.error('Error:', error);
-                alert(config.strings.connection_error);
-            });
+            }]);
         },
 
         toggleSection: function(toggleElement) {
-            toggleElement.classList.toggle('collapsed');
+            toggleElement.classList.toggle('mod_redaction-collapsed');
             var content = toggleElement.nextElementSibling;
-            content.classList.toggle('collapsed');
+            content.classList.toggle('mod_redaction-collapsed');
         },
 
         bulkEvaluate: function() {
@@ -130,16 +120,9 @@ define(['jquery'], function($) {
                 submissionIds.push(parseInt(el.dataset.submissionid));
             });
 
-            // Fallback: collect from the current page context if no data attributes.
+            // Fallback: collect from select options.
             if (submissionIds.length === 0) {
-                // Use AJAX to get all submission IDs for this activity.
-                var formData = new FormData();
-                formData.append('sesskey', config.sesskey);
-                formData.append('id', config.cmid);
-                formData.append('action', 'get_all_submissions');
-
-                // For now, collect from select options.
-                var selector = document.querySelector('.item-selector');
+                var selector = document.querySelector('.mod_redaction-item-selector');
                 if (selector) {
                     Array.from(selector.options).forEach(function(opt) {
                         var url = opt.value;
@@ -159,42 +142,39 @@ define(['jquery'], function($) {
             var btn = event ? event.target : null;
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner" style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
+                btn.innerHTML = '<span class="mod_redaction-spinner" ' +
+                    'style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
                     (config.strings.bulk_evaluating || 'Evaluating all...');
             }
 
-            var formData = new FormData();
-            formData.append('sesskey', config.sesskey);
-            formData.append('id', config.cmid);
-            formData.append('submissionids', JSON.stringify(submissionIds));
-
-            fetch(config.wwwroot + '/mod/redaction/ajax/bulk_evaluate.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    var msg = (config.strings.bulk_evaluate_success || '{queued} queued, {skipped} skipped')
-                        .replace('{queued}', data.queued)
-                        .replace('{skipped}', data.skipped);
-                    alert(msg);
-                    location.reload();
-                } else {
-                    alert(data.message || 'Error');
+            Ajax.call([{
+                methodname: 'mod_redaction_bulk_evaluate',
+                args: {
+                    cmid: config.cmid,
+                    submissionids: submissionIds
+                },
+                done: function(data) {
+                    if (data.success) {
+                        var msg = (config.strings.bulk_evaluate_success || '{queued} queued, {skipped} skipped')
+                            .replace('{queued}', data.queued)
+                            .replace('{skipped}', data.skipped);
+                        alert(msg);
+                        location.reload();
+                    } else {
+                        alert((data.errors && data.errors[0]) || 'Error');
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = (config.strings.bulk_evaluate || 'Evaluate all');
+                    }
+                },
+                fail: function(error) {
+                    Notification.exception(error);
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                 }
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '🤖 ' + (config.strings.bulk_evaluate || 'Evaluate all');
-                }
-            })
-            .catch(function(error) {
-                console.error('Error:', error);
-                alert(config.strings.connection_error);
-                if (btn) {
-                    btn.disabled = false;
-                }
-            });
+            }]);
         },
 
         bulkApplyGrade: function() {
@@ -216,49 +196,46 @@ define(['jquery'], function($) {
             var btn = event ? event.target : null;
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner" style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
+                btn.innerHTML = '<span class="mod_redaction-spinner" ' +
+                    'style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
                     (config.strings.bulk_applying || 'Applying...');
             }
 
-            var formData = new FormData();
-            formData.append('sesskey', config.sesskey);
-            formData.append('id', config.cmid);
-            formData.append('evaluationids', JSON.stringify(evaluationIds));
-
-            fetch(config.wwwroot + '/mod/redaction/ajax/bulk_apply_grade.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    var msg = (config.strings.bulk_apply_success || '{applied} applied, {skipped} skipped')
-                        .replace('{applied}', data.applied)
-                        .replace('{skipped}', data.skipped);
-                    alert(msg);
-                    location.reload();
-                } else {
-                    alert(data.message || 'Error');
+            Ajax.call([{
+                methodname: 'mod_redaction_bulk_apply_grade',
+                args: {
+                    cmid: config.cmid,
+                    evaluationids: evaluationIds
+                },
+                done: function(data) {
+                    if (data.success) {
+                        var msg = (config.strings.bulk_apply_success || '{applied} applied, {skipped} skipped')
+                            .replace('{applied}', data.applied)
+                            .replace('{skipped}', data.skipped);
+                        alert(msg);
+                        location.reload();
+                    } else {
+                        alert((data.errors && data.errors[0]) || 'Error');
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = (config.strings.bulk_apply || 'Apply all grades');
+                    }
+                },
+                fail: function(error) {
+                    Notification.exception(error);
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                 }
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '✅ ' + (config.strings.bulk_apply || 'Apply all grades');
-                }
-            })
-            .catch(function(error) {
-                console.error('Error:', error);
-                alert(config.strings.connection_error);
-                if (btn) {
-                    btn.disabled = false;
-                }
-            });
+            }]);
         },
 
         showHistory: function(submissionId) {
             var modal = document.getElementById('history-modal');
             var content = document.getElementById('history-content');
 
-            content.innerHTML = '<div class="text-center p-4"><div class="spinner"></div></div>';
+            content.innerHTML = '<div class="text-center p-4"><div class="mod_redaction-spinner"></div></div>';
 
             if (typeof $ !== 'undefined' && $.fn.modal) {
                 $(modal).modal('show');
@@ -267,33 +244,39 @@ define(['jquery'], function($) {
                 modal.classList.add('show');
             }
 
-            fetch(config.wwwroot + '/mod/redaction/ajax/get_history.php?sesskey=' + config.sesskey +
-                '&id=' + config.cmid + '&submissionid=' + submissionId)
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success && data.history) {
-                    var html = '<div class="history-list">';
-                    data.history.forEach(function(version) {
-                        html += '<div class="history-item" style="padding: 15px; border-bottom: 1px solid #eee;">' +
-                            '<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">' +
-                            '<strong>Version ' + version.version_number + '</strong>' +
-                            '<span style="color: #666; font-size: 13px;">' + version.date + ' - ' + version.saved_by + '</span>' +
-                            '</div>' +
-                            '<div style="font-size: 13px; color: #666;">' +
-                            version.word_count + ' ' + config.strings.words + ' | ' +
-                            version.char_count + ' ' + config.strings.characters +
-                            '</div></div>';
-                    });
-                    html += '</div>';
-                    content.innerHTML = html;
-                } else {
-                    content.innerHTML = '<p class="text-muted">' + config.strings.no_history + '</p>';
+            Ajax.call([{
+                methodname: 'mod_redaction_get_history',
+                args: {
+                    cmid: config.cmid,
+                    submissionid: submissionId
+                },
+                done: function(data) {
+                    if (data.success && data.history) {
+                        var html = '<div class="mod_redaction-history-list">';
+                        data.history.forEach(function(version) {
+                            html += '<div class="mod_redaction-history-item" ' +
+                                'style="padding: 15px; border-bottom: 1px solid #eee;">' +
+                                '<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">' +
+                                '<strong>Version ' + version.version_number + '</strong>' +
+                                '<span style="color: #666; font-size: 13px;">' + version.date +
+                                ' - ' + version.saved_by + '</span>' +
+                                '</div>' +
+                                '<div style="font-size: 13px; color: #666;">' +
+                                version.word_count + ' ' + config.strings.words + ' | ' +
+                                version.char_count + ' ' + config.strings.characters +
+                                '</div></div>';
+                        });
+                        html += '</div>';
+                        content.innerHTML = html;
+                    } else {
+                        content.innerHTML = '<p class="text-muted">' + config.strings.no_history + '</p>';
+                    }
+                },
+                fail: function(error) {
+                    console.error('Error:', error);
+                    content.innerHTML = '<p class="text-danger">' + config.strings.loading_error + '</p>';
                 }
-            })
-            .catch(function(error) {
-                console.error('Error:', error);
-                content.innerHTML = '<p class="text-danger">' + config.strings.loading_error + '</p>';
-            });
+            }]);
         }
     };
 });

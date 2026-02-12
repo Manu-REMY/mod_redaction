@@ -1,0 +1,123 @@
+{{!
+    @template mod_redaction/consignes
+
+    Teacher consignes (instructions) editing page.
+
+    Context variables required for this template:
+    * islocked - Boolean, true if consignes are locked
+    * formurl - URL for form action
+    * sesskey - Session key for CSRF protection
+    * titre - Current title value
+    * hasconsignescontent - Boolean, true if locked content to display
+    * consignescontent - Formatted consignes content (HTML, only when locked)
+    * editorhtml - Pre-rendered editor HTML (only when unlocked)
+    * criteres - Current criteria text
+    * documents - Current documents text
+    * criteresplaceholder - Placeholder for criteria textarea
+
+    Example context (json):
+    {
+        "islocked": false,
+        "formurl": "/mod/redaction/view.php?id=1&page=consignes",
+        "sesskey": "abc123",
+        "titre": "My activity title",
+        "hasconsignescontent": false,
+        "consignescontent": "",
+        "editorhtml": "<textarea>...</textarea>",
+        "criteres": "- Criterion 1",
+        "documents": "https://example.com",
+        "criteresplaceholder": "- Criterion 1"
+    }
+}}
+<div class="mod_redaction-consignes-form">
+    {{#islocked}}
+        <div class="mod_redaction-lock-status mod_redaction-lock-status-locked">
+            &#x1F512; {{#str}}consignes_locked, mod_redaction{{/str}}
+        </div>
+    {{/islocked}}
+    {{^islocked}}
+        <div class="mod_redaction-lock-status mod_redaction-lock-status-unlocked">
+            &#x1F513; {{#str}}consignes_unlocked, mod_redaction{{/str}}
+        </div>
+    {{/islocked}}
+
+    <form id="consignes-form" method="post" action="{{formurl}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="save">
+
+        <div class="mod_redaction-form-group">
+            <label for="titre">{{#str}}consignes_title, mod_redaction{{/str}}</label>
+            <input type="text"
+                   id="titre"
+                   name="titre"
+                   class="mod_redaction-form-control"
+                   value="{{titre}}"
+                   {{#islocked}}readonly{{/islocked}}
+                   placeholder="{{#str}}consignes_title, mod_redaction{{/str}}">
+        </div>
+
+        <div class="mod_redaction-form-group">
+            <label for="consignes_editor">{{#str}}consignes_content, mod_redaction{{/str}}</label>
+            <div class="mod_redaction-help-text">{{#str}}consignes_content_help, mod_redaction{{/str}}</div>
+            {{#islocked}}
+                <div class="mod_redaction-editor-container" style="padding: 15px; background: #f8f9fa;">
+                    {{{consignescontent}}}
+                </div>
+            {{/islocked}}
+            {{^islocked}}
+                <div class="mod_redaction-editor-container">
+                    {{{editorhtml}}}
+                </div>
+            {{/islocked}}
+        </div>
+
+        <div class="mod_redaction-form-group">
+            <label for="criteres">{{#str}}consignes_criteres, mod_redaction{{/str}}</label>
+            <div class="mod_redaction-help-text">{{#str}}consignes_criteres_help, mod_redaction{{/str}}</div>
+            <textarea id="criteres"
+                      name="criteres"
+                      class="mod_redaction-form-control"
+                      rows="6"
+                      {{#islocked}}readonly{{/islocked}}
+                      placeholder="{{criteresplaceholder}}">{{criteres}}</textarea>
+        </div>
+
+        <div class="mod_redaction-form-group">
+            <label for="documents">{{#str}}consignes_documents, mod_redaction{{/str}}</label>
+            <div class="mod_redaction-help-text">{{#str}}consignes_documents_help, mod_redaction{{/str}}</div>
+            <textarea id="documents"
+                      name="documents"
+                      class="mod_redaction-form-control"
+                      rows="4"
+                      {{#islocked}}readonly{{/islocked}}
+                      placeholder="https://exemple.com/ressource">{{documents}}</textarea>
+        </div>
+
+        {{^islocked}}
+            <div class="mod_redaction-action-buttons">
+                <button type="submit" class="mod_redaction-btn-save">
+                    &#x1F4BE; {{#str}}savechanges, moodle{{/str}}
+                </button>
+                <input type="hidden" name="locked" value="1">
+                <button type="submit" name="action" value="lock" class="mod_redaction-btn-lock mod_redaction-btn-lock-lock"
+                        onclick="return confirm('{{#str}}confirm_lock, mod_redaction{{/str}}');">
+                    &#x1F512; {{#str}}lock_consignes, mod_redaction{{/str}}
+                </button>
+            </div>
+        {{/islocked}}
+    </form>
+
+    {{#islocked}}
+        <form method="post" action="{{formurl}}" class="mt-4">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="action" value="lock">
+            <input type="hidden" name="locked" value="0">
+            <div class="mod_redaction-action-buttons">
+                <div></div>
+                <button type="submit" class="mod_redaction-btn-lock mod_redaction-btn-lock-unlock">
+                    &#x1F513; {{#str}}unlock_consignes, mod_redaction{{/str}}
+                </button>
+            </div>
+        </form>
+    {{/islocked}}
+</div>

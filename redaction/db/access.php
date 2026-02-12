@@ -17,7 +17,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
-    // Ajouter une instance du module dans un cours
+    // Add an instance of the module in a course.
     'mod/redaction:addinstance' => [
         'riskbitmask' => RISK_XSS,
         'captype' => 'write',
@@ -29,7 +29,7 @@ $capabilities = [
         'clonepermissionsfrom' => 'moodle/course:manageactivities',
     ],
 
-    // Voir l'activité
+    // View the activity.
     'mod/redaction:view' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -42,7 +42,7 @@ $capabilities = [
         ],
     ],
 
-    // Configurer les consignes (enseignant)
+    // Edit instructions (teacher).
     'mod/redaction:editconsignes' => [
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
@@ -54,7 +54,7 @@ $capabilities = [
         ],
     ],
 
-    // Soumettre le travail (élèves)
+    // Submit work (students).
     'mod/redaction:submit' => [
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
@@ -64,7 +64,7 @@ $capabilities = [
         ],
     ],
 
-    // Voir toutes les soumissions (enseignants)
+    // View all submissions (teachers).
     'mod/redaction:viewallsubmissions' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -75,7 +75,7 @@ $capabilities = [
         ],
     ],
 
-    // Noter et commenter
+    // Grade and comment.
     'mod/redaction:grade' => [
         'riskbitmask' => RISK_XSS,
         'captype' => 'write',
@@ -87,7 +87,7 @@ $capabilities = [
         ],
     ],
 
-    // Voir l'historique des versions
+    // View version history.
     'mod/redaction:viewhistory' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,

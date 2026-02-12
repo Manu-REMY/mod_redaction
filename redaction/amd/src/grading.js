@@ -13,7 +13,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery'], function($) {
+define(['jquery', 'core/ajax'], function($, Ajax) {
 
     var grading = {
         cmid: 0,
@@ -40,7 +40,7 @@ define(['jquery'], function($) {
          */
         checkPendingEvaluation: function() {
             var self = this;
-            var pendingIndicator = $('.ai-pending');
+            var pendingIndicator = $('.mod_redaction-ai-pending');
 
             if (pendingIndicator.length > 0) {
                 this.pollCount = 0;
@@ -48,8 +48,8 @@ define(['jquery'], function($) {
                     self.pollCount++;
                     if (self.pollCount >= self.maxPollAttempts) {
                         self.stopPolling();
-                        $('.ai-pending .spinner').hide();
-                        $('.ai-pending span').text('Evaluation timeout - please refresh the page.');
+                        $('.mod_redaction-ai-pending .mod_redaction-spinner').hide();
+                        $('.mod_redaction-ai-pending span').text('Evaluation timeout - please refresh the page.');
                         return;
                     }
                     self.pollEvaluationStatus();
@@ -63,28 +63,24 @@ define(['jquery'], function($) {
         pollEvaluationStatus: function() {
             var self = this;
 
-            $.ajax({
-                url: M.cfg.wwwroot + '/mod/redaction/ajax/get_evaluation_status.php',
-                method: 'GET',
-                data: {
-                    id: this.cmid,
-                    submissionid: this.submissionid,
-                    sesskey: M.cfg.sesskey
+            Ajax.call([{
+                methodname: 'mod_redaction_get_evaluation_status',
+                args: {
+                    cmid: this.cmid,
+                    submissionid: this.submissionid
                 },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success && response.status) {
+                done: function(response) {
+                    if (response.status) {
                         if (response.status === 'completed' || response.status === 'failed' || response.status === 'applied') {
-                            // Stop polling and reload page
                             clearInterval(self.pollInterval);
                             location.reload();
                         }
                     }
                 },
-                error: function() {
-                    // Silent error, keep polling
+                fail: function() {
+                    // Silent error, keep polling.
                 }
-            });
+            }]);
         },
 
         /**

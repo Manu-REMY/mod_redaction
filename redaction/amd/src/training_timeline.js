@@ -39,11 +39,11 @@ define(['jquery'], function($) {
             }
 
             // Activate JS mode: hides fallback, shows interactive timeline.
-            container.classList.add('js-active');
+            container.classList.add('mod_redaction-js-active');
 
             // Compress markers when many attempts.
             if (attempts.length > 10) {
-                container.classList.add('many-attempts');
+                container.classList.add('mod_redaction-many-attempts');
             }
 
             this.renderSparkline();
@@ -69,15 +69,15 @@ define(['jquery'], function($) {
             var attempt = attempts[index];
 
             // Update active marker styling.
-            var markers = document.querySelectorAll('.timeline-marker[data-attempt-index]');
+            var markers = document.querySelectorAll('.mod_redaction-timeline-marker[data-attempt-index]');
             markers.forEach(function(m) {
-                m.classList.remove('active');
+                m.classList.remove('mod_redaction-active');
             });
             var activeMarker = document.querySelector(
-                '.timeline-marker[data-attempt-index="' + index + '"]'
+                '.mod_redaction-timeline-marker[data-attempt-index="' + index + '"]'
             );
             if (activeMarker) {
-                activeMarker.classList.add('active');
+                activeMarker.classList.add('mod_redaction-active');
             }
 
             // Move cursor to the marker position.
@@ -118,7 +118,7 @@ define(['jquery'], function($) {
             var gradeEl = document.getElementById('detail-grade');
             if (gradeEl) {
                 gradeEl.textContent = attempt.gradestr;
-                gradeEl.className = 'detail-grade ai-level-' + attempt.gradelevel;
+                gradeEl.className = 'mod_redaction-detail-grade mod_redaction-ai-level-' + attempt.gradelevel;
             }
 
             // Criteria mini bars.
@@ -128,17 +128,17 @@ define(['jquery'], function($) {
                 if (attempt.criteria && attempt.criteria.length > 0) {
                     attempt.criteria.forEach(function(c) {
                         var row = document.createElement('div');
-                        row.className = 'detail-criterion-row';
+                        row.className = 'mod_redaction-detail-criterion-row';
                         row.innerHTML =
-                            '<span class="detail-criterion-name" title="' +
+                            '<span class="mod_redaction-detail-criterion-name" title="' +
                                 this.escapeHtml(c.name) + '">' +
                                 this.escapeHtml(c.name) + '</span>' +
-                            '<div class="detail-criterion-bar">' +
-                                '<div class="detail-criterion-fill ' +
+                            '<div class="mod_redaction-detail-criterion-bar">' +
+                                '<div class="mod_redaction-detail-criterion-fill mod_redaction-' +
                                     this.escapeHtml(c.scoreclass) +
                                     '" style="width:' + c.percentage + '%"></div>' +
                             '</div>' +
-                            '<span class="detail-criterion-score">' +
+                            '<span class="mod_redaction-detail-criterion-score">' +
                                 c.score + '/' + c.max + '</span>';
                         criteriaContainer.appendChild(row);
                     }.bind(this));
@@ -183,7 +183,7 @@ define(['jquery'], function($) {
                 return x.toFixed(1) + ',' + y.toFixed(1);
             });
 
-            var polyline = sparkEl.querySelector('.sparkline-line');
+            var polyline = sparkEl.querySelector('.mod_redaction-sparkline-line');
             if (polyline) {
                 polyline.setAttribute('points', points.join(' '));
             }
@@ -207,15 +207,15 @@ define(['jquery'], function($) {
                 return;
             }
 
-            var arrowEl = trendContainer.querySelector('.trend-arrow');
-            var summaryEl = trendContainer.querySelector('.trend-summary');
+            var arrowEl = trendContainer.querySelector('.mod_redaction-trend-arrow');
+            var summaryEl = trendContainer.querySelector('.mod_redaction-trend-summary');
 
             var first = completedAttempts[0].grade;
             var last = completedAttempts[completedAttempts.length - 1].grade;
 
             if (completedAttempts.length === 1) {
                 if (arrowEl) {
-                    arrowEl.className = 'trend-arrow trend-flat';
+                    arrowEl.className = 'mod_redaction-trend-arrow mod_redaction-trend-flat';
                 }
                 if (summaryEl) {
                     summaryEl.textContent = last.toFixed(1) + '/20';
@@ -225,7 +225,7 @@ define(['jquery'], function($) {
                 var direction = diff > 0.5 ? 'up' : (diff < -0.5 ? 'down' : 'flat');
 
                 if (arrowEl) {
-                    arrowEl.className = 'trend-arrow trend-' + direction;
+                    arrowEl.className = 'mod_redaction-trend-arrow mod_redaction-trend-' + direction;
                 }
                 if (summaryEl) {
                     var sign = diff >= 0 ? '+' : '';
@@ -240,7 +240,7 @@ define(['jquery'], function($) {
          */
         bindMarkerClicks: function() {
             var self = this;
-            var markers = document.querySelectorAll('.timeline-marker[data-attempt-index]');
+            var markers = document.querySelectorAll('.mod_redaction-timeline-marker[data-attempt-index]');
             markers.forEach(function(marker) {
                 marker.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -293,12 +293,12 @@ define(['jquery'], function($) {
 
             function startDrag(e) {
                 // Don't interfere with marker clicks.
-                if (e.target.closest('.timeline-marker[data-attempt-index]')) {
+                if (e.target.closest('.mod_redaction-timeline-marker[data-attempt-index]')) {
                     return;
                 }
                 e.preventDefault();
                 isDragging = true;
-                cursor.classList.add('dragging');
+                cursor.classList.add('mod_redaction-dragging');
 
                 var pct = getPercentFromEvent(e);
                 cursor.style.left = pct + '%';
@@ -323,7 +323,7 @@ define(['jquery'], function($) {
                     return;
                 }
                 isDragging = false;
-                cursor.classList.remove('dragging');
+                cursor.classList.remove('mod_redaction-dragging');
 
                 var pct = parseFloat(cursor.style.left);
                 var bestIndex = snapToNearest(pct);
@@ -343,7 +343,7 @@ define(['jquery'], function($) {
 
             // Click on track background (not on a marker).
             track.addEventListener('click', function(e) {
-                if (e.target.closest('.timeline-marker[data-attempt-index]') || isDragging) {
+                if (e.target.closest('.mod_redaction-timeline-marker[data-attempt-index]') || isDragging) {
                     return;
                 }
                 var pct = getPercentFromEvent(e);

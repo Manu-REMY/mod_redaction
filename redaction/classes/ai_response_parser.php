@@ -109,7 +109,7 @@ class ai_response_parser {
                 }
 
                 $result->criteria[] = (object) [
-                    'name' => $criterion['name'] ?? 'Critère',
+                    'name' => $criterion['name'] ?? get_string('ai_criterion_default', 'mod_redaction'),
                     'score' => $score,
                     'max' => $max,
                     'comment' => isset($criterion['comment']) ? self::sanitize_text($criterion['comment']) : '',
@@ -231,7 +231,7 @@ class ai_response_parser {
         // Grade with level.
         $level = self::get_grade_level($result->grade);
         $html .= '<div class="ai-grade-display">';
-        $html .= '<strong>Note :</strong> ' . number_format($result->grade, 1) . '/20';
+        $html .= '<strong>' . get_string('ai_display_grade', 'mod_redaction') . '</strong> ' . number_format($result->grade, 1) . '/20';
         $html .= ' <span class="ai-level-badge ai-level-' . $level . '">' . $level . '</span>';
         $html .= '</div>';
 
@@ -246,14 +246,14 @@ class ai_response_parser {
         if (!empty($result->strengths) || !empty($result->weaknesses)) {
             $html .= '<div class="ai-strengths-weaknesses">';
             if (!empty($result->strengths)) {
-                $html .= '<div class="ai-strengths"><strong>Points forts :</strong><ul>';
+                $html .= '<div class="ai-strengths"><strong>' . get_string('ai_display_strengths', 'mod_redaction') . '</strong><ul>';
                 foreach ($result->strengths as $strength) {
                     $html .= '<li>' . $strength . '</li>';
                 }
                 $html .= '</ul></div>';
             }
             if (!empty($result->weaknesses)) {
-                $html .= '<div class="ai-weaknesses"><strong>Axes d\'amélioration :</strong><ul>';
+                $html .= '<div class="ai-weaknesses"><strong>' . get_string('ai_display_weaknesses', 'mod_redaction') . '</strong><ul>';
                 foreach ($result->weaknesses as $weakness) {
                     $html .= '<li>' . $weakness . '</li>';
                 }
@@ -265,7 +265,7 @@ class ai_response_parser {
         // Feedback.
         if (!empty($result->feedback)) {
             $html .= '<div class="ai-feedback-display">';
-            $html .= '<strong>Commentaires :</strong><br>';
+            $html .= '<strong>' . get_string('ai_display_comments', 'mod_redaction') . '</strong><br>';
             $html .= $result->feedback;
             $html .= '</div>';
         }
@@ -273,7 +273,7 @@ class ai_response_parser {
         // Criteria.
         if (!empty($result->criteria)) {
             $html .= '<div class="ai-criteria-display">';
-            $html .= '<strong>Critères :</strong>';
+            $html .= '<strong>' . get_string('ai_display_criteria', 'mod_redaction') . '</strong>';
             $html .= '<ul>';
             foreach ($result->criteria as $criterion) {
                 $html .= '<li>';
@@ -291,7 +291,7 @@ class ai_response_parser {
         // Suggestions.
         if (!empty($result->suggestions)) {
             $html .= '<div class="ai-suggestions-display">';
-            $html .= '<strong>Suggestions :</strong>';
+            $html .= '<strong>' . get_string('ai_display_suggestions', 'mod_redaction') . '</strong>';
             $html .= '<ul>';
             foreach ($result->suggestions as $suggestion) {
                 $html .= '<li>' . $suggestion . '</li>';

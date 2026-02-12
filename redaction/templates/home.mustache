@@ -1,0 +1,212 @@
+{{!
+    @template mod_redaction/home
+
+    Home page for the redaction activity.
+
+    Context variables required for this template:
+    * isteacher - Boolean, true if user can edit consignes
+    * cangrade - Boolean, true if user can grade submissions
+    * consignescomplete - Boolean, true if consignes are complete
+    * correctioncomplete - Boolean, true if correction model is complete
+    * haswarning - Boolean, true if there is a warning message
+    * warningmessage - Warning message string
+    * hasgroupinfo - Boolean, true if group info should be shown
+    * groupname - Name of the student's group
+    * hassubmission - Boolean, true if submission exists
+    * issubmitted - Boolean, true if submission is submitted
+    * isgraded - Boolean, true if submission is graded
+    * hasdraft - Boolean, true if submission has draft content
+    * gradeformatted - Formatted grade value
+    * submittedcount - Number of submitted items
+    * submittedcountstr - Formatted submission count string
+    * consignesurl - URL to consignes page
+    * correctionurl - URL to correction model page
+    * gradingurl - URL to grading page
+    * redactionurl - URL to redaction page
+    * consignestitle - Title from consignes (or default)
+    * buttonlabel - Label for the student action button
+
+    Example context (json):
+    {
+        "isteacher": true,
+        "cangrade": true,
+        "consignescomplete": true,
+        "correctioncomplete": false,
+        "haswarning": false,
+        "warningmessage": "",
+        "hasgroupinfo": false,
+        "groupname": "",
+        "hassubmission": true,
+        "issubmitted": false,
+        "isgraded": false,
+        "hasdraft": true,
+        "gradeformatted": "",
+        "submittedcount": 5,
+        "submittedcountstr": "5 submission(s)",
+        "consignesurl": "/mod/redaction/view.php?id=1&page=consignes",
+        "correctionurl": "/mod/redaction/view.php?id=1&page=correction",
+        "gradingurl": "/mod/redaction/view.php?id=1&page=grading",
+        "redactionurl": "/mod/redaction/view.php?id=1&page=redaction",
+        "consignestitle": "",
+        "buttonlabel": "Work"
+    }
+}}
+<div class="mod_redaction-home">
+
+    {{#isteacher}}
+        {{! Teacher section }}
+        <div class="mod_redaction-section-header">
+            <h2>{{#str}}teacher_section, mod_redaction{{/str}}</h2>
+            <p>{{#str}}consignes_desc, mod_redaction{{/str}}</p>
+        </div>
+
+        <div class="mod_redaction-cards">
+            {{! Consignes card }}
+            <div class="mod_redaction-card mod_redaction-card-teacher">
+                <div class="mod_redaction-card-icon">&#x1F4CB;</div>
+                <h3 class="mod_redaction-card-title">{{#str}}consignes, mod_redaction{{/str}}</h3>
+                <p class="mod_redaction-card-description">{{#str}}consignes_desc, mod_redaction{{/str}}</p>
+
+                {{#consignescomplete}}
+                    <div class="mod_redaction-card-status mod_redaction-card-status-complete">
+                        &#x2713; {{#str}}complete, mod_redaction{{/str}}
+                    </div>
+                {{/consignescomplete}}
+                {{^consignescomplete}}
+                    <div class="mod_redaction-card-status mod_redaction-card-status-incomplete">
+                        &#x23F3; {{#str}}incomplete, mod_redaction{{/str}}
+                    </div>
+                {{/consignescomplete}}
+
+                <a href="{{consignesurl}}" class="mod_redaction-card-button">
+                    {{#str}}consignes, mod_redaction{{/str}}
+                </a>
+            </div>
+
+            {{! Correction model card }}
+            <div class="mod_redaction-card mod_redaction-card-teacher">
+                <div class="mod_redaction-card-icon">&#x1F4DD;</div>
+                <h3 class="mod_redaction-card-title">{{#str}}correction_model, mod_redaction{{/str}}</h3>
+                <p class="mod_redaction-card-description">{{#str}}correction_model_desc, mod_redaction{{/str}}</p>
+
+                {{#correctioncomplete}}
+                    <div class="mod_redaction-card-status mod_redaction-card-status-complete">
+                        &#x2713; {{#str}}complete, mod_redaction{{/str}}
+                    </div>
+                {{/correctioncomplete}}
+                {{^correctioncomplete}}
+                    <div class="mod_redaction-card-status mod_redaction-card-status-incomplete">
+                        &#x23F3; {{#str}}incomplete, mod_redaction{{/str}}
+                    </div>
+                {{/correctioncomplete}}
+
+                <a href="{{correctionurl}}" class="mod_redaction-card-button">
+                    {{#str}}correction_model, mod_redaction{{/str}}
+                </a>
+            </div>
+        </div>
+
+        {{! Grading section }}
+        {{#cangrade}}
+            <div class="mod_redaction-section-header mod_redaction-section-header-grading">
+                <h2>{{#str}}grading, mod_redaction{{/str}}</h2>
+                <p>{{#str}}grading_desc, mod_redaction{{/str}}</p>
+            </div>
+
+            <div class="mod_redaction-cards">
+                <div class="mod_redaction-card mod_redaction-card-grading">
+                    <div class="mod_redaction-card-icon">&#x270F;&#xFE0F;</div>
+                    <h3 class="mod_redaction-card-title">{{#str}}grading, mod_redaction{{/str}}</h3>
+                    <p class="mod_redaction-card-description">{{#str}}grading_desc, mod_redaction{{/str}}</p>
+
+                    <div class="mod_redaction-card-status mod_redaction-card-status-info">
+                        &#x1F4CA; {{{submittedcountstr}}}
+                    </div>
+
+                    <a href="{{gradingurl}}" class="mod_redaction-card-button mod_redaction-card-button-grading">
+                        {{#str}}grading, mod_redaction{{/str}}
+                    </a>
+                </div>
+            </div>
+        {{/cangrade}}
+
+    {{/isteacher}}
+    {{^isteacher}}
+        {{! Student section }}
+        <div class="mod_redaction-section-header mod_redaction-section-header-student">
+            <h2>{{#str}}student_section, mod_redaction{{/str}}</h2>
+        </div>
+
+        {{#haswarning}}
+            <div class="mod_redaction-alert-warning">
+                &#x26A0;&#xFE0F; {{{warningmessage}}}
+            </div>
+        {{/haswarning}}
+        {{^haswarning}}
+            {{#hasgroupinfo}}
+                <div class="mod_redaction-alert-info">
+                    {{#str}}group_working, mod_redaction{{/str}} <span class="mod_redaction-group-badge">{{groupname}}</span>
+                </div>
+            {{/hasgroupinfo}}
+
+            <div class="mod_redaction-cards">
+                {{! Consignes card (read only) }}
+                <div class="mod_redaction-card mod_redaction-card-teacher" style="opacity: 0.9;">
+                    <div class="mod_redaction-card-icon">&#x1F4CB;</div>
+                    <h3 class="mod_redaction-card-title">{{#str}}consignes, mod_redaction{{/str}}</h3>
+                    <p class="mod_redaction-card-description">
+                        {{#consignestitle}}
+                            {{consignestitle}}
+                        {{/consignestitle}}
+                        {{^consignestitle}}
+                            {{#str}}consignes_desc, mod_redaction{{/str}}
+                        {{/consignestitle}}
+                    </p>
+
+                    <div class="mod_redaction-card-status mod_redaction-card-status-info">
+                        {{#str}}consultation, mod_redaction{{/str}}
+                    </div>
+
+                    <a href="{{redactionurl}}" class="mod_redaction-card-button">
+                        {{#str}}view_consignes, mod_redaction{{/str}}
+                    </a>
+                </div>
+
+                {{! My redaction card }}
+                <div class="mod_redaction-card mod_redaction-card-student">
+                    <div class="mod_redaction-card-icon">&#x270D;&#xFE0F;</div>
+                    <h3 class="mod_redaction-card-title">{{#str}}my_redaction, mod_redaction{{/str}}</h3>
+                    <p class="mod_redaction-card-description">{{#str}}my_redaction_desc, mod_redaction{{/str}}</p>
+
+                    {{#issubmitted}}
+                        <div class="mod_redaction-card-status mod_redaction-card-status-submitted">
+                            &#x2713; {{#str}}status_submitted, mod_redaction{{/str}}
+                        </div>
+                        {{#isgraded}}
+                            <div class="mod_redaction-card-status mod_redaction-card-status-graded">
+                                {{#str}}grade_label, mod_redaction{{/str}} {{gradeformatted}} / 20
+                            </div>
+                        {{/isgraded}}
+                    {{/issubmitted}}
+                    {{^issubmitted}}
+                        {{#hasdraft}}
+                            <div class="mod_redaction-card-status mod_redaction-card-status-incomplete">
+                                &#x1F4DD; {{#str}}status_draft, mod_redaction{{/str}}
+                            </div>
+                        {{/hasdraft}}
+                        {{^hasdraft}}
+                            <div class="mod_redaction-card-status mod_redaction-card-status-incomplete">
+                                {{#str}}to_complete, mod_redaction{{/str}}
+                            </div>
+                        {{/hasdraft}}
+                    {{/issubmitted}}
+
+                    <a href="{{redactionurl}}" class="mod_redaction-card-button mod_redaction-card-button-student">
+                        {{buttonlabel}}
+                    </a>
+                </div>
+            </div>
+        {{/haswarning}}
+    {{/isteacher}}
+
+</div>

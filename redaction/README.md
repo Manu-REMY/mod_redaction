@@ -74,7 +74,7 @@ L'évaluation IA génère :
 ```bash
 # Via Git
 cd /path/to/moodle/mod
-git clone https://github.com/votre-repo/mod_redaction.git redaction
+git clone https://forge.apps.education.fr/moodle-ai-plugins/plugin-redaction.git redaction
 ```
 
 ## Configuration
@@ -135,21 +135,17 @@ Le plugin crée 6 tables :
 
 ```
 mod_redaction/
-├── ajax/                    # Endpoints AJAX
-│   ├── autosave.php        # Sauvegarde automatique
-│   ├── submit.php          # Soumission/déverrouillage
-│   ├── evaluate.php        # Déclenchement évaluation IA
-│   ├── apply_ai_grade.php  # Application note IA
-│   ├── generate_criteria.php # Génération critères par IA
-│   ├── training_submit.php # Soumission entraînement
-│   ├── get_evaluation_status.php
-│   └── get_history.php
 ├── amd/src/                 # Modules JavaScript AMD
 │   ├── autosave.js
+│   ├── criteria_editor.js   # Éditeur visuel de critères
+│   ├── grading.js           # Polling évaluation IA
 │   ├── grading_actions.js
 │   ├── dashboard.js
+│   ├── redaction_page.js    # Page rédaction élève
 │   └── training_timeline.js # Frise chronologique interactive
 ├── classes/                 # Classes PHP (autoload)
+│   ├── external/            # Services externes Moodle (API AJAX)
+│   ├── output/              # Renderer (Output API)
 │   ├── ai_config.php
 │   ├── ai_evaluator.php
 │   ├── ai_prompt_builder.php
@@ -178,16 +174,21 @@ mod_redaction/
 ├── db/
 │   ├── install.xml         # Schéma de base de données
 │   ├── access.php          # Capacités
+│   ├── services.php        # Services externes et fonctions AJAX
 │   └── upgrade.php         # Migrations
 ├── lang/
 │   ├── en/redaction.php    # Anglais
 │   └── fr/redaction.php    # Français
 ├── templates/               # Templates Mustache
 │   ├── ai_evaluation.mustache
+│   ├── consignes.mustache
+│   ├── correction_model.mustache
 │   ├── dashboard_teacher.mustache
 │   ├── grading_form.mustache
 │   ├── grading_navigation.mustache
 │   ├── history_modal.mustache
+│   ├── home.mustache
+│   ├── redaction.mustache
 │   ├── submission_panel.mustache
 │   └── training_timeline.mustache
 ├── pages/

@@ -204,22 +204,18 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, Ajax, Notifica
                 }
             });
 
-            // Build request data
-            var requestData = {
-                cmid: this.cmid,
-                page: this.page,
-                groupid: this.groupid,
-                data: JSON.stringify(formData),
-                sesskey: M.cfg.sesskey
-            };
-
-            // Make AJAX request
-            $.ajax({
-                url: M.cfg.wwwroot + '/mod/redaction/ajax/autosave.php',
-                method: 'POST',
-                data: requestData,
-                dataType: 'json',
-                success: function (response) {
+            // Call external service via Moodle AJAX API.
+            Ajax.call([{
+                methodname: 'mod_redaction_autosave',
+                args: {
+                    cmid: this.cmid,
+                    page: this.page,
+                    data: JSON.stringify(formData),
+                    groupid: this.groupid,
+                    action: 'save',
+                    locked: 0
+                },
+                done: function (response) {
                     if (response.success) {
                         self.isDirty = false;
                         self.showStatus('saved');
@@ -230,11 +226,11 @@ define(['jquery', 'core/ajax', 'core/notification'], function ($, Ajax, Notifica
                         }
                     }
                 },
-                error: function (xhr, status, error) {
+                fail: function (error) {
                     self.showStatus('error');
-                    console.error('Autosave connection error:', status, error);
+                    Notification.exception(error);
                 }
-            });
+            }]);
         },
 
         /**

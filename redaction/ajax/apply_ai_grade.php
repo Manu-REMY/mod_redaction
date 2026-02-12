@@ -73,19 +73,6 @@ try {
     // Update gradebook.
     redaction_update_grades($redaction);
 
-    // Trigger AI grade applied event.
-    $event = \mod_redaction\event\ai_grade_applied::create([
-        'objectid' => $submission->id,
-        'context' => $context,
-        'userid' => $USER->id,
-        'other' => [
-            'evaluationid' => $evaluation->id,
-            'grade' => $evaluation->parsed_grade,
-            'provider' => $evaluation->provider,
-        ],
-    ]);
-    $event->trigger();
-
     $result = [
         'success' => true,
         'message' => get_string('grade_saved', 'redaction'),

@@ -41,11 +41,11 @@
         "deadlinedatestr": "10 Feb 2026"
     }
 }}
-<div class="grading-form-container training-timeline-container" id="training-timeline">
-    <h5 class="training-timeline-title">
+<div class="mod_redaction-grading-form-container mod_redaction-training-timeline-container" id="training-timeline">
+    <h5 class="mod_redaction-training-timeline-title">
         &#128202; {{#str}}training_timeline_title, redaction{{/str}}
         {{#hasattempts}}
-            <span class="training-timeline-badge">{{attemptcount}}</span>
+            <span class="mod_redaction-training-timeline-badge">{{attemptcount}}</span>
         {{/hasattempts}}
     </h5>
 
@@ -57,20 +57,20 @@
 
     {{#hasattempts}}
         {{! Trend indicator - populated by JS }}
-        <div class="training-timeline-trend" id="timeline-trend">
-            <span class="trend-label">{{#str}}training_timeline_progress, redaction{{/str}} :</span>
-            <span class="trend-arrow trend-flat"></span>
-            <span class="trend-summary"></span>
+        <div class="mod_redaction-training-timeline-trend" id="timeline-trend">
+            <span class="mod_redaction-trend-label">{{#str}}training_timeline_progress, redaction{{/str}} :</span>
+            <span class="mod_redaction-trend-arrow mod_redaction-trend-flat"></span>
+            <span class="mod_redaction-trend-summary"></span>
         </div>
 
         {{! Timeline track }}
-        <div class="training-timeline-track-wrapper">
-            <div class="timeline-time-labels">
-                <span class="timeline-time-start">{{timelinestartstr}}</span>
-                <span class="timeline-time-end">{{timelineendstr}}</span>
+        <div class="mod_redaction-training-timeline-track-wrapper">
+            <div class="mod_redaction-timeline-time-labels">
+                <span class="mod_redaction-timeline-time-start">{{timelinestartstr}}</span>
+                <span class="mod_redaction-timeline-time-end">{{timelineendstr}}</span>
             </div>
 
-            <div class="timeline-track" id="timeline-track"
+            <div class="mod_redaction-timeline-track" id="timeline-track"
                  role="slider"
                  aria-label="{{#str}}training_timeline_title, redaction{{/str}}"
                  aria-valuemin="1"
@@ -78,73 +78,73 @@
                  tabindex="0">
 
                 {{! Background bar }}
-                <div class="timeline-track-bg"></div>
+                <div class="mod_redaction-timeline-track-bg"></div>
 
                 {{! Elapsed time fill }}
-                <div class="timeline-track-elapsed" style="width: {{elapsedpercent}}%"></div>
+                <div class="mod_redaction-timeline-track-elapsed" style="width: {{elapsedpercent}}%"></div>
 
                 {{! Attempt markers }}
                 {{#attempts}}
                 <button type="button"
-                        class="timeline-marker timeline-marker-{{gradelevel}}"
+                        class="mod_redaction-timeline-marker mod_redaction-timeline-marker-{{gradelevel}}"
                         style="left: {{positionpercent}}%"
                         data-attempt-index="{{index}}"
                         data-grade="{{gradestr}}"
                         title="{{#str}}training_timeline_attempt, redaction, {{num}}{{/str}} - {{gradestr}} - {{dateshort}}">
-                    <span class="marker-dot"></span>
-                    <span class="marker-label">{{num}}</span>
+                    <span class="mod_redaction-marker-dot"></span>
+                    <span class="mod_redaction-marker-label">{{num}}</span>
                 </button>
                 {{/attempts}}
 
                 {{! Final submission marker }}
                 {{#hasfinalsubmission}}
-                <div class="timeline-marker timeline-marker-final"
+                <div class="mod_redaction-timeline-marker mod_redaction-timeline-marker-final"
                      style="left: {{finalpositionpercent}}%"
                      title="{{#str}}training_timeline_final, redaction{{/str}} - {{finaldate}}">
-                    <span class="marker-flag">&#9873;</span>
+                    <span class="mod_redaction-marker-flag">&#9873;</span>
                 </div>
                 {{/hasfinalsubmission}}
 
                 {{! Draggable cursor }}
-                <div class="timeline-cursor" id="timeline-cursor">
-                    <div class="cursor-handle"></div>
+                <div class="mod_redaction-timeline-cursor" id="timeline-cursor">
+                    <div class="mod_redaction-cursor-handle"></div>
                 </div>
 
                 {{! Deadline marker }}
                 {{#hasdeadline}}
-                <div class="timeline-deadline-marker"
+                <div class="mod_redaction-timeline-deadline-marker"
                      style="left: 100%"
                      title="Deadline: {{deadlinedatestr}}">
-                    <span class="deadline-line"></span>
+                    <span class="mod_redaction-deadline-line"></span>
                 </div>
                 {{/hasdeadline}}
             </div>
 
             {{! Sparkline SVG }}
-            <div class="timeline-sparkline" id="timeline-sparkline">
-                <svg viewBox="0 0 300 40" preserveAspectRatio="none" class="sparkline-svg">
-                    <polyline class="sparkline-line" points="" fill="none"/>
+            <div class="mod_redaction-timeline-sparkline" id="timeline-sparkline">
+                <svg viewBox="0 0 300 40" preserveAspectRatio="none" class="mod_redaction-sparkline-svg">
+                    <polyline class="mod_redaction-sparkline-line" points="" fill="none"/>
                 </svg>
             </div>
         </div>
 
         {{! Detail panel - populated by JS on marker selection }}
-        <div class="timeline-detail-panel" id="timeline-detail" style="display:none;">
-            <div class="detail-header">
-                <span class="detail-attempt-num" id="detail-attempt-num"></span>
-                <span class="detail-date" id="detail-date"></span>
-                <span class="detail-grade" id="detail-grade"></span>
+        <div class="mod_redaction-timeline-detail-panel" id="timeline-detail" style="display:none;">
+            <div class="mod_redaction-detail-header">
+                <span class="mod_redaction-detail-attempt-num" id="detail-attempt-num"></span>
+                <span class="mod_redaction-detail-date" id="detail-date"></span>
+                <span class="mod_redaction-detail-grade" id="detail-grade"></span>
             </div>
-            <div class="detail-criteria" id="detail-criteria"></div>
-            <div class="detail-feedback" id="detail-feedback"></div>
+            <div class="mod_redaction-detail-criteria" id="detail-criteria"></div>
+            <div class="mod_redaction-detail-feedback" id="detail-feedback"></div>
         </div>
 
         {{! No-JS fallback: simple list }}
-        <div class="training-timeline-fallback" id="timeline-fallback">
+        <div class="mod_redaction-training-timeline-fallback" id="timeline-fallback">
             {{#attempts}}
-            <div class="timeline-fallback-item">
+            <div class="mod_redaction-timeline-fallback-item">
                 <span>{{#str}}training_timeline_attempt, redaction, {{num}}{{/str}} - {{dateshort}}</span>
-                <span class="ai-level-{{gradelevel}}" style="font-weight: 600; padding: 2px 8px; border-radius: 10px; font-size: 12px;">{{gradestr}}</span>
+                <span class="mod_redaction-ai-level-{{gradelevel}}" style="font-weight: 600; padding: 2px 8px; border-radius: 10px; font-size: 12px;">{{gradestr}}</span>
             </div>
             {{/attempts}}
         </div>

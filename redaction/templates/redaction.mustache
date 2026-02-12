@@ -1,0 +1,313 @@
+{{!
+    @template mod_redaction/redaction
+
+    Student writing page for the redaction activity.
+
+    Context variables required for this template:
+    * consignestitre - Title of the consignes
+    * consignescontent - Formatted consignes content (HTML)
+    * hascriteres - Boolean, true if criteria exist
+    * criteres - Formatted criteria text
+    * hasdocuments - Boolean, true if documents exist
+    * documents - Formatted documents text
+    * isgraded - Boolean, true if submission is graded
+    * gradeformatted - Formatted grade value
+    * hascriteriadata - Boolean, true if AI criteria data exists
+    * criteria - Array of criterion objects for AI evaluation
+    * hasaifeedback - Boolean, true if AI feedback exists
+    * aifeedback - Formatted AI feedback text
+    * hasteacherfeedback - Boolean, true if teacher feedback exists
+    * teacherfeedback - Formatted teacher feedback (HTML)
+    * issubmitted - Boolean, true if submitted
+    * submittedon - Formatted submission date
+    * submittedgradedstr - String for submitted+graded status
+    * trainingenabled - Boolean, true if training mode is active
+    * cantraining - Boolean, true if training submit is allowed
+    * trainingblockedreason - Reason training is blocked
+    * trainingcounterstr - Training attempt counter string
+    * hasremainingstr - Boolean, true if remaining string should show
+    * trainingremainingstr - Remaining attempts string
+    * trainingevalcount - Number of training evaluations
+    * trainingevals - Array of training evaluation objects
+    * formurl - Form action URL
+    * sesskey - Session key
+    * usergroup - User's group ID
+    * titre - Current title value
+    * editorhtml - Pre-rendered editor HTML (when not submitted)
+    * submittedcontent - Formatted submitted content (HTML, when submitted)
+    * trainingfinalconfirm - Confirmation message for final submit
+    * submitconfirm - Confirmation message for regular submit
+
+    Example context (json):
+    {
+        "consignestitre": "Write an essay",
+        "consignescontent": "<p>Instructions here...</p>",
+        "hascriteres": true,
+        "criteres": "- Grammar<br>- Structure",
+        "hasdocuments": false,
+        "documents": "",
+        "isgraded": false,
+        "gradeformatted": "",
+        "hascriteriadata": false,
+        "criteria": [],
+        "issubmitted": false,
+        "trainingenabled": false,
+        "formurl": "/mod/redaction/view.php?id=1&page=redaction",
+        "sesskey": "abc123",
+        "usergroup": 0,
+        "titre": "",
+        "editorhtml": "<textarea>...</textarea>"
+    }
+}}
+<div class="mod_redaction-container">
+    {{! Consignes Panel }}
+    <div class="mod_redaction-consignes-panel">
+        <h3>&#x1F4CB; {{consignestitre}}</h3>
+        <div class="mod_redaction-consignes-content">
+            {{{consignescontent}}}
+        </div>
+
+        {{#hascriteres}}
+            <div class="mod_redaction-criteres-panel">
+                <h4>&#x1F4DD; {{#str}}consignes_criteres, mod_redaction{{/str}}</h4>
+                {{{criteres}}}
+            </div>
+        {{/hascriteres}}
+
+        {{#hasdocuments}}
+            <div class="mt-3">
+                <strong>&#x1F4CE; {{#str}}consignes_documents, mod_redaction{{/str}}</strong>
+                <div>{{{documents}}}</div>
+            </div>
+        {{/hasdocuments}}
+    </div>
+
+    {{! Grade Display }}
+    {{#isgraded}}
+        <div class="mod_redaction-grade-display">
+            <div>{{#str}}grade, mod_redaction{{/str}}</div>
+            <div class="mod_redaction-grade-value">{{gradeformatted}} / 20</div>
+        </div>
+
+        {{#hascriteriadata}}
+            <div class="mod_redaction-ai-evaluation-detail">
+                <div class="mod_redaction-collapsible-header" onclick="toggleCollapsible(this)">
+                    <h4 style="margin: 0;">&#x1F4CA; {{#str}}ai_criteria_details, mod_redaction{{/str}}</h4>
+                    <span class="mod_redaction-collapse-icon">&#x25BC;</span>
+                </div>
+                <div class="mod_redaction-collapsible-content">
+                    <div class="mod_redaction-ai-criteria-grid">
+                        {{#criteria}}
+                            <div class="mod_redaction-ai-criterion-card mod_redaction-ai-criterion-card-{{levelclass}}">
+                                <div class="mod_redaction-criterion-header">
+                                    <span class="mod_redaction-criterion-name">{{name}}</span>
+                                    <span class="mod_redaction-criterion-badge mod_redaction-criterion-badge-{{levelclass}}">
+                                        {{scoreformatted}}/{{maxformatted}}
+                                        <span style="font-size: 11px; opacity: 0.9;">({{leveltext}})</span>
+                                    </span>
+                                </div>
+                                <div class="mod_redaction-criterion-progress-bar">
+                                    <div class="mod_redaction-criterion-progress-fill mod_redaction-criterion-progress-fill-{{levelclass}}"
+                                         style="width: {{percentage}}%"></div>
+                                </div>
+                                {{#hascomment}}
+                                    <div class="mod_redaction-criterion-comment">
+                                        {{{comment}}}
+                                    </div>
+                                {{/hascomment}}
+                            </div>
+                        {{/criteria}}
+                    </div>
+
+                    {{#hasaifeedback}}
+                        <div class="mod_redaction-ai-general-feedback">
+                            <h5>&#x1F4AC; {{#str}}ai_general_feedback, mod_redaction{{/str}}</h5>
+                            <p>{{{aifeedback}}}</p>
+                        </div>
+                    {{/hasaifeedback}}
+                </div>
+            </div>
+        {{/hascriteriadata}}
+        {{^hascriteriadata}}
+            {{#hasteacherfeedback}}
+                <div class="mod_redaction-feedback-panel">
+                    <h4>{{#str}}feedback, mod_redaction{{/str}}</h4>
+                    {{{teacherfeedback}}}
+                </div>
+            {{/hasteacherfeedback}}
+        {{/hascriteriadata}}
+    {{/isgraded}}
+
+    {{! Submission Status }}
+    {{#issubmitted}}
+        <div class="mod_redaction-submission-status {{#isgraded}}mod_redaction-submission-status-graded{{/isgraded}}{{^isgraded}}mod_redaction-submission-status-submitted{{/isgraded}}">
+            {{#isgraded}}
+                &#x2713; {{submittedgradedstr}}
+            {{/isgraded}}
+            {{^isgraded}}
+                &#x2713; {{submittedon}}
+            {{/isgraded}}
+        </div>
+    {{/issubmitted}}
+    {{^issubmitted}}
+        <div class="mod_redaction-submission-status mod_redaction-submission-status-draft">
+            &#x1F4DD; {{#str}}status_draft, mod_redaction{{/str}}
+        </div>
+    {{/issubmitted}}
+
+    {{! Training Mode Panel }}
+    {{#trainingenabled}}
+        {{^issubmitted}}
+            <div class="mod_redaction-training-status-panel">
+                <div class="mod_redaction-training-header">
+                    <h4>&#x1F3CB;&#xFE0F; {{#str}}training_status, mod_redaction{{/str}}</h4>
+                </div>
+                <div class="mod_redaction-training-info">
+                    <span class="mod_redaction-training-counter">
+                        {{trainingcounterstr}}
+                    </span>
+                    {{#hasremainingstr}}
+                        <span class="mod_redaction-training-remaining">{{trainingremainingstr}}</span>
+                    {{/hasremainingstr}}
+                </div>
+                <div class="mod_redaction-training-actions">
+                    <button type="button"
+                            id="btn-training-submit"
+                            class="mod_redaction-btn-training"
+                            {{^cantraining}}disabled{{/cantraining}}
+                            onclick="submitTraining()">
+                        &#x1F504; {{#str}}training_submit, mod_redaction{{/str}}
+                    </button>
+                    {{^cantraining}}
+                        {{#trainingblockedreason}}
+                            <div class="mod_redaction-training-blocked-reason">
+                                {{trainingblockedreason}}
+                            </div>
+                        {{/trainingblockedreason}}
+                    {{/cantraining}}
+                </div>
+                <div id="training-progress" style="display:none;">
+                    <div class="mod_redaction-training-spinner"></div>
+                    <span>{{#str}}training_evaluating, mod_redaction{{/str}}</span>
+                </div>
+            </div>
+        {{/issubmitted}}
+
+        {{! Training History }}
+        <div class="mod_redaction-training-history">
+            <div class="mod_redaction-collapsible-header" onclick="toggleCollapsible(this)">
+                <h4 style="margin: 0;">&#x1F4CB; {{#str}}training_history, mod_redaction{{/str}} ({{trainingevalcount}})</h4>
+                <span class="mod_redaction-collapse-icon">&#x25BC;</span>
+            </div>
+            <div class="mod_redaction-collapsible-content">
+                {{^trainingevals}}
+                    <p class="text-muted" style="padding: 12px; font-size: 13px; font-style: italic;">
+                        {{#str}}training_no_attempts, mod_redaction{{/str}}
+                    </p>
+                {{/trainingevals}}
+                {{#trainingevals}}
+                    <div class="mod_redaction-training-eval-card">
+                        <div class="mod_redaction-training-eval-header">
+                            <span class="mod_redaction-training-eval-attempt">{{attemptlabel}}</span>
+                            <span class="mod_redaction-training-eval-date">{{dateformatted}}</span>
+                            {{#hasgrade}}
+                                <span class="mod_redaction-training-eval-grade">{{gradeformatted}}/20</span>
+                            {{/hasgrade}}
+                        </div>
+                        {{#iscompleted}}
+                            {{#hasevalcriteria}}
+                                <div class="mod_redaction-ai-criteria-grid">
+                                    {{#evalcriteria}}
+                                        <div class="mod_redaction-ai-criterion-card mod_redaction-ai-criterion-card-{{levelclass}}">
+                                            <div class="mod_redaction-criterion-header">
+                                                <span class="mod_redaction-criterion-name">{{name}}</span>
+                                                <span class="mod_redaction-criterion-badge mod_redaction-criterion-badge-{{levelclass}}">
+                                                    {{scoreformatted}}/{{maxformatted}}
+                                                </span>
+                                            </div>
+                                            <div class="mod_redaction-criterion-progress-bar">
+                                                <div class="mod_redaction-criterion-progress-fill mod_redaction-criterion-progress-fill-{{levelclass}}"
+                                                     style="width: {{percentage}}%"></div>
+                                            </div>
+                                            {{#hascomment}}
+                                                <div class="mod_redaction-criterion-comment">{{{comment}}}</div>
+                                            {{/hascomment}}
+                                        </div>
+                                    {{/evalcriteria}}
+                                </div>
+                            {{/hasevalcriteria}}
+                            {{#hasevalfeedback}}
+                                <div class="mod_redaction-ai-general-feedback">
+                                    <h5>&#x1F4AC; {{#str}}ai_general_feedback, mod_redaction{{/str}}</h5>
+                                    <p>{{{evalfeedback}}}</p>
+                                </div>
+                            {{/hasevalfeedback}}
+                        {{/iscompleted}}
+                        {{#ispending}}
+                            <div class="mod_redaction-training-pending">
+                                <div class="mod_redaction-training-spinner"></div>
+                                <span>{{#str}}training_evaluating, mod_redaction{{/str}}</span>
+                            </div>
+                        {{/ispending}}
+                        {{#isfailed}}
+                            <div class="alert alert-danger">{{errormessage}}</div>
+                        {{/isfailed}}
+                    </div>
+                {{/trainingevals}}
+            </div>
+        </div>
+    {{/trainingenabled}}
+
+    {{! Writing Form }}
+    <div class="mod_redaction-form">
+        <form id="redaction-form" method="post" action="{{formurl}}">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <input type="hidden" name="groupid" value="{{usergroup}}">
+
+            <div class="mod_redaction-form-group">
+                <label for="titre">{{#str}}redaction_title, mod_redaction{{/str}}</label>
+                <input type="text"
+                       id="titre"
+                       name="titre"
+                       class="mod_redaction-form-control"
+                       value="{{titre}}"
+                       {{#issubmitted}}readonly{{/issubmitted}}
+                       placeholder="{{#str}}redaction_title_placeholder, mod_redaction{{/str}}">
+            </div>
+
+            <div class="mod_redaction-form-group">
+                <label for="contenu_editor_text">{{#str}}redaction_content, mod_redaction{{/str}}</label>
+                {{#issubmitted}}
+                    <div class="mod_redaction-editor-container" style="padding: 15px; background: #f8f9fa;">
+                        {{{submittedcontent}}}
+                    </div>
+                {{/issubmitted}}
+                {{^issubmitted}}
+                    <div class="mod_redaction-editor-container">
+                        {{{editorhtml}}}
+                    </div>
+                {{/issubmitted}}
+            </div>
+
+            {{^issubmitted}}
+                <div class="mod_redaction-action-buttons">
+                    <button type="submit" name="action" value="save" class="mod_redaction-btn-save">
+                        &#x1F4BE; {{#str}}savechanges, moodle{{/str}}
+                    </button>
+                    {{#trainingenabled}}
+                        <button type="submit" name="action" value="submit" class="mod_redaction-btn-submit mod_redaction-btn-final"
+                                onclick="return confirm('{{trainingfinalconfirm}}');">
+                            &#x2713; {{#str}}training_final_submit, mod_redaction{{/str}}
+                        </button>
+                    {{/trainingenabled}}
+                    {{^trainingenabled}}
+                        <button type="submit" name="action" value="submit" class="mod_redaction-btn-submit"
+                                onclick="return confirm('{{submitconfirm}}');">
+                            &#x2713; {{#str}}submit_redaction, mod_redaction{{/str}}
+                        </button>
+                    {{/trainingenabled}}
+                </div>
+            {{/issubmitted}}
+        </form>
+    </div>
+</div>

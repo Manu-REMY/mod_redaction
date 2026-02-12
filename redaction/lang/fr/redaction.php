@@ -462,3 +462,86 @@ $string['training_timeline_progress'] = 'Progression';
 $string['training_timeline_no_data'] = 'Aucune tentative d\'entraînement';
 $string['training_timeline_final'] = 'Soumission finale';
 $string['training_timeline_attempt'] = 'Tentative {$a}';
+
+// Home page additional strings.
+$string['submissions_count'] = '{$a} soumission(s)';
+$string['no_group_error'] = 'Vous n\'êtes dans aucun groupe. Contactez votre enseignant.';
+$string['group_working'] = 'Vous travaillez en groupe :';
+$string['view_consignes'] = 'Voir les consignes';
+$string['consultation'] = 'Consultation';
+$string['to_complete'] = 'À compléter';
+$string['view_my_redaction'] = 'Voir ma rédaction';
+$string['work_on_it'] = 'Travailler';
+$string['grade_label'] = 'Note :';
+
+// Redaction page additional strings.
+$string['group_required'] = 'Vous devez appartenir à un groupe pour accéder à cette activité.';
+$string['group_label'] = 'Groupe :';
+$string['submitted_graded'] = '{$a} - Noté';
+
+// Consignes page additional strings.
+$string['criteres_placeholder'] = '- Critère 1\n- Critère 2\n- Critère 3';
+
+// AI prompt builder strings.
+$string['ai_default_criterion_relevance'] = 'Pertinence';
+$string['ai_default_criterion_relevance_desc'] = 'La réponse est pertinente par rapport au sujet';
+$string['ai_default_criterion_structure'] = 'Structure';
+$string['ai_default_criterion_structure_desc'] = 'Organisation logique et claire du texte';
+$string['ai_default_criterion_expression'] = 'Expression';
+$string['ai_default_criterion_expression_desc'] = 'Qualité de l\'expression écrite (orthographe, grammaire, vocabulaire)';
+$string['ai_default_criterion_argumentation'] = 'Argumentation';
+$string['ai_default_criterion_argumentation_desc'] = 'Qualité et pertinence des arguments présentés';
+$string['ai_criterion_default'] = 'Critère';
+
+// AI prompt system strings.
+$string['ai_prompt_system_intro'] = 'Tu es un assistant pédagogique expert en évaluation de rédactions d\'élèves. Tu dois évaluer le travail d\'un élève de manière juste, bienveillante et constructive.';
+$string['ai_prompt_activity_context'] = 'Contexte de l\'activité';
+$string['ai_prompt_title_label'] = 'Titre :';
+$string['ai_prompt_criteria_section'] = 'Critères d\'évaluation';
+$string['ai_prompt_specific_instructions'] = 'Instructions spécifiques';
+$string['ai_prompt_response_format'] = 'Format de réponse';
+$string['ai_prompt_response_format_intro'] = 'Tu DOIS répondre en JSON avec la structure suivante :';
+$string['ai_prompt_grade_desc'] = 'note de 0 à 20';
+$string['ai_prompt_feedback_desc'] = 'commentaire détaillé et constructif adressé directement à l\'élève';
+$string['ai_prompt_criterion_name_desc'] = 'nom du critère';
+$string['ai_prompt_criterion_comment_desc'] = 'commentaire détaillé sur ce critère';
+$string['ai_prompt_strengths_desc'] = 'point fort';
+$string['ai_prompt_weaknesses_desc'] = 'axe d\'amélioration';
+$string['ai_prompt_keywords_found_desc'] = 'mots-clés trouvés';
+$string['ai_prompt_keywords_missing_desc'] = 'mots-clés attendus mais absents';
+$string['ai_prompt_suggestions_desc'] = 'conseil concret et actionnable d\'amélioration';
+$string['ai_prompt_appreciation_desc'] = 'appréciation globale courte, 1-2 phrases, encourageante';
+$string['ai_prompt_confidence_desc'] = '0.0 à 1.0';
+$string['ai_prompt_training_context'] = 'CONTEXTE : MODE ENTRAÎNEMENT';
+$string['ai_prompt_training_intro'] = 'Cette évaluation est un feedback formatif pour aider l\'élève à s\'améliorer AVANT sa soumission finale.';
+$string['ai_prompt_training_detailed'] = 'Sois particulièrement détaillé dans tes suggestions d\'amélioration.';
+$string['ai_prompt_training_identify'] = 'Identifie clairement ce qui doit être retravaillé.';
+$string['ai_prompt_training_examples'] = 'Donne des exemples concrets de reformulations ou ajouts possibles.';
+$string['ai_prompt_training_indicative'] = 'La note n\'est qu\'indicative, insiste sur les pistes d\'amélioration.';
+$string['ai_prompt_important_instructions'] = 'Instructions importantes';
+$string['ai_prompt_address_student'] = 'Adresse-toi directement à l\'élève avec bienveillance et encouragement (tutoiement).';
+$string['ai_prompt_start_positive'] = 'Commence TOUJOURS par souligner les points positifs avant les axes d\'amélioration.';
+$string['ai_prompt_level_criteria'] = 'Pour chaque critère, attribue un niveau : "excellent" (>=80%), "good" (>=60%), "medium" (>=40%), "low" (<40%).';
+$string['ai_prompt_list_strengths'] = 'Liste 2 à 4 points forts et 2 à 4 axes d\'amélioration.';
+$string['ai_prompt_give_suggestions'] = 'Donne 2 à 4 suggestions d\'amélioration concrètes, actionnables et réalisables.';
+$string['ai_prompt_appreciation_instructions'] = 'L\'appréciation globale doit être encourageante et résumer l\'essentiel en 1-2 phrases.';
+$string['ai_prompt_grade_coherence'] = 'La note doit être cohérente avec les scores des critères.';
+$string['ai_prompt_feedback_structured'] = 'Le feedback doit être structuré et lisible.';
+$string['ai_prompt_student_instructions'] = 'Consignes données aux élèves';
+$string['ai_prompt_criteria_communicated'] = 'Critères communiqués aux élèves :';
+$string['ai_prompt_model_answer'] = 'Modèle de réponse attendue';
+$string['ai_prompt_student_work'] = 'Travail de l\'élève';
+$string['ai_prompt_content_label'] = 'Contenu :';
+$string['ai_prompt_evaluate_instruction'] = 'Évalue ce travail selon les critères définis et fournis ta réponse en JSON.';
+
+// AI response parser display strings.
+$string['ai_display_grade'] = 'Note :';
+$string['ai_display_strengths'] = 'Points forts :';
+$string['ai_display_weaknesses'] = 'Axes d\'amélioration :';
+$string['ai_display_comments'] = 'Commentaires :';
+$string['ai_display_criteria'] = 'Critères :';
+$string['ai_display_suggestions'] = 'Suggestions :';
+
+// AI criteria generation prompts.
+$string['ai_generate_criteria_system_prompt'] = 'Tu es un assistant pédagogique expert. Ta tâche est de générer des critères d\'évaluation pour une activité de rédaction d\'élèves. Réponds UNIQUEMENT en format JSON avec la structure suivante : {"grille_criteres": [{"name": "Nom du critère", "weight": 5, "description": "Ce que ce critère évalue"}], "ai_instructions": "Instructions spécifiques pour l\'évaluateur IA"}. Le poids total doit être égal à 20. Génère 3 à 5 critères pertinents.';
+$string['ai_generate_criteria_user_prompt'] = 'Génère des critères d\'évaluation pour l\'activité de rédaction suivante :\n\nTitre : {$a->titre}\n\nConsignes : {$a->consignes}\n\nCritères existants : {$a->criteres}\n\nGénère une grille de critères et des instructions d\'évaluation IA adaptées à cette activité.';

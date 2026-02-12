@@ -465,7 +465,7 @@ if (empty($navitems)) {
                     $criterionLevelStr = $levelstrmap[$scoreClass] ?? '';
 
                     $aidata['criteria'][] = [
-                        'name' => s($criterion['name'] ?? 'Critère'),
+                        'name' => s($criterion['name'] ?? get_string('ai_criterion_default', 'mod_redaction')),
                         'score' => number_format($score, 1),
                         'max' => number_format($max, 0),
                         'percentage' => $percentage,

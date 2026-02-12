@@ -30,29 +30,29 @@
         "charcount": 800
     }
 }}
-<div class="submission-content">
+<div class="mod_redaction-submission-content">
     {{^hascontent}}
-        <div class="status-bar no-submission">
+        <div class="mod_redaction-status-bar mod_redaction-no-submission">
             &#10060; {{#str}}no_submission, redaction{{/str}}
         </div>
     {{/hascontent}}
 
     {{#hascontent}}
         {{#issubmitted}}
-            <div class="status-bar submitted">
+            <div class="mod_redaction-status-bar mod_redaction-submitted">
                 &#9989; {{#str}}status_submitted, redaction{{/str}}
                 <span style="margin-left: auto; font-size: 13px;">
                     {{#str}}submitted_on, redaction, {{timesubmitted}}{{/str}}
                 </span>
                 {{#cangrade}}
-                    <button type="button" class="unlock-btn" onclick="unlockSubmission({{submissionid}})">
+                    <button type="button" class="mod_redaction-unlock-btn" onclick="unlockSubmission({{submissionid}})">
                         &#128275; {{#str}}unlock_submission, redaction{{/str}}
                     </button>
                 {{/cangrade}}
             </div>
         {{/issubmitted}}
         {{^issubmitted}}
-            <div class="status-bar draft">
+            <div class="mod_redaction-status-bar mod_redaction-draft">
                 &#128221; {{#str}}status_draft, redaction{{/str}}
                 <span style="margin-left: auto; font-size: 13px;">
                     {{#str}}lastmodified, redaction{{/str}}: {{timemodified}}
@@ -61,18 +61,18 @@
         {{/issubmitted}}
 
         {{#titre}}
-            <div class="content-title">{{{titre}}}</div>
+            <div class="mod_redaction-content-title">{{{titre}}}</div>
         {{/titre}}
 
-        <div class="content-display">
+        <div class="mod_redaction-content-display">
             {{{contenu}}}
         </div>
 
-        <div class="word-count">
+        <div class="mod_redaction-word-count">
             {{#str}}word_count, redaction, {{wordcount}}{{/str}} |
             {{#str}}char_count, redaction, {{charcount}}{{/str}}
             {{#canviewhistory}}
-                | <a href="#" class="history-link" onclick="showHistory({{submissionid}}); return false;">
+                | <a href="#" class="mod_redaction-history-link" onclick="showHistory({{submissionid}}); return false;">
                     &#128220; {{#str}}version_history, redaction{{/str}}
                 </a>
             {{/canviewhistory}}
