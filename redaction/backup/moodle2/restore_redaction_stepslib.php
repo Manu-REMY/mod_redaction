@@ -177,7 +177,7 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
         $data->timemodified = $this->apply_date_offset($data->timemodified);
 
         $newitemid = $DB->insert_record('redaction_ai_evaluations', $data);
-        $this->set_mapping('redaction_ai_evaluations', $oldid, $newitemid);
+        $this->set_mapping('redaction_ai_evaluation', $oldid, $newitemid);
     }
 
     /**
