@@ -5,6 +5,14 @@
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Library of interface functions and constants for module redaction.
@@ -15,6 +23,9 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+
+/** Default maximum grade for the activity. */
+define('MOD_REDACTION_GRADEMAX', 20);
 
 /**
  * Supported features
@@ -211,11 +222,11 @@ function redaction_get_user_group($cm, $userid) {
 function redaction_get_or_create_submission($redaction, $groupid, $userid) {
     global $DB;
 
-    $isGroupSubmission = $redaction->group_submission;
+    $isgroupsubmission = $redaction->group_submission;
 
     $params = ['redactionid' => $redaction->id];
 
-    if ($isGroupSubmission && $groupid != 0) {
+    if ($isgroupsubmission && $groupid != 0) {
         $params['groupid'] = $groupid;
         $params['userid'] = 0;
     } else {
@@ -454,7 +465,7 @@ function redaction_grade_item_update($redaction, $grades = null) {
     ];
 
     $params['gradetype'] = GRADE_TYPE_VALUE;
-    $params['grademax'] = 20;
+    $params['grademax'] = defined('MOD_REDACTION_GRADEMAX') ? MOD_REDACTION_GRADEMAX : 20;
     $params['grademin'] = 0;
 
     if ($grades === 'reset') {
@@ -505,9 +516,9 @@ function redaction_get_user_grades($redaction, $userid = 0) {
             continue;
         }
 
-        $isGroupSubmission = $redaction->group_submission;
+        $isgroupsubmission = $redaction->group_submission;
 
-        if (!$isGroupSubmission) {
+        if (!$isgroupsubmission) {
             // Individual mode.
             foreach ($members as $member) {
                 if ($userid != 0 && $userid != $member->id) {
@@ -602,8 +613,8 @@ function redaction_render_teacher_dashboard($cm, $redaction) {
     global $OUTPUT, $PAGE;
 
     // Get submission statistics.
-    $submissionStats = new \mod_redaction\dashboard\submission_stats($redaction->id);
-    $stats = $submissionStats->get_stats();
+    $submissionstats = new \mod_redaction\dashboard\submission_stats($redaction->id);
+    $stats = $submissionstats->get_stats();
 
     // Prepare template context.
     $context = [
@@ -631,8 +642,8 @@ function redaction_render_teacher_dashboard($cm, $redaction) {
 
     // Get AI summary if AI is enabled.
     if ($redaction->ai_enabled) {
-        $summaryGenerator = new \mod_redaction\dashboard\ai_summary_generator($redaction->id);
-        $summary = $summaryGenerator->get_summary();
+        $summarygenerator = new \mod_redaction\dashboard\ai_summary_generator($redaction->id);
+        $summary = $summarygenerator->get_summary();
 
         if ($summary) {
             $context['summary'] = [
@@ -648,8 +659,8 @@ function redaction_render_teacher_dashboard($cm, $redaction) {
         }
 
         // Get token statistics.
-        $tokenStats = new \mod_redaction\dashboard\token_stats($redaction->id);
-        $tokens = $tokenStats->get_stats();
+        $tokenstats = new \mod_redaction\dashboard\token_stats($redaction->id);
+        $tokens = $tokenstats->get_stats();
 
         $context['token_stats'] = [
             'total_tokens' => $tokens->total_tokens,

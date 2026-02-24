@@ -30,6 +30,7 @@ use core_privacy\local\request\approved_userlist;
 use core_privacy\local\request\contextlist;
 use core_privacy\local\request\deletion_criteria;
 use core_privacy\local\request\helper;
+use core_privacy\local\request\transform;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
@@ -553,20 +554,3 @@ class provider implements
     }
 }
 
-/**
- * Transform helper class for privacy exports.
- */
-class transform {
-    /**
-     * Transform a timestamp into a human-readable date string.
-     *
-     * @param int $timestamp The timestamp to transform.
-     * @return string The formatted date.
-     */
-    public static function datetime($timestamp) {
-        if (empty($timestamp)) {
-            return '';
-        }
-        return userdate($timestamp, get_string('strftimedatetime', 'langconfig'));
-    }
-}
