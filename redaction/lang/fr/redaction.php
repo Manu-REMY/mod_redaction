@@ -312,7 +312,6 @@ $string['unknownuser'] = 'Utilisateur inconnu';
 // Messages AJAX.
 $string['error:empty_content'] = 'Le contenu ne peut pas être vide.';
 $string['error:rate_limit_exceeded'] = 'Limite de requêtes atteinte. Veuillez patienter avant de demander une nouvelle évaluation.';
-$string['error:evaluation_cooldown'] = 'Veuillez patienter quelques minutes avant de demander une nouvelle évaluation pour cette soumission.';
 $string['error:encryption_unavailable'] = 'Le chiffrement Moodle n\'est pas disponible. Ce plugin nécessite Moodle 4.5+.';
 $string['ajax:submitted'] = 'Soumis';
 $string['ajax:submit_failed'] = 'Échec de la soumission';
