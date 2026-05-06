@@ -75,8 +75,12 @@ $trainingenabled = !empty($redaction->training_enabled) && !empty($redaction->ai
 $correction = $DB->get_record('redaction_correction', ['redactionid' => $redaction->id]);
 $cantraining = ['allowed' => false, 'reason' => ''];
 $trainingevals = [];
+$maxeffective = $trainingenabled ? redaction_effective_max_attempts($redaction) : 0;
+$attemptsused = (int) ($submission->training_count ?? 0);
+$attemptsremaining = max(0, $maxeffective - $attemptsused);
+$islastattempt = $trainingenabled && $attemptsremaining === 1; // The next click will be the last.
 if ($trainingenabled && $submission) {
-    $cantraining = redaction_can_training_submit($redaction, $submission, $correction);
+    $cantraining = redaction_can_submit_attempt($redaction, $submission, $correction);
     $trainingevals = redaction_get_training_evaluations($submission->id);
 }
 
@@ -175,10 +179,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$issubmitted) {
             $submission->id
         );
 
-        // Mark as submitted.
-        $submission->status = 1;
-        $submission->timesubmitted = time();
-        $submission->timemodified = time();
+        // In training mode, increment counter and auto-finalize on last attempt.
+        if ($trainingenabled) {
+            $check = redaction_can_submit_attempt($redaction, $submission, $correction);
+            if (!$check['allowed']) {
+                redirect(
+                    new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'redaction']),
+                    get_string('training_error_' . $check['reason'], 'redaction'),
+                    null,
+                    \core\output\notification::NOTIFY_ERROR
+                );
+            }
+
+            $submission->training_count = $attemptsused + 1;
+            $submission->timemodified = time();
+
+            $maxeff = redaction_effective_max_attempts($redaction);
+            $islast = ($submission->training_count >= $maxeff);
+            if ($islast) {
+                $submission->status = 1;
+                $submission->timesubmitted = time();
+            }
+        } else {
+            // Classic mode — single shot, immediate lock.
+            $submission->status = 1;
+            $submission->timesubmitted = time();
+            $submission->timemodified = time();
+        }
+
         $DB->update_record('redaction_submission', $submission);
 
         // Save to history.
@@ -339,6 +367,21 @@ if ($trainingenabled) {
             : get_string('unlimited', 'redaction'));
 }
 
+// Compute submit button label.
+$attemptbuttonlabel = '';
+$attemptconfirm = '';
+if ($trainingenabled && !$issubmitted) {
+    if ($attemptsused === 0) {
+        $attemptbuttonlabel = get_string('attempt_button_first', 'redaction');
+    } else if ($attemptsremaining > 1) {
+        $attemptbuttonlabel = get_string('attempt_button_remaining', 'redaction',
+            (object) ['used' => $attemptsused, 'max' => $maxeffective]);
+    } else {
+        $attemptbuttonlabel = get_string('attempt_button_last', 'redaction');
+        $attemptconfirm = get_string('attempt_last_confirm', 'redaction');
+    }
+}
+
 // Build template data.
 $templatedata = [
     'consignestitre' => s($consignes->titre ?? get_string('consignes', 'redaction')),
@@ -378,6 +421,12 @@ $templatedata = [
     'submittedcontent' => $issubmitted ? format_text($submission->contenu ?? '', $submission->contenuformat ?? FORMAT_HTML) : '',
     'trainingfinalconfirm' => get_string('training_final_confirm', 'redaction'),
     'submitconfirm' => get_string('submit_confirm', 'redaction'),
+    'attemptbuttonlabel' => $attemptbuttonlabel,
+    'attemptconfirm' => $attemptconfirm,
+    'hasattemptconfirm' => !empty($attemptconfirm),
+    'attemptsexhaustedstr' => ($trainingenabled && $issubmitted && $attemptsused >= $maxeffective)
+        ? get_string('attempts_exhausted', 'redaction', $maxeffective)
+        : '',
 ];
 
 // Render using the Output API.
