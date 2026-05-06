@@ -143,6 +143,7 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="redactionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Instance ID"/>
+        <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0=global summary, !=0=per-group summary"/>
         <FIELD NAME="difficulties" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of identified difficulties"/>
         <FIELD NAME="strengths" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of identified strengths"/>
         <FIELD NAME="recommendations" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of pedagogical recommendations"/>
@@ -157,7 +158,8 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="redactionid" TYPE="foreign-unique" FIELDS="redactionid" REFTABLE="redaction" REFFIELDS="id"/>
+        <KEY NAME="redactionid" TYPE="foreign" FIELDS="redactionid" REFTABLE="redaction" REFFIELDS="id"/>
+        <KEY NAME="redactionid_groupid" TYPE="unique" FIELDS="redactionid, groupid"/>
       </KEYS>
     </TABLE>
 
