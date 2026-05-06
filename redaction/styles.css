@@ -1913,7 +1913,23 @@
 .mod_redaction-overview-table td.mod_redaction-overview-name {
     text-align: left !important;
     font-weight: 500;
-    min-width: 180px;
+    min-width: 130px;
+    max-width: 180px;
+}
+
+/* Zebra striping on the overview table — alternate row backgrounds while
+   preserving the colored cells (cell-{level}) which keep their own background. */
+.mod_redaction-overview-table tbody tr:nth-child(odd) td.mod_redaction-overview-name,
+.mod_redaction-overview-table tbody tr:nth-child(odd) td.mod_redaction-overview-cell-empty {
+    background-color: #f8f9fa;
+}
+.mod_redaction-overview-table tbody tr:nth-child(even) td.mod_redaction-overview-name,
+.mod_redaction-overview-table tbody tr:nth-child(even) td.mod_redaction-overview-cell-empty {
+    background-color: #ffffff;
+}
+.mod_redaction-overview-table tbody tr:hover td.mod_redaction-overview-name,
+.mod_redaction-overview-table tbody tr:hover td.mod_redaction-overview-cell-empty {
+    background-color: #e3f2fd;
 }
 
 .mod_redaction-overview-cell {
