@@ -88,6 +88,15 @@ class auto_submit_deadline extends \core\task\scheduled_task {
 
                 foreach ($drafts as $draft) {
                     try {
+                        // Skip empty drafts entirely: no auto-submit, no lock.
+                        // Otherwise these become "submitted but ungraded" ghosts that pollute
+                        // the dashboard and require manual cleanup by the teacher.
+                        if (empty(trim(strip_tags($draft->contenu ?? '')))) {
+                            $identifier = $draft->groupid ? "group {$draft->groupid}" : "user {$draft->userid}";
+                            mtrace("      Skipped empty draft for {$identifier}");
+                            continue;
+                        }
+
                         // Update to submitted status.
                         $draft->status = 1; // Submitted.
                         $draft->timesubmitted = $redaction->deadline_date;
@@ -102,8 +111,8 @@ class auto_submit_deadline extends \core\task\scheduled_task {
                         // Skip history save in cron to avoid PHP extension issues.
                         // History is already saved when student submits manually.
 
-                        // Trigger AI evaluation if enabled and has content.
-                        if ($redaction->ai_enabled && !empty($draft->contenu)) {
+                        // Trigger AI evaluation if enabled.
+                        if ($redaction->ai_enabled) {
                             $this->trigger_ai_evaluation($draft);
                             $totalevaluations++;
                         }
