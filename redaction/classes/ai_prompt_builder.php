@@ -37,12 +37,12 @@ class ai_prompt_builder {
      * @param object $studentsubmission Student's submission
      * @param object $consignes Teacher's instructions
      * @param object $correctionmodel Teacher's correction model
-     * @param bool $istraining Whether this is a training (formative) evaluation
+     * @param bool $isformative Whether this is a training (formative) evaluation
      * @return array ['system' => string, 'user' => string]
      */
-    public static function build_prompt(object $studentsubmission, object $consignes, object $correctionmodel, bool $istraining = false): array {
+    public static function build_prompt(object $studentsubmission, object $consignes, object $correctionmodel, bool $isformative = false): array {
         return [
-            'system' => self::build_system_prompt($consignes, $correctionmodel, $istraining),
+            'system' => self::build_system_prompt($consignes, $correctionmodel, $isformative),
             'user' => self::build_user_prompt($studentsubmission, $consignes, $correctionmodel),
         ];
     }
@@ -52,10 +52,10 @@ class ai_prompt_builder {
      *
      * @param object $consignes
      * @param object $correctionmodel
-     * @param bool $istraining Whether this is a training (formative) evaluation
+     * @param bool $isformative Whether this is a training (formative) evaluation
      * @return string
      */
-    protected static function build_system_prompt(object $consignes, object $correctionmodel, bool $istraining = false): string {
+    protected static function build_system_prompt(object $consignes, object $correctionmodel, bool $isformative = false): string {
         $prompt = get_string('ai_prompt_system_intro', 'mod_redaction') . "\n\n";
 
         $prompt .= "## " . get_string('ai_prompt_activity_context', 'mod_redaction') . "\n";
@@ -106,7 +106,7 @@ class ai_prompt_builder {
         $prompt .= "}\n";
         $prompt .= "```\n\n";
 
-        if ($istraining) {
+        if ($isformative) {
             $prompt .= "\n## " . get_string('ai_prompt_training_context', 'mod_redaction') . "\n";
             $prompt .= get_string('ai_prompt_training_intro', 'mod_redaction') . "\n";
             $prompt .= "- " . get_string('ai_prompt_training_detailed', 'mod_redaction') . "\n";
