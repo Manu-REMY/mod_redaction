@@ -152,8 +152,8 @@ $templatedata = [
     'submissiondatevalue' => $correction->submission_date ? date('Y-m-d\TH:i', $correction->submission_date) : '',
     'deadlinedatevalue' => $correction->deadline_date ? date('Y-m-d\TH:i', $correction->deadline_date) : '',
     'editorhtml' => $editorhtml,
-    'grillecriteresjson' => s($correction->grille_criteres ?? ''),
-    'aiinstructions' => s($correction->ai_instructions ?? ''),
+    'grillecriteresjson' => $correction->grille_criteres ?? '',
+    'aiinstructions' => $correction->ai_instructions ?? '',
     'cmid' => $cm->id,
     'wwwroot' => $CFG->wwwroot,
 ];

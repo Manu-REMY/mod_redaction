@@ -13,7 +13,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['core/notification'], function(Notification) {
+define(['core/notification', 'core/ajax'], function(Notification, Ajax) {
 
     var criteriaData = [];
     var config = {};
@@ -250,36 +250,32 @@ define(['core/notification'], function(Notification) {
                     btn.disabled = true;
                     btn.classList.add('loading');
 
-                    var formData = new FormData();
-                    formData.append('id', config.cmid);
-                    formData.append('sesskey', config.sesskey);
+                    var request = Ajax.call([{
+                        methodname: 'mod_redaction_generate_criteria',
+                        args: {cmid: parseInt(config.cmid)},
+                    }])[0];
 
-                    fetch(config.wwwroot + '/mod/redaction/ajax/generate_criteria.php', {
-                        method: 'POST',
-                        body: formData,
-                    })
-                    .then(function(response) {
-                        return response.json();
-                    })
-                    .then(function(data) {
-                        if (data.success) {
-                            loadCriteriaFromJson(data.grille_criteres);
-                            if (aiInstructions) {
-                                aiInstructions.value = data.ai_instructions;
+                    request
+                        .then(function(data) {
+                            if (data.success) {
+                                loadCriteriaFromJson(data.grille_criteres);
+                                if (aiInstructions) {
+                                    aiInstructions.value = data.ai_instructions;
+                                }
+                                alert(config.strings.ai_generate_success);
+                            } else {
+                                alert(data.message || config.strings.ai_request_failed);
                             }
-                            alert(config.strings.ai_generate_success);
-                        } else {
-                            alert(data.message || config.strings.ai_request_failed);
-                        }
-                    })
-                    .catch(function(error) {
-                        Notification.exception(error);
-                        alert(config.strings.ai_request_failed);
-                    })
-                    .finally(function() {
-                        btn.disabled = false;
-                        btn.classList.remove('loading');
-                    });
+                            return data;
+                        })
+                        .catch(function(error) {
+                            Notification.exception(error);
+                        })
+                        .then(function() {
+                            btn.disabled = false;
+                            btn.classList.remove('loading');
+                            return null;
+                        });
                 };
             }
         },
