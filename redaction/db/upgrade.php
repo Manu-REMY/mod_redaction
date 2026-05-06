@@ -155,5 +155,32 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026021001, 'redaction');
     }
 
+    // Drop obsolete training configuration fields.
+    if ($oldversion < 2026050601) {
+        $table = new xmldb_table('redaction');
+        $field = new xmldb_field('training_cooldown');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+        $field = new xmldb_field('training_min_change');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        $table = new xmldb_table('redaction_submission');
+        $field = new xmldb_field('last_training_time');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        $table = new xmldb_table('redaction_ai_evaluations');
+        $field = new xmldb_field('is_training');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026050601, 'redaction');
+    }
+
     return true;
 }
