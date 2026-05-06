@@ -61,7 +61,7 @@ $aievaluation = null;
 if ($isgraded && $redaction->ai_enabled && $submission) {
     $records = $DB->get_records_sql(
         'SELECT * FROM {redaction_ai_evaluations}
-         WHERE submissionid = ? AND is_training = 0 AND (status = ? OR status = ?)
+         WHERE submissionid = ? AND (status = ? OR status = ?)
          ORDER BY timecreated DESC',
         [$submission->id, 'completed', 'applied'],
         0,

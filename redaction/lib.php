@@ -825,7 +825,7 @@ function redaction_check_min_change($newcontent, $submissionid, $minchangepercen
 }
 
 /**
- * Get all training evaluations for a submission, most recent first.
+ * Get all evaluations for a submission, most recent first.
  *
  * @param int $submissionid Submission ID
  * @return array Array of evaluation records
@@ -835,14 +835,14 @@ function redaction_get_training_evaluations($submissionid) {
 
     return $DB->get_records_sql(
         'SELECT * FROM {redaction_ai_evaluations}
-         WHERE submissionid = ? AND is_training = 1
+         WHERE submissionid = ?
          ORDER BY timecreated DESC',
         [$submissionid]
     );
 }
 
 /**
- * Get the latest completed training evaluation for a submission.
+ * Get the latest completed evaluation for a submission.
  *
  * @param int $submissionid Submission ID
  * @return object|null
@@ -852,7 +852,7 @@ function redaction_get_latest_training_evaluation($submissionid) {
 
     $records = $DB->get_records_sql(
         'SELECT * FROM {redaction_ai_evaluations}
-         WHERE submissionid = ? AND is_training = 1 AND status = ?
+         WHERE submissionid = ? AND status = ?
          ORDER BY timecreated DESC',
         [$submissionid, 'completed'],
         0,

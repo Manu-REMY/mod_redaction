@@ -124,12 +124,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
     }
 }
 
-// Get AI evaluation if available (exclude training evaluations).
+// Get AI evaluation if available.
 $aievaluation = null;
 if ($submission && $redaction->ai_enabled) {
     $aievaluation = $DB->get_record_select(
         'redaction_ai_evaluations',
-        'submissionid = ? AND status = ? AND (is_training = 0 OR is_training IS NULL)',
+        'submissionid = ? AND status = ?',
         [$submission->id, 'completed'],
         '*',
         IGNORE_MULTIPLE
@@ -138,7 +138,7 @@ if ($submission && $redaction->ai_enabled) {
     if (!$aievaluation) {
         $records = $DB->get_records_sql(
             'SELECT * FROM {redaction_ai_evaluations}
-             WHERE submissionid = ? AND (is_training = 0 OR is_training IS NULL)
+             WHERE submissionid = ?
              ORDER BY timecreated DESC',
             [$submission->id],
             0,

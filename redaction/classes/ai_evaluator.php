@@ -164,9 +164,8 @@ class ai_evaluator {
                 throw new \moodle_exception('error:noconsignes', 'redaction');
             }
 
-            // Build prompts (pass training flag for adapted prompt).
-            $istraining = !empty($evaluation->is_training);
-            $prompts = ai_prompt_builder::build_prompt($submission, $consignes, $correction ?? new \stdClass(), $istraining);
+            // Build prompts.
+            $prompts = ai_prompt_builder::build_prompt($submission, $consignes, $correction ?? new \stdClass());
 
             // Get API key.
             $apikey = ai_config::get_effective_api_key($redaction->ai_provider, ai_config::decrypt_api_key($redaction->ai_api_key ?? ''));
@@ -221,11 +220,6 @@ class ai_evaluator {
                 ],
             ]);
             $event->trigger();
-
-            // Training evaluations: never auto-apply, never update gradebook.
-            if (!empty($evaluation->is_training)) {
-                return true;
-            }
 
             // Auto-apply if configured.
             if ($redaction->ai_auto_apply) {
@@ -295,11 +289,6 @@ class ai_evaluator {
             return false;
         }
 
-        // Training evaluations cannot be applied as final grades.
-        if (!empty($evaluation->is_training)) {
-            return false;
-        }
-
         $submission = $DB->get_record('redaction_submission', ['id' => $evaluation->submissionid], '*', MUST_EXIST);
         $redaction = $DB->get_record('redaction', ['id' => $evaluation->redactionid], '*', MUST_EXIST);
 
@@ -337,45 +326,6 @@ class ai_evaluator {
             'submissionid = ? AND status IN (?, ?)',
             [$submissionid, 'pending', 'processing']
         );
-    }
-
-    /**
-     * Queue a training evaluation for processing.
-     *
-     * Training evaluations use the activity's own cooldown/rate-limit settings
-     * instead of the global rate limiter.
-     *
-     * @param int $redactionid Instance ID
-     * @param int $submissionid Submission ID
-     * @param int $groupid Group ID
-     * @param int $userid User ID
-     * @return int Evaluation ID
-     */
-    public static function queue_training_evaluation(int $redactionid, int $submissionid, int $groupid, int $userid): int {
-        global $DB;
-
-        $redaction = $DB->get_record('redaction', ['id' => $redactionid], '*', MUST_EXIST);
-
-        $evaluation = new \stdClass();
-        $evaluation->redactionid = $redactionid;
-        $evaluation->submissionid = $submissionid;
-        $evaluation->groupid = $groupid;
-        $evaluation->userid = $userid;
-        $evaluation->provider = $redaction->ai_provider;
-        $evaluation->model = self::get_model_for_provider($redaction->ai_provider);
-        $evaluation->status = 'pending';
-        $evaluation->is_training = 1;
-        $evaluation->timecreated = time();
-        $evaluation->timemodified = time();
-
-        $evaluationid = $DB->insert_record('redaction_ai_evaluations', $evaluation);
-
-        // Queue adhoc task for async processing.
-        $task = new \mod_redaction\task\evaluate_submission();
-        $task->set_custom_data(['evaluationid' => $evaluationid]);
-        \core\task\manager::queue_adhoc_task($task);
-
-        return $evaluationid;
     }
 
     /**
