@@ -1913,21 +1913,26 @@
     max-width: 180px;
 }
 
-/* Zebra striping — applied directly to <tr> with an opaque background that
-   shows through wherever cell-level colors are absent (name + empty cells).
-   We use !important to defeat Bootstrap's .table > :not(caption) > * > * rule
-   that sets a transparent table background and may override cell bg. */
-.mod_redaction-overview-table > tbody > tr:nth-child(odd) > td.mod_redaction-overview-name,
-.mod_redaction-overview-table > tbody > tr:nth-child(odd) > td.mod_redaction-overview-cell-empty {
-    background-color: #eef1f5 !important;
+/* Zebra striping — applied to <tr> as the base background. Cell-level
+   colours (defined above with rgba alpha) blend over this base, so each
+   row reads as a single tinted band even where colored cells exist. */
+.mod_redaction-overview-table > tbody > tr {
+    background-color: #ffffff;
 }
-.mod_redaction-overview-table > tbody > tr:nth-child(even) > td.mod_redaction-overview-name,
-.mod_redaction-overview-table > tbody > tr:nth-child(even) > td.mod_redaction-overview-cell-empty {
-    background-color: #ffffff !important;
+.mod_redaction-overview-table > tbody > tr:nth-child(odd) {
+    background-color: #eef1f5;
 }
-.mod_redaction-overview-table > tbody > tr:hover > td.mod_redaction-overview-name,
-.mod_redaction-overview-table > tbody > tr:hover > td.mod_redaction-overview-cell-empty {
-    background-color: #d6eaff !important;
+.mod_redaction-overview-table > tbody > tr:hover {
+    background-color: #d6eaff;
+}
+
+/* Bootstrap 5 sets background-color on every td via --bs-table-bg.
+   Force td backgrounds to inherit transparency so the <tr> zebra wins on
+   neutral cells (name, empty, header), and the rgba level colors blend
+   on top instead of being hidden. */
+.mod_redaction-overview-table > tbody > tr > td.mod_redaction-overview-name,
+.mod_redaction-overview-table > tbody > tr > td.mod_redaction-overview-cell-empty {
+    background-color: transparent !important;
 }
 
 /* Dashboard occupies 100% of the available width. Some Moodle themes wrap the
@@ -1950,10 +1955,12 @@
     background: #f7f7f7;
 }
 
-.mod_redaction-overview-cell-excellent { background: #c8e6c9; }
-.mod_redaction-overview-cell-good      { background: #dcedc8; }
-.mod_redaction-overview-cell-medium    { background: #fff3cd; }
-.mod_redaction-overview-cell-low       { background: #ffcdd2; }
+/* Translucent fills so the row's zebra background shows through and the
+   row reads as a single tinted band rather than a patchwork. */
+.mod_redaction-overview-cell-excellent { background-color: rgba(76, 175, 80, 0.30); }
+.mod_redaction-overview-cell-good      { background-color: rgba(139, 195, 74, 0.30); }
+.mod_redaction-overview-cell-medium    { background-color: rgba(255, 193, 7, 0.32); }
+.mod_redaction-overview-cell-low       { background-color: rgba(244, 67, 54, 0.28); }
 
 .mod_redaction-overview-cell-latest {
     box-shadow: inset 0 0 0 2px #1976d2;
