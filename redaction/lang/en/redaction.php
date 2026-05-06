@@ -562,3 +562,19 @@ $string['overview_no_attempt'] = 'No attempt';
 $string['overview_pending'] = 'Pending';
 $string['overview_failed'] = 'Failed';
 $string['overview_no_data'] = 'No submissions to display for this group.';
+
+// Bulk actions on the progression overview.
+$string['overview_select_all'] = 'Select all students';
+$string['overview_selection_count'] = '{$a} selected';
+$string['overview_action_reevaluate'] = 'Re-evaluate';
+$string['overview_action_unlock'] = 'Unlock';
+$string['overview_confirm_reevaluate_title'] = 'Confirm re-evaluation';
+$string['overview_confirm_unlock_title'] = 'Confirm unlock';
+$string['overview_confirm_affected'] = 'Affected ({$a}):';
+$string['overview_confirm_ignored'] = 'Ignored ({$a}):';
+$string['overview_confirm_button'] = 'Confirm';
+$string['overview_skip_reason_nocontent'] = 'no content';
+$string['overview_skip_reason_alreadyunlocked'] = 'already unlocked';
+$string['overview_bulk_reevaluate_result'] = '{$a->queued} queued, {$a->skipped} skipped';
+$string['overview_bulk_unlock_result'] = '{$a->unlocked} unlocked, {$a->skipped} skipped';
+$string['overview_no_selection'] = 'No student selected';
