@@ -24,6 +24,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Default training attempts quota when training_max_attempts is 0 (unlimited).
+ */
+const REDACTION_DEFAULT_TRAINING_ATTEMPTS = 5;
+
 /** Default maximum grade for the activity. */
 define('MOD_REDACTION_GRADEMAX', 20);
 
@@ -676,54 +681,53 @@ function redaction_render_teacher_dashboard($cm, $redaction) {
 }
 
 /**
- * Check if a student can submit for training.
+ * Returns the effective maximum training attempts for an instance.
  *
- * @param stdClass $redaction Activity instance
- * @param stdClass $submission Submission record
- * @param stdClass|null $correction Correction record (optional)
- * @return array ['allowed' => bool, 'reason' => string, 'remaining' => int (seconds, if cooldown)]
+ * If training_max_attempts is 0 (legacy unlimited), the default constant applies.
+ *
+ * @param stdClass $redaction
+ * @return int
  */
-function redaction_can_training_submit($redaction, $submission, $correction = null) {
+function redaction_effective_max_attempts($redaction) {
+    $max = (int) ($redaction->training_max_attempts ?? 0);
+    return $max > 0 ? $max : REDACTION_DEFAULT_TRAINING_ATTEMPTS;
+}
+
+/**
+ * Determine whether the student is allowed to submit another attempt.
+ *
+ * Replaces the previous training_submit gate. Cooldown and min_change checks
+ * are removed; quota and pending evaluation are the only remaining gates.
+ *
+ * @param stdClass $redaction
+ * @param stdClass $submission
+ * @param stdClass|null $correction
+ * @return array ['allowed' => bool, 'reason' => string]
+ */
+function redaction_can_submit_attempt($redaction, $submission, $correction = null) {
     global $DB;
 
-    // Training mode not enabled.
-    if (empty($redaction->training_enabled)) {
+    if (empty($redaction->training_enabled) || empty($redaction->ai_enabled)) {
         return ['allowed' => false, 'reason' => 'training_not_enabled'];
     }
 
-    // AI must be enabled.
-    if (empty($redaction->ai_enabled)) {
-        return ['allowed' => false, 'reason' => 'training_not_enabled'];
-    }
-
-    // Already final-submitted.
-    if ($submission->status == 1) {
+    if ((int) $submission->status === 1) {
         return ['allowed' => false, 'reason' => 'already_submitted'];
     }
 
-    // Check deadline.
     if ($correction && !empty($correction->deadline_date) && time() > $correction->deadline_date) {
         return ['allowed' => false, 'reason' => 'deadline_passed'];
     }
 
-    // Check max attempts (0 = unlimited).
-    if ($redaction->training_max_attempts > 0 && $submission->training_count >= $redaction->training_max_attempts) {
+    $maxeffective = redaction_effective_max_attempts($redaction);
+    $used = (int) ($submission->training_count ?? 0);
+    if ($used >= $maxeffective) {
         return ['allowed' => false, 'reason' => 'max_attempts_reached'];
     }
 
-    // Check cooldown.
-    if (!empty($submission->last_training_time)) {
-        $elapsed = time() - $submission->last_training_time;
-        if ($elapsed < $redaction->training_cooldown) {
-            $remaining = $redaction->training_cooldown - $elapsed;
-            return ['allowed' => false, 'reason' => 'cooldown_active', 'remaining' => $remaining];
-        }
-    }
-
-    // Check if there's a pending training evaluation.
     $pending = $DB->record_exists_select(
         'redaction_ai_evaluations',
-        'submissionid = ? AND is_training = 1 AND status IN (?, ?)',
+        'submissionid = ? AND status IN (?, ?)',
         [$submission->id, 'pending', 'processing']
     );
     if ($pending) {
@@ -731,6 +735,15 @@ function redaction_can_training_submit($redaction, $submission, $correction = nu
     }
 
     return ['allowed' => true, 'reason' => ''];
+}
+
+/**
+ * Backward-compat alias. Prefer redaction_can_submit_attempt().
+ *
+ * @deprecated since 2.1.0
+ */
+function redaction_can_training_submit($redaction, $submission, $correction = null) {
+    return redaction_can_submit_attempt($redaction, $submission, $correction);
 }
 
 /**
