@@ -419,7 +419,6 @@ $templatedata = [
     'titre' => s($submission->titre ?? ''),
     'editorhtml' => $editorhtml,
     'submittedcontent' => $issubmitted ? format_text($submission->contenu ?? '', $submission->contenuformat ?? FORMAT_HTML) : '',
-    'trainingfinalconfirm' => get_string('training_final_confirm', 'redaction'),
     'submitconfirm' => get_string('submit_confirm', 'redaction'),
     'attemptbuttonlabel' => $attemptbuttonlabel,
     'attemptconfirm' => $attemptconfirm,
