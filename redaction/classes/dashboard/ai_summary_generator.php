@@ -91,12 +91,14 @@ class ai_summary_generator {
             'groupid' => $this->groupid,
         ]);
 
-        // Cached summary on a page render: return it regardless of age.
-        if ($summary && !$force) {
-            return $this->format_summary($summary);
+        if (!$force) {
+            // Page render path: never call the AI here. Return cached (any age)
+            // or null. Per-group caches multiply the risk of cold loads — the
+            // explicit Refresh button is the only path that hits the provider.
+            return $summary ? $this->format_summary($summary) : null;
         }
 
-        // First-time generation OR explicit refresh: hit the AI.
+        // Explicit refresh: regenerate synchronously (called by the AJAX endpoint).
         $evaluations = $this->get_completed_evaluations();
         if (count($evaluations) < self::MIN_EVALUATIONS) {
             return null;
