@@ -35,8 +35,11 @@
     * titre - Current title value
     * editorhtml - Pre-rendered editor HTML (when not submitted)
     * submittedcontent - Formatted submitted content (HTML, when submitted)
-    * trainingfinalconfirm - Confirmation message for final submit
     * submitconfirm - Confirmation message for regular submit
+    * attemptbuttonlabel - Submit button label (training mode)
+    * attemptconfirm - JS confirm string for last attempt (empty if not last)
+    * hasattemptconfirm - Boolean true when confirmation must trigger
+    * attemptsexhaustedstr - String shown when student has used all attempts
 
     Example context (json):
     {
@@ -154,6 +157,12 @@
             &#x1F4DD; {{#str}}status_draft, mod_redaction{{/str}}
         </div>
     {{/issubmitted}}
+
+    {{#attemptsexhaustedstr}}
+        <div class="mod_redaction-attempts-exhausted">
+            &#x1F3C1; {{attemptsexhaustedstr}}
+        </div>
+    {{/attemptsexhaustedstr}}
 
     {{! Training Mode Panel }}
     {{#trainingenabled}}
@@ -295,9 +304,9 @@
                         &#x1F4BE; {{#str}}savechanges, moodle{{/str}}
                     </button>
                     {{#trainingenabled}}
-                        <button type="submit" name="action" value="submit" class="mod_redaction-btn-submit mod_redaction-btn-final"
-                                onclick="return confirm('{{trainingfinalconfirm}}');">
-                            &#x2713; {{#str}}training_final_submit, mod_redaction{{/str}}
+                        <button type="submit" name="action" value="submit" class="mod_redaction-btn-submit"
+                                {{#hasattemptconfirm}}onclick="return confirm('{{attemptconfirm}}');"{{/hasattemptconfirm}}>
+                            &#x2728; {{attemptbuttonlabel}}
                         </button>
                     {{/trainingenabled}}
                     {{^trainingenabled}}
