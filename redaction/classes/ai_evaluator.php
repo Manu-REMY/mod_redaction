@@ -56,31 +56,37 @@ class ai_evaluator {
     /**
      * Check rate limiting for AI evaluations.
      *
-     * Enforces an activity-level hourly cap as the only safety net against
-     * runaway evaluation costs. Per-submission cooldown was removed in 2.1.0
-     * to support the iterative training mode where students iterate quickly.
+     * Per-user hourly cap. The earlier per-activity cap blocked the entire
+     * class once 60 evaluations had run in an hour, which made iterative
+     * training unusable for a 25-student class. Each user now has their own
+     * budget, sized for a pathological case (sustained one eval per minute);
+     * legitimate use bumps into training_max_attempts long before this.
+     *
      * Concurrent evaluations on the same submission are still blocked by
-     * redaction_can_submit_attempt() which checks for pending/processing
-     * status before queuing a new attempt.
+     * redaction_can_submit_attempt() (pending/processing check).
      *
      * @param int $redactionid Activity instance ID
-     * @param int $submissionid Submission ID (kept for signature compatibility)
-     * @throws \moodle_exception If hourly rate limit is exceeded.
+     * @param int $submissionid Submission ID (used to resolve the user)
+     * @throws \moodle_exception If hourly rate limit is exceeded for this user.
      */
     public static function check_rate_limit(int $redactionid, int $submissionid): void {
-        global $DB;
-        unset($submissionid); // No longer used.
+        global $DB, $USER;
 
         $ratelimit = (int) get_config('mod_redaction', 'ai_rate_limit');
         if ($ratelimit <= 0) {
             $ratelimit = self::DEFAULT_RATE_LIMIT;
         }
 
+        // Resolve the user to count against. Prefer the submission's userid
+        // (handles teachers triggering re-eval); fall back to current $USER.
+        $submission = $DB->get_record('redaction_submission', ['id' => $submissionid], 'userid', IGNORE_MISSING);
+        $userid = ($submission && !empty($submission->userid)) ? (int) $submission->userid : (int) $USER->id;
+
         $onehourago = time() - 3600;
         $recentcount = $DB->count_records_select(
             'redaction_ai_evaluations',
-            'redactionid = ? AND timecreated > ?',
-            [$redactionid, $onehourago]
+            'redactionid = ? AND userid = ? AND timecreated > ?',
+            [$redactionid, $userid, $onehourago]
         );
 
         if ($recentcount >= $ratelimit) {
