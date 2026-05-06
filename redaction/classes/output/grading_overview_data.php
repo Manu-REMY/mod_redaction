@@ -101,13 +101,20 @@ class grading_overview_data implements renderable, templatable {
         [$insql, $inparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_QM);
 
         // Fetch every submission's id for these users in this redaction.
-        $sql = 'SELECT id, userid FROM {redaction_submission}
-                 WHERE redactionid = ? AND groupid = 0 AND userid ' . $insql;
+        // Match by userid only — legacy data may have groupid != 0 even for
+        // individual submissions (the field tracks the user's group, not the
+        // submission ownership). We trust userid as the row identity.
+        $sql = 'SELECT id, userid, timecreated FROM {redaction_submission}
+                 WHERE redactionid = ? AND userid ' . $insql . '
+              ORDER BY timecreated ASC, id ASC';
         $submissions = $DB->get_records_sql($sql, array_merge([$this->redactionid], $inparams));
         $submissionByUser = [];
         $submissionIds = [];
         foreach ($submissions as $s) {
-            $submissionByUser[$s->userid] = $s->id;
+            // Multiple submissions per user: keep the first one we see (oldest).
+            if (!isset($submissionByUser[$s->userid])) {
+                $submissionByUser[$s->userid] = $s->id;
+            }
             $submissionIds[] = $s->id;
         }
 
@@ -145,13 +152,17 @@ class grading_overview_data implements renderable, templatable {
         $groupids = array_keys($groups);
         [$insql, $inparams] = $DB->get_in_or_equal($groupids, SQL_PARAMS_QM);
 
-        $sql = 'SELECT id, groupid FROM {redaction_submission}
-                 WHERE redactionid = ? AND userid = 0 AND groupid ' . $insql;
+        // Match by groupid only — legacy data may have userid != 0.
+        $sql = 'SELECT id, groupid, timecreated FROM {redaction_submission}
+                 WHERE redactionid = ? AND groupid ' . $insql . '
+              ORDER BY timecreated ASC, id ASC';
         $submissions = $DB->get_records_sql($sql, array_merge([$this->redactionid], $inparams));
         $submissionByGroup = [];
         $submissionIds = [];
         foreach ($submissions as $s) {
-            $submissionByGroup[$s->groupid] = $s->id;
+            if (!isset($submissionByGroup[$s->groupid])) {
+                $submissionByGroup[$s->groupid] = $s->id;
+            }
             $submissionIds[] = $s->id;
         }
 
