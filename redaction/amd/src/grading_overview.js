@@ -233,6 +233,67 @@ define([
         });
     }
 
+    function callBulkEvaluate(submissionIds) {
+        return Ajax.call([{
+            methodname: 'mod_redaction_bulk_evaluate',
+            args: {cmid: state.cmid, submissionids: submissionIds},
+        }])[0];
+    }
+
+    function callBulkUnlock(submissionIds) {
+        return Ajax.call([{
+            methodname: 'mod_redaction_bulk_unlock',
+            args: {cmid: state.cmid, submissionids: submissionIds},
+        }])[0];
+    }
+
+    function notifySuccess(action, response) {
+        var key = action === 'reevaluate'
+            ? 'overview_bulk_reevaluate_result'
+            : 'overview_bulk_unlock_result';
+        var payload = action === 'reevaluate'
+            ? {queued: response.queued, skipped: response.skipped}
+            : {unlocked: response.unlocked, skipped: response.skipped};
+        return Str.get_string(key, 'mod_redaction', payload).then(function(msg) {
+            Notification.addNotification({message: msg, type: 'info'});
+            return msg;
+        });
+    }
+
+    function runAction(action) {
+        confirmAction(action).then(function(out) {
+            if (!out.confirmed || !out.parts.affected.length) {
+                return null;
+            }
+            var ids = out.parts.affected.map(function(a) {
+                return a.submissionid;
+            });
+            var promise = action === 'reevaluate'
+                ? callBulkEvaluate(ids)
+                : callBulkUnlock(ids);
+            return promise.then(function(resp) {
+                return notifySuccess(action, resp).then(function() {
+                    window.location.reload();
+                });
+            });
+        }).catch(Notification.exception);
+    }
+
+    function bindActionButtons() {
+        var reBtn = document.querySelector(SEL.BTN_REEVAL);
+        var unlBtn = document.querySelector(SEL.BTN_UNLOCK);
+        if (reBtn) {
+            reBtn.addEventListener('click', function() {
+                runAction('reevaluate');
+            });
+        }
+        if (unlBtn) {
+            unlBtn.addEventListener('click', function() {
+                runAction('unlock');
+            });
+        }
+    }
+
     return {
         init: function(opts) {
             opts = opts || {};
@@ -254,6 +315,7 @@ define([
             bindCheckall();
             bindRowChecks();
             refreshSelectionUI();
+            bindActionButtons();
         },
     };
 });
