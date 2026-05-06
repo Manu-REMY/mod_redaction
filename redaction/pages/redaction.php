@@ -348,13 +348,7 @@ if ($trainingenabled) {
 // Training blocked reason.
 $trainingblockedreason = '';
 if (!$cantraining['allowed'] && !empty($cantraining['reason'])) {
-    $reason = $cantraining['reason'];
-    if ($reason === 'cooldown_active' && isset($cantraining['remaining'])) {
-        $minutes = ceil($cantraining['remaining'] / 60);
-        $trainingblockedreason = get_string('training_error_cooldown_remaining', 'redaction', $minutes);
-    } else {
-        $trainingblockedreason = get_string('training_error_' . $reason, 'redaction');
-    }
+    $trainingblockedreason = get_string('training_error_' . $cantraining['reason'], 'redaction');
 }
 
 // Training counter string.
