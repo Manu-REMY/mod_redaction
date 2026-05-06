@@ -31,12 +31,6 @@
       - hascriteria - Boolean
       - parsed_feedback - Feedback HTML
       - hasfeedback - Boolean
-      - overall_appreciation - Short overall appreciation text
-      - hasappreciation - Boolean
-      - strengths - Array of {text}
-      - hasstrengths - Boolean
-      - weaknesses - Array of {text}
-      - hasweaknesses - Boolean
       - keywords_found - Array of {word}
       - haskeywordsfound - Boolean
       - keywords_missing - Array of {word}
@@ -124,98 +118,25 @@
             {{/isfailed}}
 
             {{#iscompleted}}
-                {{! Grade Card with Level & Confidence }}
-                <div class="mod_redaction-ai-grade-card">
-                    <div class="mod_redaction-ai-grade-ring mod_redaction-ai-grade-ring-{{gradelevel}}">
-                        <div class="mod_redaction-ai-grade-value">{{grade}}<span class="mod_redaction-ai-grade-max">/20</span></div>
-                    </div>
-                    <div class="mod_redaction-ai-grade-level mod_redaction-ai-level-{{gradelevel}}">{{gradelevelstr}}</div>
-                    <div class="mod_redaction-ai-grade-label">{{#str}}ai_grade, redaction{{/str}}</div>
-                    <div class="mod_redaction-ai-confidence" title="{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%">
-                        <div class="mod_redaction-ai-confidence-bar">
-                            <div class="mod_redaction-ai-confidence-fill mod_redaction-{{confidenceclass}}" style="width: {{confidencepercent}}%"></div>
+                {{! Row 1: Grade card (left) + Criteria (right, always open) }}
+                <div class="mod_redaction-ai-row-grade-criteria">
+                    <div class="mod_redaction-ai-grade-card">
+                        <div class="mod_redaction-ai-grade-ring mod_redaction-ai-grade-ring-{{gradelevel}}">
+                            <div class="mod_redaction-ai-grade-value">{{grade}}<span class="mod_redaction-ai-grade-max">/20</span></div>
                         </div>
-                        <small class="mod_redaction-ai-confidence-label">{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%</small>
+                        <div class="mod_redaction-ai-grade-level mod_redaction-ai-level-{{gradelevel}}">{{gradelevelstr}}</div>
+                        <div class="mod_redaction-ai-grade-label">{{#str}}ai_grade, redaction{{/str}}</div>
+                        <div class="mod_redaction-ai-confidence" title="{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%">
+                            <div class="mod_redaction-ai-confidence-bar">
+                                <div class="mod_redaction-ai-confidence-fill mod_redaction-{{confidenceclass}}" style="width: {{confidencepercent}}%"></div>
+                            </div>
+                            <small class="mod_redaction-ai-confidence-label">{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%</small>
+                        </div>
                     </div>
-                </div>
 
-                {{! Overall Appreciation }}
-                {{#hasappreciation}}
-                <div class="mod_redaction-ai-appreciation">
-                    <div class="mod_redaction-ai-appreciation-icon">&#128172;</div>
-                    <div class="mod_redaction-ai-appreciation-text">{{{overall_appreciation}}}</div>
-                </div>
-                {{/hasappreciation}}
-
-                {{! Strengths & Weaknesses Side by Side }}
-                {{#hasstrengths}}{{#hasweaknesses}}
-                <div class="mod_redaction-ai-strengths-weaknesses">
-                    <div class="mod_redaction-ai-sw-column mod_redaction-ai-strengths-col">
-                        <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-strengths">
-                            <span class="mod_redaction-ai-sw-icon">&#9989;</span>
-                            {{#str}}ai_strengths, redaction{{/str}}
-                        </div>
-                        <ul class="mod_redaction-ai-sw-list">
-                            {{#strengths}}
-                            <li>{{{text}}}</li>
-                            {{/strengths}}
-                        </ul>
-                    </div>
-                    <div class="mod_redaction-ai-sw-column mod_redaction-ai-weaknesses-col">
-                        <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-weaknesses">
-                            <span class="mod_redaction-ai-sw-icon">&#128736;</span>
-                            {{#str}}ai_weaknesses, redaction{{/str}}
-                        </div>
-                        <ul class="mod_redaction-ai-sw-list">
-                            {{#weaknesses}}
-                            <li>{{{text}}}</li>
-                            {{/weaknesses}}
-                        </ul>
-                    </div>
-                </div>
-                {{/hasweaknesses}}{{/hasstrengths}}
-
-                {{! Strengths only }}
-                {{#hasstrengths}}{{^hasweaknesses}}
-                <div class="mod_redaction-ai-strengths-weaknesses">
-                    <div class="mod_redaction-ai-sw-column mod_redaction-ai-strengths-col mod_redaction-ai-sw-full">
-                        <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-strengths">
-                            <span class="mod_redaction-ai-sw-icon">&#9989;</span>
-                            {{#str}}ai_strengths, redaction{{/str}}
-                        </div>
-                        <ul class="mod_redaction-ai-sw-list">
-                            {{#strengths}}
-                            <li>{{{text}}}</li>
-                            {{/strengths}}
-                        </ul>
-                    </div>
-                </div>
-                {{/hasweaknesses}}{{/hasstrengths}}
-
-                {{! Weaknesses only }}
-                {{^hasstrengths}}{{#hasweaknesses}}
-                <div class="mod_redaction-ai-strengths-weaknesses">
-                    <div class="mod_redaction-ai-sw-column mod_redaction-ai-weaknesses-col mod_redaction-ai-sw-full">
-                        <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-weaknesses">
-                            <span class="mod_redaction-ai-sw-icon">&#128736;</span>
-                            {{#str}}ai_weaknesses, redaction{{/str}}
-                        </div>
-                        <ul class="mod_redaction-ai-sw-list">
-                            {{#weaknesses}}
-                            <li>{{{text}}}</li>
-                            {{/weaknesses}}
-                        </ul>
-                    </div>
-                </div>
-                {{/hasweaknesses}}{{/hasstrengths}}
-
-                {{! Criteria Details (Collapsible) }}
-                {{#hascriteria}}
-                    <div class="mod_redaction-ai-criteria-section">
-                        <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
-                            <h5 class="mod_redaction-ai-section-title">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
-                            <span class="mod_redaction-toggle-icon">&#9660;</span>
-                        </div>
+                    {{#hascriteria}}
+                    <div class="mod_redaction-ai-criteria-section mod_redaction-ai-criteria-static">
+                        <h5 class="mod_redaction-ai-section-title">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
                         <div class="mod_redaction-ai-section-content">
                             {{#criteria}}
                                 <div class="mod_redaction-ai-criterion mod_redaction-ai-criterion-{{scoreclass}}">
@@ -241,11 +162,28 @@
                             {{/criteria}}
                         </div>
                     </div>
-                {{/hascriteria}}
+                    {{/hascriteria}}
+                </div>
 
-                {{! Keywords Analysis (Collapsible) }}
-                {{#haskeywords}}
-                    <div class="mod_redaction-ai-criteria-section">
+                {{! Row 2: General feedback, full width, collapsible (open by default) }}
+                {{#hasfeedback}}
+                <div class="mod_redaction-ai-criteria-section mod_redaction-ai-section-open">
+                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                        <h5 class="mod_redaction-ai-section-title">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
+                        <span class="mod_redaction-toggle-icon">&#9660;</span>
+                    </div>
+                    <div class="mod_redaction-ai-section-content">
+                        <div class="mod_redaction-ai-feedback">
+                            {{{parsed_feedback}}}
+                        </div>
+                    </div>
+                </div>
+                {{/hasfeedback}}
+
+                {{! Row 3: Keywords (left) + Suggestions (right), both collapsible, open by default }}
+                <div class="mod_redaction-ai-row-keywords-suggestions">
+                    {{#haskeywords}}
+                    <div class="mod_redaction-ai-criteria-section mod_redaction-ai-section-open">
                         <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
                             <h5 class="mod_redaction-ai-section-title">&#128273; {{#str}}ai_keywords, redaction{{/str}}</h5>
                             <span class="mod_redaction-toggle-icon">&#9660;</span>
@@ -275,11 +213,10 @@
                             </div>
                         </div>
                     </div>
-                {{/haskeywords}}
+                    {{/haskeywords}}
 
-                {{! Suggestions (Collapsible) }}
-                {{#hassuggestions}}
-                    <div class="mod_redaction-ai-criteria-section">
+                    {{#hassuggestions}}
+                    <div class="mod_redaction-ai-criteria-section mod_redaction-ai-section-open">
                         <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
                             <h5 class="mod_redaction-ai-section-title">&#128161; {{#str}}ai_suggestions, redaction{{/str}}</h5>
                             <span class="mod_redaction-toggle-icon">&#9660;</span>
@@ -295,22 +232,8 @@
                             </ul>
                         </div>
                     </div>
-                {{/hassuggestions}}
-
-                {{! General Feedback (Collapsible) }}
-                {{#hasfeedback}}
-                    <div class="mod_redaction-ai-criteria-section">
-                        <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
-                            <h5 class="mod_redaction-ai-section-title">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
-                            <span class="mod_redaction-toggle-icon">&#9660;</span>
-                        </div>
-                        <div class="mod_redaction-ai-section-content">
-                            <div class="mod_redaction-ai-feedback">
-                                {{{parsed_feedback}}}
-                            </div>
-                        </div>
-                    </div>
-                {{/hasfeedback}}
+                    {{/hassuggestions}}
+                </div>
 
                 {{! Action Buttons — apply only on latest, re-evaluate always available }}
                 <div class="mod_redaction-ai-actions">
