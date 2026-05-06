@@ -356,97 +356,6 @@
     color: #a0aec0;
 }
 
-/* Overall appreciation */
-.mod_redaction-ai-appreciation {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    background: white;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    border-left: 3px solid #667eea;
-}
-
-.mod_redaction-ai-appreciation-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-}
-
-.mod_redaction-ai-appreciation-text {
-    font-size: 13px;
-    line-height: 1.5;
-    color: #4a5568;
-    font-style: italic;
-}
-
-/* Strengths & Weaknesses */
-.mod_redaction-ai-strengths-weaknesses {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-@media (max-width: 768px) {
-    .mod_redaction-ai-strengths-weaknesses {
-        grid-template-columns: 1fr;
-    }
-}
-
-.mod_redaction-ai-sw-column {
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.mod_redaction-ai-sw-full {
-    grid-column: 1 / -1;
-}
-
-.mod_redaction-ai-sw-header {
-    padding: 8px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.mod_redaction-ai-sw-header-strengths {
-    background: #f0fff4;
-    color: #276749;
-    border-bottom: 2px solid #c6f6d5;
-}
-
-.mod_redaction-ai-sw-header-weaknesses {
-    background: #fff5f5;
-    color: #9b2c2c;
-    border-bottom: 2px solid #fed7d7;
-}
-
-.mod_redaction-ai-sw-icon {
-    font-size: 14px;
-}
-
-.mod_redaction-ai-sw-list {
-    list-style: none;
-    padding: 8px 12px;
-    margin: 0;
-}
-
-.mod_redaction-ai-sw-list li {
-    font-size: 12px;
-    line-height: 1.5;
-    padding: 4px 0;
-    color: #4a5568;
-    border-bottom: 1px dashed #f0f0f0;
-}
-
-.mod_redaction-ai-sw-list li:last-child {
-    border-bottom: none;
-}
-
 /* Keywords */
 .mod_redaction-ai-keywords-container {
     padding: 4px 0;
@@ -2080,5 +1989,46 @@
 
 .mod_redaction-overview-checkbox-col input[type="checkbox"] {
     cursor: pointer;
+}
+
+/* ===== AI evaluation — 2-column layout ===== */
+
+.mod_redaction-ai-row-grade-criteria {
+    display: grid;
+    grid-template-columns: minmax(280px, 320px) 1fr;
+    gap: 1rem;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.mod_redaction-ai-row-keywords-suggestions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .mod_redaction-ai-row-grade-criteria,
+    .mod_redaction-ai-row-keywords-suggestions {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Static (non-collapsible) version of the criteria section: hide the chevron and reset cursor. */
+.mod_redaction-ai-criteria-static .mod_redaction-toggle-icon {
+    display: none;
+}
+.mod_redaction-ai-criteria-static .mod_redaction-ai-section-toggle {
+    cursor: default;
+}
+
+/* Sections marked open by default — content visible without click. */
+.mod_redaction-ai-section-open .mod_redaction-ai-section-content {
+    display: block;
+}
+.mod_redaction-ai-section-open .mod_redaction-toggle-icon {
+    transform: rotate(180deg);
 }
 
