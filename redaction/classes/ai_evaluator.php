@@ -191,10 +191,11 @@ class ai_evaluator {
             $evaluation->raw_response = $response['content'];
             $evaluation->prompt_tokens = $response['prompt_tokens'];
             $evaluation->completion_tokens = $response['completion_tokens'];
-            $evaluation->parsed_grade = $parsed->grade;
             $evaluation->parsed_feedback = $parsed->feedback;
             // Store criteria as arrays with level field preserved.
             $criteriaData = [];
+            $criteriaScoreSum = 0.0;
+            $criteriaMaxSum = 0.0;
             foreach ($parsed->criteria as $criterion) {
                 $criteriaData[] = [
                     'name' => $criterion->name,
@@ -205,8 +206,20 @@ class ai_evaluator {
                         $criterion->max > 0 ? ($criterion->score / $criterion->max) * 100 : 0
                     ),
                 ];
+                $criteriaScoreSum += (float) ($criterion->score ?? 0);
+                $criteriaMaxSum += (float) ($criterion->max ?? 0);
             }
             $evaluation->criteria_json = json_encode($criteriaData);
+
+            // Overall grade: prefer sum of criteria scaled to /20 when criteria
+            // are present and total > 0 (matches what the teacher sees in the
+            // detail view and the progression overview). The AI's holistic
+            // grade is used only as a fallback when no criteria are returned.
+            if ($criteriaMaxSum > 0) {
+                $evaluation->parsed_grade = round(($criteriaScoreSum / $criteriaMaxSum) * 20, 2);
+            } else {
+                $evaluation->parsed_grade = $parsed->grade;
+            }
             $evaluation->status = 'completed';
             $evaluation->timemodified = time();
 

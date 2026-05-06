@@ -125,11 +125,12 @@ class grading_overview_data implements renderable, templatable {
         foreach ($users as $user) {
             $sid = $submissionByUser[$user->id] ?? null;
             $evals = ($sid && isset($evalsBySubmission[$sid])) ? $evalsBySubmission[$sid] : [];
+            // The detail view's nav list keys items by userid (individual mode).
             $rows[] = [
                 'name' => fullname($user),
-                'nameurl' => $sid !== null ? $this->build_detail_url($sid) : '',
-                'has_nameurl' => $sid !== null,
-                'cells' => $this->build_cells($evals, $sid),
+                'nameurl' => $this->build_detail_url((int) $user->id),
+                'has_nameurl' => true,
+                'cells' => $this->build_cells($evals, (int) $user->id),
             ];
         }
         return $rows;
@@ -174,28 +175,32 @@ class grading_overview_data implements renderable, templatable {
         foreach ($groups as $group) {
             $sid = $submissionByGroup[$group->id] ?? null;
             $evals = ($sid && isset($evalsBySubmission[$sid])) ? $evalsBySubmission[$sid] : [];
+            // The detail view's nav list keys items by groupid (group mode).
             $rows[] = [
                 'name' => format_string($group->name),
-                'nameurl' => $sid !== null ? $this->build_detail_url($sid) : '',
-                'has_nameurl' => $sid !== null,
-                'cells' => $this->build_cells($evals, $sid),
+                'nameurl' => $this->build_detail_url((int) $group->id),
+                'has_nameurl' => true,
+                'cells' => $this->build_cells($evals, (int) $group->id),
             ];
         }
         return $rows;
     }
 
     /**
-     * Build the detail-view URL for a given submission row.
+     * Build the detail-view URL for a navigation item.
      *
-     * @param int $submissionId
+     * The grading detail view keys navitems by userid (individual mode) or
+     * groupid (group mode), NOT by submission ID. Pass the matching identity.
+     *
+     * @param int $itemid userid or groupid depending on the activity mode
      * @return string
      */
-    protected function build_detail_url(int $submissionId): string {
+    protected function build_detail_url(int $itemid): string {
         return (new moodle_url('/mod/redaction/view.php', [
             'id' => $this->cmid,
             'page' => 'grading',
             'tab' => 'detail',
-            'itemid' => $submissionId,
+            'itemid' => $itemid,
         ]))->out(false);
     }
 
@@ -234,7 +239,7 @@ class grading_overview_data implements renderable, templatable {
      * @param int|null $submissionId
      * @return array cells
      */
-    protected function build_cells(array $evals, ?int $submissionId): array {
+    protected function build_cells(array $evals, int $navItemId): array {
         $cells = [];
         $latestIndex = -1;
         for ($i = 0; $i < count($evals); $i++) {
@@ -248,7 +253,7 @@ class grading_overview_data implements renderable, templatable {
             }
             $eval = $evals[$i];
             $isLatest = ($i === $latestIndex);
-            $cells[] = $this->build_cell($eval, $isLatest, $submissionId);
+            $cells[] = $this->build_cell($eval, $isLatest, $navItemId);
         }
         return $cells;
     }
@@ -258,23 +263,15 @@ class grading_overview_data implements renderable, templatable {
      *
      * @param object $eval
      * @param bool $isLatest
-     * @param int|null $submissionId
+     * @param int $navItemId userid (individual) or groupid (group mode)
      * @return array
      */
-    protected function build_cell(object $eval, bool $isLatest, ?int $submissionId): array {
+    protected function build_cell(object $eval, bool $isLatest, int $navItemId): array {
         $grade = $eval->parsed_grade !== null ? (float) $eval->parsed_grade : null;
         $level = $this->level_for_grade($grade);
         $statusicon = $this->status_icon($eval->status);
 
-        $detailurl = '';
-        if ($submissionId !== null) {
-            $detailurl = (new moodle_url('/mod/redaction/view.php', [
-                'id' => $this->cmid,
-                'page' => 'grading',
-                'tab' => 'detail',
-                'itemid' => $submissionId,
-            ]))->out(false);
-        }
+        $detailurl = $this->build_detail_url($navItemId);
 
         $cell = [
             'hasattempt' => true,

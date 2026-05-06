@@ -1909,9 +1909,9 @@
     color: #1976d2;
 }
 
-.mod_redaction-overview-table .mod_redaction-overview-name-col,
-.mod_redaction-overview-table .mod_redaction-overview-name {
-    text-align: left;
+.mod_redaction-overview-table th.mod_redaction-overview-name-col,
+.mod_redaction-overview-table td.mod_redaction-overview-name {
+    text-align: left !important;
     font-weight: 500;
     min-width: 180px;
 }
