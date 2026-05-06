@@ -1,0 +1,64 @@
+{{!
+    @template mod_redaction/grading_overview
+
+    Progression overview table: rows = students/groups, columns = attempts.
+
+    Context variables required:
+    * cmid
+    * isgroupmode
+    * has_rows
+    * headers - array of {label}
+    * rows - array of {name, cells}
+        cells - array of cell descriptors
+}}
+<div class="mod_redaction-overview-wrapper">
+    {{#has_rows}}
+        <table class="mod_redaction-overview-table table table-bordered table-sm" data-sort-name="">
+            <thead>
+                <tr>
+                    <th class="mod_redaction-overview-name-col" data-sort="name">
+                        {{#isgroupmode}}{{#str}}group, group{{/str}}{{/isgroupmode}}
+                        {{^isgroupmode}}{{#str}}overview_student_col, redaction{{/str}}{{/isgroupmode}}
+                    </th>
+                    {{#headers}}
+                        <th class="text-center">{{label}}</th>
+                    {{/headers}}
+                </tr>
+            </thead>
+            <tbody>
+                {{#rows}}
+                    <tr>
+                        <td class="mod_redaction-overview-name">{{name}}</td>
+                        {{#cells}}
+                            {{#hasattempt}}
+                                <td class="mod_redaction-overview-cell mod_redaction-overview-cell-{{levelclass}} {{#is_latest}}mod_redaction-overview-cell-latest{{/is_latest}}">
+                                    <a href="{{detailurl}}" class="mod_redaction-overview-link">
+                                        <span class="mod_redaction-overview-grade">{{grade}}</span>
+                                        <span class="mod_redaction-overview-status">{{{statusicon}}}</span>
+                                    </a>
+                                    {{#is_latest}}
+                                        {{#has_criteria}}
+                                            <div class="mod_redaction-overview-minibars">
+                                                {{#criteria}}
+                                                    <div class="mod_redaction-overview-minibar mod_redaction-overview-minibar-{{levelclass}}"
+                                                         title="{{name}}: {{score}}/{{max}}"
+                                                         style="width: {{percentage}}%"></div>
+                                                {{/criteria}}
+                                            </div>
+                                        {{/has_criteria}}
+                                    {{/is_latest}}
+                                </td>
+                            {{/hasattempt}}
+                            {{^hasattempt}}
+                                <td class="mod_redaction-overview-cell mod_redaction-overview-cell-empty">&mdash;</td>
+                            {{/hasattempt}}
+                        {{/cells}}
+                    </tr>
+                {{/rows}}
+            </tbody>
+        </table>
+    {{/has_rows}}
+    {{^has_rows}}
+        <div class="alert alert-info">{{#str}}overview_no_data, redaction{{/str}}</div>
+    {{/has_rows}}
+</div>
