@@ -13,7 +13,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define([], function() {
+define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
 
     var config = {};
 
@@ -28,10 +28,10 @@ define([], function() {
     }
 
     /**
-     * Poll for training evaluation result.
-     * @param {number} evaluationId
+     * Poll for evaluation result via the Moodle web service.
+     * @param {number} submissionid
      */
-    function pollTrainingResult(evaluationId) {
+    function pollEvaluationResult(submissionid) {
         var attempts = 0;
         var maxAttempts = 120; // 10 minutes at 5s intervals.
         var interval = 5000;
@@ -44,85 +44,22 @@ define([], function() {
                 return;
             }
 
-            var formData = new FormData();
-            formData.append('id', config.cmid);
-            formData.append('submissionid', config.submissionid);
-            formData.append('sesskey', config.sesskey);
-
-            fetch(config.wwwroot + '/mod/redaction/ajax/get_evaluation_status.php', {
-                method: 'POST',
-                body: formData,
-            })
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(data) {
-                if (data.status === 'completed' || data.status === 'failed') {
-                    clearInterval(poll);
-                    location.reload();
-                }
-            })
-            .catch(function() {
-                // Ignore polling errors, continue.
-            });
+            Ajax.call([{
+                methodname: 'mod_redaction_get_evaluation_status',
+                args: {submissionid: parseInt(submissionid, 10)},
+            }])[0]
+                .then(function(data) {
+                    if (data.status === 'completed' || data.status === 'applied' || data.status === 'failed') {
+                        clearInterval(poll);
+                        location.reload();
+                    }
+                    return data;
+                })
+                .catch(function() {
+                    // Ignore polling errors, continue.
+                    return null;
+                });
         }, interval);
-
-        // Suppress unused variable warning.
-        void evaluationId;
-    }
-
-    /**
-     * Submit for training evaluation.
-     */
-    function submitTraining() {
-        var btn = document.getElementById('btn-training-submit');
-        var progress = document.getElementById('training-progress');
-
-        var form = document.getElementById('redaction-form');
-        var formData = new FormData(form);
-        formData.set('action', 'save');
-
-        btn.disabled = true;
-        if (progress) {
-            progress.style.display = 'flex';
-        }
-
-        // Step 1: Save current content.
-        fetch(config.formurl, {
-            method: 'POST',
-            body: formData,
-        }).then(function() {
-            // Step 2: Submit for training evaluation.
-            var trainingData = new FormData();
-            trainingData.append('id', config.cmid);
-            trainingData.append('sesskey', config.sesskey);
-
-            return fetch(config.wwwroot + '/mod/redaction/ajax/training_submit.php', {
-                method: 'POST',
-                body: trainingData,
-            });
-        }).then(function(response) {
-            return response.json();
-        })
-        .then(function(data) {
-            if (data.success) {
-                pollTrainingResult(data.evaluationid);
-            } else {
-                alert(data.message || config.strings.ai_request_failed);
-                btn.disabled = false;
-                if (progress) {
-                    progress.style.display = 'none';
-                }
-            }
-        }).catch(function(error) {
-            // eslint-disable-next-line no-console
-            console.error('Training submit error:', error);
-            alert(config.strings.ai_request_failed);
-            btn.disabled = false;
-            if (progress) {
-                progress.style.display = 'none';
-            }
-        });
     }
 
     return {
@@ -133,12 +70,15 @@ define([], function() {
         init: function(params) {
             config = params;
 
-            // Expose functions for template onclick handlers.
             window.toggleCollapsible = toggleCollapsible;
 
-            if (config.trainingenabled) {
-                window.submitTraining = submitTraining;
+            // If a pending evaluation exists for this submission, start polling.
+            if (config.pollEvaluation && config.submissionid) {
+                pollEvaluationResult(config.submissionid);
             }
+
+            // Suppress unused variable warning.
+            void Notification;
         },
     };
 });
