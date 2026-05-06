@@ -179,26 +179,13 @@
                         <span class="mod_redaction-training-remaining">{{trainingremainingstr}}</span>
                     {{/hasremainingstr}}
                 </div>
-                <div class="mod_redaction-training-actions">
-                    <button type="button"
-                            id="btn-training-submit"
-                            class="mod_redaction-btn-training"
-                            {{^cantraining}}disabled{{/cantraining}}
-                            onclick="submitTraining()">
-                        &#x1F504; {{#str}}training_submit, mod_redaction{{/str}}
-                    </button>
-                    {{^cantraining}}
-                        {{#trainingblockedreason}}
-                            <div class="mod_redaction-training-blocked-reason">
-                                {{trainingblockedreason}}
-                            </div>
-                        {{/trainingblockedreason}}
-                    {{/cantraining}}
-                </div>
-                <div id="training-progress" style="display:none;">
-                    <div class="mod_redaction-training-spinner"></div>
-                    <span>{{#str}}training_evaluating, mod_redaction{{/str}}</span>
-                </div>
+                {{^cantraining}}
+                    {{#trainingblockedreason}}
+                        <div class="mod_redaction-training-blocked-reason">
+                            {{trainingblockedreason}}
+                        </div>
+                    {{/trainingblockedreason}}
+                {{/cantraining}}
             </div>
         {{/issubmitted}}
 
