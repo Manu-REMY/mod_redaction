@@ -655,19 +655,20 @@ function redaction_correction_complete($redactionid) {
  * @param stdClass $redaction The redaction instance
  * @return string HTML output
  */
-function redaction_render_teacher_dashboard($cm, $redaction) {
+function redaction_render_teacher_dashboard($cm, $redaction, int $groupid = 0) {
     global $OUTPUT, $PAGE;
 
     // Pre-load JS strings used by the dashboard AMD module via M.util.get_string.
     $PAGE->requires->strings_for_js(['dashboard_grade_distribution'], 'mod_redaction');
 
-    // Get submission statistics.
-    $submissionstats = new \mod_redaction\dashboard\submission_stats($redaction->id);
+    // Get submission statistics for the current group filter (0 = all).
+    $submissionstats = new \mod_redaction\dashboard\submission_stats($redaction->id, $groupid);
     $stats = $submissionstats->get_stats();
 
     // Prepare template context.
     $context = [
         'cmid' => $cm->id,
+        'groupid' => $groupid,
         'ai_enabled' => (bool) $redaction->ai_enabled,
         'stats' => [
             'total_expected' => $stats->total_expected,
@@ -691,7 +692,7 @@ function redaction_render_teacher_dashboard($cm, $redaction) {
 
     // Get AI summary if AI is enabled.
     if ($redaction->ai_enabled) {
-        $summarygenerator = new \mod_redaction\dashboard\ai_summary_generator($redaction->id);
+        $summarygenerator = new \mod_redaction\dashboard\ai_summary_generator($redaction->id, $groupid);
         $summary = $summarygenerator->get_summary();
 
         if ($summary) {
@@ -863,4 +864,35 @@ function redaction_get_latest_training_evaluation($submissionid) {
     );
 
     return !empty($records) ? reset($records) : null;
+}
+
+/**
+ * Returns the groups available for filtering on the grading page.
+ *
+ * If the activity has a grouping assigned, only its groups are returned.
+ * Otherwise all course groups are returned.
+ *
+ * @param stdClass $cm Course module record (with groupingid)
+ * @param int $courseid
+ * @return array array of group records keyed by id
+ */
+function redaction_get_grading_filter_groups($cm, int $courseid): array {
+    if (!empty($cm->groupingid)) {
+        return groups_get_all_groups($courseid, 0, $cm->groupingid);
+    }
+    return groups_get_all_groups($courseid);
+}
+
+/**
+ * Returns the user IDs belonging to a group, restricted to those with
+ * the redaction:submit capability in the course.
+ *
+ * @param int $courseid
+ * @param int $groupid 0 means no filter; returns all enrolled with the capability
+ * @return int[] array of user IDs
+ */
+function redaction_get_filtered_userids(int $courseid, int $groupid): array {
+    $coursecontext = context_course::instance($courseid);
+    $users = get_enrolled_users($coursecontext, 'mod/redaction:submit', $groupid, 'u.id');
+    return array_keys($users);
 }
