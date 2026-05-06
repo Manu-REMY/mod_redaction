@@ -62,46 +62,42 @@ class ai_summary_generator {
     }
 
     /**
-     * Get or generate the AI summary for this activity.
+     * Get the cached AI summary, or regenerate on demand.
      *
-     * @param bool $force Force regeneration even if cached
-     * @return object|null The summary object or null if not enough data
+     * Default behaviour ($force=false) NEVER calls the AI provider — it returns
+     * the cached summary as-is (even when stale) or null when no cache exists.
+     * This guarantees the dashboard render is fast and never blocks on a remote
+     * API call. When the cache is stale, the UI shows the timestamp so the user
+     * can click "Refresh" to trigger an explicit synchronous regeneration via
+     * AJAX (force=true), with a spinner.
+     *
+     * @param bool $force Force regeneration (used by the explicit "Refresh" action)
+     * @return object|null The summary object or null if no cache and no regeneration
      */
     public function get_summary(bool $force = false): ?object {
         global $DB;
 
-        // Get existing summary.
         $summary = $DB->get_record('redaction_ai_summaries', ['redactionid' => $this->redactionid]);
 
-        // Check if we need to regenerate.
-        if ($summary && !$force) {
-            // Check if cache is still valid.
-            if ((time() - $summary->timemodified) < self::CACHE_DURATION) {
-                return $this->format_summary($summary);
-            }
+        if (!$force) {
+            // Page render path: never call the AI here. Return cached (any age) or null.
+            return $summary ? $this->format_summary($summary) : null;
         }
 
-        // Get evaluations to analyze.
+        // Explicit refresh path: regenerate synchronously.
         $evaluations = $this->get_completed_evaluations();
-
         if (count($evaluations) < self::MIN_EVALUATIONS) {
             return null;
         }
-
-        // Check if AI is enabled.
         if (!$this->redaction->ai_enabled) {
             return null;
         }
 
-        // Generate new summary.
         $newSummary = $this->generate_summary($evaluations);
-
         if ($newSummary) {
-            // Save to database.
             $this->save_summary($newSummary, count($evaluations));
             return $this->format_summary($newSummary);
         }
-
         return null;
     }
 
