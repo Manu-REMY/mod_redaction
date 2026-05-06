@@ -414,17 +414,10 @@ $string['mobile_evaluation_title'] = 'Évaluation';
 $string['training_settings'] = 'Mode entraînement';
 $string['training_enabled'] = 'Activer le mode entraînement';
 $string['training_enabled_help'] = 'Permet aux élèves de soumettre plusieurs fois leur travail pour obtenir un retour IA immédiat avant la soumission finale. Nécessite que l\'évaluation IA soit activée. Attention : la consommation de tokens IA sera multipliée par le nombre de tentatives.';
-$string['training_cooldown'] = 'Délai entre les soumissions';
-$string['training_cooldown_help'] = 'Temps minimum à attendre entre deux soumissions d\'entraînement.';
-$string['training_min_change'] = 'Modification minimum requise';
-$string['training_min_change_help'] = 'Pourcentage minimum de modification du contenu requis entre deux soumissions d\'entraînement pour éviter les soumissions identiques.';
 $string['training_max_attempts'] = 'Nombre maximum de tentatives';
 $string['training_max_attempts_help'] = 'Nombre maximum de soumissions d\'entraînement autorisées. 0 = illimité.';
 $string['training_requires_ai'] = 'Le mode entraînement nécessite que l\'évaluation IA soit activée.';
-$string['training_submit'] = 'Soumettre pour feedback';
 $string['training_submitted'] = 'Soumission d\'entraînement envoyée. Le feedback sera disponible dans quelques instants.';
-$string['training_final_submit'] = 'Soumission finale';
-$string['training_final_confirm'] = 'Êtes-vous sûr de vouloir effectuer votre soumission finale ? Vous ne pourrez plus la modifier. C\'est cette version qui sera notée.';
 $string['training_history'] = 'Historique des feedbacks';
 $string['training_attempt'] = 'Tentative {$a}';
 $string['training_remaining'] = 'Tentatives restantes : {$a}';
@@ -436,11 +429,17 @@ $string['training_error_max_attempts_reached'] = 'Nombre maximum de tentatives a
 $string['training_error_cooldown_active'] = 'Veuillez patienter avant la prochaine soumission.';
 $string['training_error_cooldown_remaining'] = 'Veuillez patienter encore {$a} minute(s) avant la prochaine soumission.';
 $string['training_error_evaluation_pending'] = 'Une évaluation est en cours. Attendez le résultat avant de soumettre à nouveau.';
-$string['training_error_min_change'] = 'Le contenu n\'a pas assez changé depuis la dernière soumission. Modifiez davantage votre texte avant de resoumettre.';
 $string['training_evaluating'] = 'Évaluation en cours...';
 $string['training_feedback_title'] = 'Feedback d\'entraînement';
 $string['training_no_feedback'] = 'Aucun feedback d\'entraînement disponible.';
 $string['unlimited'] = 'Illimité';
+
+// Attempt strings.
+$string['attempt_button_first'] = 'Soumettre';
+$string['attempt_button_last'] = 'Soumettre la version finale (dernière tentative)';
+$string['attempt_button_remaining'] = 'Soumettre à nouveau ({$a->used}/{$a->max} utilisées)';
+$string['attempt_last_confirm'] = 'C\'est ta dernière tentative. Tu ne pourras plus modifier après. Continuer ?';
+$string['attempts_exhausted'] = 'Tu as utilisé tes {$a} tentatives. Note finale enregistrée.';
 
 // Visual criteria editor.
 $string['grille_criteres_visual_help'] = 'Définissez vos critères d\'évaluation. La somme des poids devrait idéalement être égale à 20.';
