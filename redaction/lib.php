@@ -24,6 +24,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Default training attempts quota when training_max_attempts is 0 (unlimited).
+ */
+const REDACTION_DEFAULT_TRAINING_ATTEMPTS = 5;
+
 /** Default maximum grade for the activity. */
 define('MOD_REDACTION_GRADEMAX', 20);
 
@@ -488,6 +493,9 @@ function redaction_grade_item_update($redaction, $grades = null) {
 /**
  * Get user grades.
  *
+ * Prefers the manual grade (submission.grade) if set by the teacher.
+ * Falls back to the latest completed/applied AI evaluation grade when no manual grade exists.
+ *
  * @param stdClass $redaction
  * @param int $userid
  * @return array
@@ -530,10 +538,29 @@ function redaction_get_user_grades($redaction, $userid = 0) {
                     'userid' => $member->id
                 ]);
 
-                if ($submission && $submission->grade !== null) {
+                if (!$submission) {
+                    continue;
+                }
+
+                // Prefer manual grade; fall back to latest completed/applied AI evaluation.
+                if ($submission->grade !== null) {
+                    $rawgrade = $submission->grade;
+                } else {
+                    $rawgrade = $DB->get_field_sql(
+                        "SELECT e.parsed_grade
+                           FROM {redaction_ai_evaluations} e
+                          WHERE e.submissionid = :submissionid
+                            AND e.status IN ('completed', 'applied')
+                       ORDER BY e.timecreated DESC, e.id DESC
+                          LIMIT 1",
+                        ['submissionid' => $submission->id]
+                    );
+                }
+
+                if ($rawgrade !== null && $rawgrade !== false) {
                     $grades[$member->id] = new stdClass();
                     $grades[$member->id]->userid = $member->id;
-                    $grades[$member->id]->rawgrade = $submission->grade;
+                    $grades[$member->id]->rawgrade = $rawgrade;
                 }
             }
         } else {
@@ -544,14 +571,33 @@ function redaction_get_user_grades($redaction, $userid = 0) {
                 'userid' => 0
             ]);
 
-            if ($submission && $submission->grade !== null) {
+            if (!$submission) {
+                continue;
+            }
+
+            // Prefer manual grade; fall back to latest completed/applied AI evaluation.
+            if ($submission->grade !== null) {
+                $rawgrade = $submission->grade;
+            } else {
+                $rawgrade = $DB->get_field_sql(
+                    "SELECT e.parsed_grade
+                       FROM {redaction_ai_evaluations} e
+                      WHERE e.submissionid = :submissionid
+                        AND e.status IN ('completed', 'applied')
+                   ORDER BY e.timecreated DESC, e.id DESC
+                      LIMIT 1",
+                    ['submissionid' => $submission->id]
+                );
+            }
+
+            if ($rawgrade !== null && $rawgrade !== false) {
                 foreach ($members as $member) {
                     if ($userid != 0 && $userid != $member->id) {
                         continue;
                     }
                     $grades[$member->id] = new stdClass();
                     $grades[$member->id]->userid = $member->id;
-                    $grades[$member->id]->rawgrade = $submission->grade;
+                    $grades[$member->id]->rawgrade = $rawgrade;
                 }
             }
         }
@@ -611,6 +657,9 @@ function redaction_correction_complete($redactionid) {
  */
 function redaction_render_teacher_dashboard($cm, $redaction) {
     global $OUTPUT, $PAGE;
+
+    // Pre-load JS strings used by the dashboard AMD module via M.util.get_string.
+    $PAGE->requires->strings_for_js(['dashboard_grade_distribution'], 'mod_redaction');
 
     // Get submission statistics.
     $submissionstats = new \mod_redaction\dashboard\submission_stats($redaction->id);
@@ -676,54 +725,53 @@ function redaction_render_teacher_dashboard($cm, $redaction) {
 }
 
 /**
- * Check if a student can submit for training.
+ * Returns the effective maximum training attempts for an instance.
  *
- * @param stdClass $redaction Activity instance
- * @param stdClass $submission Submission record
- * @param stdClass|null $correction Correction record (optional)
- * @return array ['allowed' => bool, 'reason' => string, 'remaining' => int (seconds, if cooldown)]
+ * If training_max_attempts is 0 (legacy unlimited), the default constant applies.
+ *
+ * @param stdClass $redaction
+ * @return int
  */
-function redaction_can_training_submit($redaction, $submission, $correction = null) {
+function redaction_effective_max_attempts($redaction) {
+    $max = (int) ($redaction->training_max_attempts ?? 0);
+    return $max > 0 ? $max : REDACTION_DEFAULT_TRAINING_ATTEMPTS;
+}
+
+/**
+ * Determine whether the student is allowed to submit another attempt.
+ *
+ * Replaces the previous training_submit gate. Cooldown and min_change checks
+ * are removed; quota and pending evaluation are the only remaining gates.
+ *
+ * @param stdClass $redaction
+ * @param stdClass $submission
+ * @param stdClass|null $correction
+ * @return array ['allowed' => bool, 'reason' => string]
+ */
+function redaction_can_submit_attempt($redaction, $submission, $correction = null) {
     global $DB;
 
-    // Training mode not enabled.
-    if (empty($redaction->training_enabled)) {
+    if (empty($redaction->training_enabled) || empty($redaction->ai_enabled)) {
         return ['allowed' => false, 'reason' => 'training_not_enabled'];
     }
 
-    // AI must be enabled.
-    if (empty($redaction->ai_enabled)) {
-        return ['allowed' => false, 'reason' => 'training_not_enabled'];
-    }
-
-    // Already final-submitted.
-    if ($submission->status == 1) {
+    if ((int) $submission->status === 1) {
         return ['allowed' => false, 'reason' => 'already_submitted'];
     }
 
-    // Check deadline.
     if ($correction && !empty($correction->deadline_date) && time() > $correction->deadline_date) {
         return ['allowed' => false, 'reason' => 'deadline_passed'];
     }
 
-    // Check max attempts (0 = unlimited).
-    if ($redaction->training_max_attempts > 0 && $submission->training_count >= $redaction->training_max_attempts) {
+    $maxeffective = redaction_effective_max_attempts($redaction);
+    $used = (int) ($submission->training_count ?? 0);
+    if ($used >= $maxeffective) {
         return ['allowed' => false, 'reason' => 'max_attempts_reached'];
     }
 
-    // Check cooldown.
-    if (!empty($submission->last_training_time)) {
-        $elapsed = time() - $submission->last_training_time;
-        if ($elapsed < $redaction->training_cooldown) {
-            $remaining = $redaction->training_cooldown - $elapsed;
-            return ['allowed' => false, 'reason' => 'cooldown_active', 'remaining' => $remaining];
-        }
-    }
-
-    // Check if there's a pending training evaluation.
     $pending = $DB->record_exists_select(
         'redaction_ai_evaluations',
-        'submissionid = ? AND is_training = 1 AND status IN (?, ?)',
+        'submissionid = ? AND status IN (?, ?)',
         [$submission->id, 'pending', 'processing']
     );
     if ($pending) {
@@ -731,6 +779,15 @@ function redaction_can_training_submit($redaction, $submission, $correction = nu
     }
 
     return ['allowed' => true, 'reason' => ''];
+}
+
+/**
+ * Backward-compat alias. Prefer redaction_can_submit_attempt().
+ *
+ * @deprecated since 2.1.0
+ */
+function redaction_can_training_submit($redaction, $submission, $correction = null) {
+    return redaction_can_submit_attempt($redaction, $submission, $correction);
 }
 
 /**
@@ -771,7 +828,7 @@ function redaction_check_min_change($newcontent, $submissionid, $minchangepercen
 }
 
 /**
- * Get all training evaluations for a submission, most recent first.
+ * Get all evaluations for a submission, most recent first.
  *
  * @param int $submissionid Submission ID
  * @return array Array of evaluation records
@@ -781,14 +838,14 @@ function redaction_get_training_evaluations($submissionid) {
 
     return $DB->get_records_sql(
         'SELECT * FROM {redaction_ai_evaluations}
-         WHERE submissionid = ? AND is_training = 1
+         WHERE submissionid = ?
          ORDER BY timecreated DESC',
         [$submissionid]
     );
 }
 
 /**
- * Get the latest completed training evaluation for a submission.
+ * Get the latest completed evaluation for a submission.
  *
  * @param int $submissionid Submission ID
  * @return object|null
@@ -798,7 +855,7 @@ function redaction_get_latest_training_evaluation($submissionid) {
 
     $records = $DB->get_records_sql(
         'SELECT * FROM {redaction_ai_evaluations}
-         WHERE submissionid = ? AND is_training = 1 AND status = ?
+         WHERE submissionid = ? AND status = ?
          ORDER BY timecreated DESC',
         [$submissionid, 'completed'],
         0,

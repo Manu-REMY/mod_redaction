@@ -129,7 +129,6 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'parsed_grade',
             'parsed_feedback',
             'criteria_json',
-            'is_training',
             'status',
             'error_message',
             'applied_by',

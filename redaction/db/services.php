@@ -133,15 +133,6 @@ $functions = [
         'capabilities' => 'mod/redaction:viewhistory',
         'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
-    'mod_redaction_training_submit' => [
-        'classname' => 'mod_redaction\external\training_submit',
-        'methodname' => 'execute',
-        'description' => 'Submit work for training feedback',
-        'type' => 'write',
-        'ajax' => true,
-        'capabilities' => 'mod/redaction:submit',
-        'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
-    ],
     'mod_redaction_check_similarity' => [
         'classname' => 'mod_redaction\external\check_similarity',
         'methodname' => 'execute',
