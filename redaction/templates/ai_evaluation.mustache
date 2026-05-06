@@ -1,60 +1,76 @@
 {{!
     @template mod_redaction/ai_evaluation
 
-    AI evaluation display with criteria, feedback, strengths/weaknesses,
-    keywords, suggestions and action buttons.
+    AI evaluation display — shows all evaluations for a submission chronologically
+    (newest first), with the most recent one marked with a "latest" badge.
 
     Context variables required for this template:
     * ai_enabled - Boolean
     * hassubmission - Boolean
-    * hasevaluation - Boolean
-    * ispending - Boolean
-    * isfailed - Boolean
-    * iscompleted - Boolean
+    * hasevaluation - Boolean (true if at least one evaluation exists)
     * submissionid - Submission ID
-    * evaluationid - Evaluation ID
-    * grade - Formatted grade
-    * gradelevel - Level string (excellent/good/medium/low)
-    * gradelevelstr - Translated level string
-    * confidencepercent - Confidence as percentage
-    * confidenceclass - Confidence CSS class
-    * error_message - Error message if failed
-    * criteria - Array of {name, score, max, percentage, scoreclass, comment, hascomment, levelstr}
-    * hascriteria - Boolean
-    * parsed_feedback - Feedback HTML
-    * hasfeedback - Boolean
-    * overall_appreciation - Short overall appreciation text
-    * hasappreciation - Boolean
-    * strengths - Array of {text}
-    * hasstrengths - Boolean
-    * weaknesses - Array of {text}
-    * hasweaknesses - Boolean
-    * keywords_found - Array of {word}
-    * haskeywordsfound - Boolean
-    * keywords_missing - Array of {word}
-    * haskeywordsmissing - Boolean
-    * haskeywords - Boolean
-    * suggestions - Array of {text}
-    * hassuggestions - Boolean
+    * evaluationid - ID of the most recent evaluation (for re-evaluate button)
+    * hasevaluations - Boolean
+    * totalevaluations - Total number of evaluations
+    * evaluations - Array of evaluation objects, each containing:
+      - is_latest - Boolean, true for the most recent evaluation
+      - attemptnum - Attempt number (1-based, oldest = 1)
+      - dateformatted - Human-readable date string
+      - evaluationid - Evaluation ID
+      - submissionid - Submission ID
+      - ispending - Boolean
+      - isfailed - Boolean
+      - iscompleted - Boolean
+      - grade - Formatted grade string
+      - gradelevel - Level string (excellent/good/medium/low)
+      - gradelevelstr - Translated level string
+      - confidencepercent - Confidence as percentage
+      - confidenceclass - Confidence CSS class
+      - error_message - Error message if failed
+      - criteria - Array of {name, score, max, percentage, scoreclass, comment, hascomment, levelstr}
+      - hascriteria - Boolean
+      - parsed_feedback - Feedback HTML
+      - hasfeedback - Boolean
+      - overall_appreciation - Short overall appreciation text
+      - hasappreciation - Boolean
+      - strengths - Array of {text}
+      - hasstrengths - Boolean
+      - weaknesses - Array of {text}
+      - hasweaknesses - Boolean
+      - keywords_found - Array of {word}
+      - haskeywordsfound - Boolean
+      - keywords_missing - Array of {word}
+      - haskeywordsmissing - Boolean
+      - haskeywords - Boolean
+      - suggestions - Array of {text}
+      - hassuggestions - Boolean
 
     Example context (json):
     {
         "ai_enabled": true,
         "hassubmission": true,
         "hasevaluation": true,
-        "iscompleted": true,
-        "evaluationid": 1,
-        "grade": "15.0",
-        "gradelevel": "good",
-        "gradelevelstr": "Bien",
-        "confidencepercent": 85,
-        "confidenceclass": "good",
-        "hascriteria": true,
-        "criteria": [{"name": "Relevance", "score": "4.0", "max": "5", "percentage": 80, "scoreclass": "good", "levelstr": "Bien"}],
-        "hasstrengths": true,
-        "strengths": [{"text": "Good argumentation"}],
-        "hasweaknesses": true,
-        "weaknesses": [{"text": "Needs more structure"}]
+        "hasevaluations": true,
+        "totalevaluations": 2,
+        "submissionid": 1,
+        "evaluationid": 2,
+        "evaluations": [
+            {
+                "is_latest": true,
+                "attemptnum": 2,
+                "dateformatted": "6 May 2026, 10:00",
+                "evaluationid": 2,
+                "submissionid": 1,
+                "iscompleted": true,
+                "grade": "15.0",
+                "gradelevel": "good",
+                "gradelevelstr": "Bien",
+                "confidencepercent": 85,
+                "confidenceclass": "good",
+                "hascriteria": true,
+                "criteria": [{"name": "Relevance", "score": "4.0", "max": "5", "percentage": 80, "scoreclass": "good", "levelstr": "Bien"}]
+            }
+        ]
     }
 }}
 {{#ai_enabled}}
@@ -71,224 +87,259 @@
         </button>
     {{/hasevaluation}}
 
-    {{#hasevaluation}}
-        {{#ispending}}
-            <div class="mod_redaction-ai-pending">
-                <div class="mod_redaction-spinner"></div>
-                <span>{{#str}}ai_evaluation_pending, redaction{{/str}}</span>
-            </div>
-        {{/ispending}}
+    {{#hasevaluations}}
+        {{#evaluations}}
+        <div class="mod_redaction-ai-attempt-block{{#is_latest}} mod_redaction-ai-attempt-latest{{/is_latest}}">
 
-        {{#isfailed}}
-            <div class="alert alert-danger mod_redaction-ai-eval-alert">
-                {{#str}}ai_evaluation_failed, redaction{{/str}}
-                {{#error_message}}<br><small>{{error_message}}</small>{{/error_message}}
-            </div>
-            <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
-                &#128260; {{#str}}retry, moodle{{/str}}
-            </button>
-        {{/isfailed}}
-
-        {{#iscompleted}}
-            {{! Grade Card with Level & Confidence }}
-            <div class="mod_redaction-ai-grade-card">
-                <div class="mod_redaction-ai-grade-ring mod_redaction-ai-grade-ring-{{gradelevel}}">
-                    <div class="mod_redaction-ai-grade-value">{{grade}}<span class="mod_redaction-ai-grade-max">/20</span></div>
-                </div>
-                <div class="mod_redaction-ai-grade-level mod_redaction-ai-level-{{gradelevel}}">{{gradelevelstr}}</div>
-                <div class="mod_redaction-ai-grade-label">{{#str}}ai_grade, redaction{{/str}}</div>
-                <div class="mod_redaction-ai-confidence" title="{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%">
-                    <div class="mod_redaction-ai-confidence-bar">
-                        <div class="mod_redaction-ai-confidence-fill mod_redaction-{{confidenceclass}}" style="width: {{confidencepercent}}%"></div>
-                    </div>
-                    <small class="mod_redaction-ai-confidence-label">{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%</small>
-                </div>
+            {{! Attempt header with date and latest badge }}
+            <div class="mod_redaction-ai-attempt-header">
+                <span class="mod_redaction-ai-attempt-label">
+                    {{#str}}training_attempt, redaction, {{attemptnum}}{{/str}}
+                    &mdash; {{dateformatted}}
+                </span>
+                {{#is_latest}}
+                <span class="badge badge-primary mod_redaction-ai-latest-badge">
+                    {{#str}}attempt_latest_badge, redaction{{/str}}
+                </span>
+                {{/is_latest}}
             </div>
 
-            {{! Overall Appreciation }}
-            {{#hasappreciation}}
-            <div class="mod_redaction-ai-appreciation">
-                <div class="mod_redaction-ai-appreciation-icon">&#128172;</div>
-                <div class="mod_redaction-ai-appreciation-text">{{{overall_appreciation}}}</div>
-            </div>
-            {{/hasappreciation}}
-
-            {{! Strengths & Weaknesses Side by Side }}
-            {{#hasstrengths}}{{#hasweaknesses}}
-            <div class="mod_redaction-ai-strengths-weaknesses">
-                <div class="mod_redaction-ai-sw-column mod_redaction-ai-strengths-col">
-                    <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-strengths">
-                        <span class="mod_redaction-ai-sw-icon">&#9989;</span>
-                        {{#str}}ai_strengths, redaction{{/str}}
-                    </div>
-                    <ul class="mod_redaction-ai-sw-list">
-                        {{#strengths}}
-                        <li>{{{text}}}</li>
-                        {{/strengths}}
-                    </ul>
+            {{#ispending}}
+                <div class="mod_redaction-ai-pending">
+                    <div class="mod_redaction-spinner"></div>
+                    <span>{{#str}}ai_evaluation_pending, redaction{{/str}}</span>
                 </div>
-                <div class="mod_redaction-ai-sw-column mod_redaction-ai-weaknesses-col">
-                    <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-weaknesses">
-                        <span class="mod_redaction-ai-sw-icon">&#128736;</span>
-                        {{#str}}ai_weaknesses, redaction{{/str}}
-                    </div>
-                    <ul class="mod_redaction-ai-sw-list">
-                        {{#weaknesses}}
-                        <li>{{{text}}}</li>
-                        {{/weaknesses}}
-                    </ul>
-                </div>
-            </div>
-            {{/hasweaknesses}}{{/hasstrengths}}
+            {{/ispending}}
 
-            {{! Strengths only }}
-            {{#hasstrengths}}{{^hasweaknesses}}
-            <div class="mod_redaction-ai-strengths-weaknesses">
-                <div class="mod_redaction-ai-sw-column mod_redaction-ai-strengths-col mod_redaction-ai-sw-full">
-                    <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-strengths">
-                        <span class="mod_redaction-ai-sw-icon">&#9989;</span>
-                        {{#str}}ai_strengths, redaction{{/str}}
-                    </div>
-                    <ul class="mod_redaction-ai-sw-list">
-                        {{#strengths}}
-                        <li>{{{text}}}</li>
-                        {{/strengths}}
-                    </ul>
+            {{#isfailed}}
+                <div class="alert alert-danger mod_redaction-ai-eval-alert">
+                    {{#str}}ai_evaluation_failed, redaction{{/str}}
+                    {{#error_message}}<br><small>{{error_message}}</small>{{/error_message}}
                 </div>
-            </div>
-            {{/hasweaknesses}}{{/hasstrengths}}
+                {{#is_latest}}
+                <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+                    &#128260; {{#str}}retry, moodle{{/str}}
+                </button>
+                {{/is_latest}}
+            {{/isfailed}}
 
-            {{! Weaknesses only }}
-            {{^hasstrengths}}{{#hasweaknesses}}
-            <div class="mod_redaction-ai-strengths-weaknesses">
-                <div class="mod_redaction-ai-sw-column mod_redaction-ai-weaknesses-col mod_redaction-ai-sw-full">
-                    <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-weaknesses">
-                        <span class="mod_redaction-ai-sw-icon">&#128736;</span>
-                        {{#str}}ai_weaknesses, redaction{{/str}}
+            {{#iscompleted}}
+                {{! Grade Card with Level & Confidence }}
+                <div class="mod_redaction-ai-grade-card">
+                    <div class="mod_redaction-ai-grade-ring mod_redaction-ai-grade-ring-{{gradelevel}}">
+                        <div class="mod_redaction-ai-grade-value">{{grade}}<span class="mod_redaction-ai-grade-max">/20</span></div>
                     </div>
-                    <ul class="mod_redaction-ai-sw-list">
-                        {{#weaknesses}}
-                        <li>{{{text}}}</li>
-                        {{/weaknesses}}
-                    </ul>
-                </div>
-            </div>
-            {{/hasweaknesses}}{{/hasstrengths}}
-
-            {{! Criteria Details (Collapsible) }}
-            {{#hascriteria}}
-                <div class="mod_redaction-ai-criteria-section">
-                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 class="mod_redaction-ai-section-title">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
-                        <span class="mod_redaction-toggle-icon">&#9660;</span>
-                    </div>
-                    <div class="mod_redaction-ai-section-content">
-                        {{#criteria}}
-                            <div class="mod_redaction-ai-criterion mod_redaction-ai-criterion-{{scoreclass}}">
-                                <div class="mod_redaction-ai-criterion-header">
-                                    <span class="mod_redaction-ai-criterion-name">{{name}}</span>
-                                    <div class="mod_redaction-ai-criterion-meta">
-                                        <span class="mod_redaction-ai-criterion-level-label mod_redaction-ai-level-{{scoreclass}}">{{levelstr}}</span>
-                                        <span class="mod_redaction-ai-criterion-score mod_redaction-{{scoreclass}}">
-                                            {{score}}/{{max}}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="mod_redaction-ai-criterion-progress">
-                                    <div class="mod_redaction-ai-criterion-progress-bar mod_redaction-{{scoreclass}}"
-                                         style="width: {{percentage}}%"></div>
-                                </div>
-                                {{#hascomment}}
-                                    <div class="mod_redaction-ai-criterion-comment">
-                                        {{{comment}}}
-                                    </div>
-                                {{/hascomment}}
-                            </div>
-                        {{/criteria}}
-                    </div>
-                </div>
-            {{/hascriteria}}
-
-            {{! Keywords Analysis (Collapsible) }}
-            {{#haskeywords}}
-                <div class="mod_redaction-ai-criteria-section">
-                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 class="mod_redaction-ai-section-title">&#128273; {{#str}}ai_keywords, redaction{{/str}}</h5>
-                        <span class="mod_redaction-toggle-icon">&#9660;</span>
-                    </div>
-                    <div class="mod_redaction-ai-section-content">
-                        <div class="mod_redaction-ai-keywords-container">
-                            {{#haskeywordsfound}}
-                            <div class="mod_redaction-ai-keywords-group">
-                                <span class="mod_redaction-ai-keywords-label mod_redaction-ai-keywords-found-label">{{#str}}ai_keywords_found, redaction{{/str}}</span>
-                                <div class="mod_redaction-ai-keywords-tags">
-                                    {{#keywords_found}}
-                                    <span class="mod_redaction-ai-keyword-tag mod_redaction-ai-keyword-found">&#10003; {{word}}</span>
-                                    {{/keywords_found}}
-                                </div>
-                            </div>
-                            {{/haskeywordsfound}}
-                            {{#haskeywordsmissing}}
-                            <div class="mod_redaction-ai-keywords-group">
-                                <span class="mod_redaction-ai-keywords-label mod_redaction-ai-keywords-missing-label">{{#str}}ai_keywords_missing, redaction{{/str}}</span>
-                                <div class="mod_redaction-ai-keywords-tags">
-                                    {{#keywords_missing}}
-                                    <span class="mod_redaction-ai-keyword-tag mod_redaction-ai-keyword-missing">&#10007; {{word}}</span>
-                                    {{/keywords_missing}}
-                                </div>
-                            </div>
-                            {{/haskeywordsmissing}}
+                    <div class="mod_redaction-ai-grade-level mod_redaction-ai-level-{{gradelevel}}">{{gradelevelstr}}</div>
+                    <div class="mod_redaction-ai-grade-label">{{#str}}ai_grade, redaction{{/str}}</div>
+                    <div class="mod_redaction-ai-confidence" title="{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%">
+                        <div class="mod_redaction-ai-confidence-bar">
+                            <div class="mod_redaction-ai-confidence-fill mod_redaction-{{confidenceclass}}" style="width: {{confidencepercent}}%"></div>
                         </div>
+                        <small class="mod_redaction-ai-confidence-label">{{#str}}ai_confidence, redaction{{/str}}: {{confidencepercent}}%</small>
                     </div>
                 </div>
-            {{/haskeywords}}
 
-            {{! Suggestions (Collapsible) }}
-            {{#hassuggestions}}
-                <div class="mod_redaction-ai-criteria-section">
-                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 class="mod_redaction-ai-section-title">&#128161; {{#str}}ai_suggestions, redaction{{/str}}</h5>
-                        <span class="mod_redaction-toggle-icon">&#9660;</span>
+                {{! Overall Appreciation }}
+                {{#hasappreciation}}
+                <div class="mod_redaction-ai-appreciation">
+                    <div class="mod_redaction-ai-appreciation-icon">&#128172;</div>
+                    <div class="mod_redaction-ai-appreciation-text">{{{overall_appreciation}}}</div>
+                </div>
+                {{/hasappreciation}}
+
+                {{! Strengths & Weaknesses Side by Side }}
+                {{#hasstrengths}}{{#hasweaknesses}}
+                <div class="mod_redaction-ai-strengths-weaknesses">
+                    <div class="mod_redaction-ai-sw-column mod_redaction-ai-strengths-col">
+                        <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-strengths">
+                            <span class="mod_redaction-ai-sw-icon">&#9989;</span>
+                            {{#str}}ai_strengths, redaction{{/str}}
+                        </div>
+                        <ul class="mod_redaction-ai-sw-list">
+                            {{#strengths}}
+                            <li>{{{text}}}</li>
+                            {{/strengths}}
+                        </ul>
                     </div>
-                    <div class="mod_redaction-ai-section-content">
-                        <ul class="mod_redaction-ai-suggestions-list">
-                            {{#suggestions}}
-                            <li class="mod_redaction-ai-suggestion-item">
-                                <span class="mod_redaction-ai-suggestion-icon">&#10148;</span>
-                                <span class="mod_redaction-ai-suggestion-text">{{{text}}}</span>
-                            </li>
-                            {{/suggestions}}
+                    <div class="mod_redaction-ai-sw-column mod_redaction-ai-weaknesses-col">
+                        <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-weaknesses">
+                            <span class="mod_redaction-ai-sw-icon">&#128736;</span>
+                            {{#str}}ai_weaknesses, redaction{{/str}}
+                        </div>
+                        <ul class="mod_redaction-ai-sw-list">
+                            {{#weaknesses}}
+                            <li>{{{text}}}</li>
+                            {{/weaknesses}}
                         </ul>
                     </div>
                 </div>
-            {{/hassuggestions}}
+                {{/hasweaknesses}}{{/hasstrengths}}
 
-            {{! General Feedback (Collapsible) }}
-            {{#hasfeedback}}
-                <div class="mod_redaction-ai-criteria-section">
-                    <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
-                        <h5 class="mod_redaction-ai-section-title">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
-                        <span class="mod_redaction-toggle-icon">&#9660;</span>
-                    </div>
-                    <div class="mod_redaction-ai-section-content">
-                        <div class="mod_redaction-ai-feedback">
-                            {{{parsed_feedback}}}
+                {{! Strengths only }}
+                {{#hasstrengths}}{{^hasweaknesses}}
+                <div class="mod_redaction-ai-strengths-weaknesses">
+                    <div class="mod_redaction-ai-sw-column mod_redaction-ai-strengths-col mod_redaction-ai-sw-full">
+                        <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-strengths">
+                            <span class="mod_redaction-ai-sw-icon">&#9989;</span>
+                            {{#str}}ai_strengths, redaction{{/str}}
                         </div>
+                        <ul class="mod_redaction-ai-sw-list">
+                            {{#strengths}}
+                            <li>{{{text}}}</li>
+                            {{/strengths}}
+                        </ul>
                     </div>
                 </div>
-            {{/hasfeedback}}
+                {{/hasweaknesses}}{{/hasstrengths}}
 
-            {{! Action Buttons }}
-            <div class="mod_redaction-ai-actions">
-                <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-apply" onclick="applyAIGrade({{evaluationid}})">
-                    &#9989; {{#str}}apply_ai_grade, redaction{{/str}}
-                </button>
-                <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
-                    &#128260; {{#str}}reevaluate, redaction{{/str}}
-                </button>
-            </div>
-        {{/iscompleted}}
+                {{! Weaknesses only }}
+                {{^hasstrengths}}{{#hasweaknesses}}
+                <div class="mod_redaction-ai-strengths-weaknesses">
+                    <div class="mod_redaction-ai-sw-column mod_redaction-ai-weaknesses-col mod_redaction-ai-sw-full">
+                        <div class="mod_redaction-ai-sw-header mod_redaction-ai-sw-header-weaknesses">
+                            <span class="mod_redaction-ai-sw-icon">&#128736;</span>
+                            {{#str}}ai_weaknesses, redaction{{/str}}
+                        </div>
+                        <ul class="mod_redaction-ai-sw-list">
+                            {{#weaknesses}}
+                            <li>{{{text}}}</li>
+                            {{/weaknesses}}
+                        </ul>
+                    </div>
+                </div>
+                {{/hasweaknesses}}{{/hasstrengths}}
+
+                {{! Criteria Details (Collapsible) }}
+                {{#hascriteria}}
+                    <div class="mod_redaction-ai-criteria-section">
+                        <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                            <h5 class="mod_redaction-ai-section-title">&#128202; {{#str}}ai_criteria_details, redaction{{/str}}</h5>
+                            <span class="mod_redaction-toggle-icon">&#9660;</span>
+                        </div>
+                        <div class="mod_redaction-ai-section-content">
+                            {{#criteria}}
+                                <div class="mod_redaction-ai-criterion mod_redaction-ai-criterion-{{scoreclass}}">
+                                    <div class="mod_redaction-ai-criterion-header">
+                                        <span class="mod_redaction-ai-criterion-name">{{name}}</span>
+                                        <div class="mod_redaction-ai-criterion-meta">
+                                            <span class="mod_redaction-ai-criterion-level-label mod_redaction-ai-level-{{scoreclass}}">{{levelstr}}</span>
+                                            <span class="mod_redaction-ai-criterion-score mod_redaction-{{scoreclass}}">
+                                                {{score}}/{{max}}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mod_redaction-ai-criterion-progress">
+                                        <div class="mod_redaction-ai-criterion-progress-bar mod_redaction-{{scoreclass}}"
+                                             style="width: {{percentage}}%"></div>
+                                    </div>
+                                    {{#hascomment}}
+                                        <div class="mod_redaction-ai-criterion-comment">
+                                            {{{comment}}}
+                                        </div>
+                                    {{/hascomment}}
+                                </div>
+                            {{/criteria}}
+                        </div>
+                    </div>
+                {{/hascriteria}}
+
+                {{! Keywords Analysis (Collapsible) }}
+                {{#haskeywords}}
+                    <div class="mod_redaction-ai-criteria-section">
+                        <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                            <h5 class="mod_redaction-ai-section-title">&#128273; {{#str}}ai_keywords, redaction{{/str}}</h5>
+                            <span class="mod_redaction-toggle-icon">&#9660;</span>
+                        </div>
+                        <div class="mod_redaction-ai-section-content">
+                            <div class="mod_redaction-ai-keywords-container">
+                                {{#haskeywordsfound}}
+                                <div class="mod_redaction-ai-keywords-group">
+                                    <span class="mod_redaction-ai-keywords-label mod_redaction-ai-keywords-found-label">{{#str}}ai_keywords_found, redaction{{/str}}</span>
+                                    <div class="mod_redaction-ai-keywords-tags">
+                                        {{#keywords_found}}
+                                        <span class="mod_redaction-ai-keyword-tag mod_redaction-ai-keyword-found">&#10003; {{word}}</span>
+                                        {{/keywords_found}}
+                                    </div>
+                                </div>
+                                {{/haskeywordsfound}}
+                                {{#haskeywordsmissing}}
+                                <div class="mod_redaction-ai-keywords-group">
+                                    <span class="mod_redaction-ai-keywords-label mod_redaction-ai-keywords-missing-label">{{#str}}ai_keywords_missing, redaction{{/str}}</span>
+                                    <div class="mod_redaction-ai-keywords-tags">
+                                        {{#keywords_missing}}
+                                        <span class="mod_redaction-ai-keyword-tag mod_redaction-ai-keyword-missing">&#10007; {{word}}</span>
+                                        {{/keywords_missing}}
+                                    </div>
+                                </div>
+                                {{/haskeywordsmissing}}
+                            </div>
+                        </div>
+                    </div>
+                {{/haskeywords}}
+
+                {{! Suggestions (Collapsible) }}
+                {{#hassuggestions}}
+                    <div class="mod_redaction-ai-criteria-section">
+                        <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                            <h5 class="mod_redaction-ai-section-title">&#128161; {{#str}}ai_suggestions, redaction{{/str}}</h5>
+                            <span class="mod_redaction-toggle-icon">&#9660;</span>
+                        </div>
+                        <div class="mod_redaction-ai-section-content">
+                            <ul class="mod_redaction-ai-suggestions-list">
+                                {{#suggestions}}
+                                <li class="mod_redaction-ai-suggestion-item">
+                                    <span class="mod_redaction-ai-suggestion-icon">&#10148;</span>
+                                    <span class="mod_redaction-ai-suggestion-text">{{{text}}}</span>
+                                </li>
+                                {{/suggestions}}
+                            </ul>
+                        </div>
+                    </div>
+                {{/hassuggestions}}
+
+                {{! General Feedback (Collapsible) }}
+                {{#hasfeedback}}
+                    <div class="mod_redaction-ai-criteria-section">
+                        <div class="mod_redaction-ai-section-toggle" onclick="toggleSection(this)">
+                            <h5 class="mod_redaction-ai-section-title">&#128172; {{#str}}ai_general_feedback, redaction{{/str}}</h5>
+                            <span class="mod_redaction-toggle-icon">&#9660;</span>
+                        </div>
+                        <div class="mod_redaction-ai-section-content">
+                            <div class="mod_redaction-ai-feedback">
+                                {{{parsed_feedback}}}
+                            </div>
+                        </div>
+                    </div>
+                {{/hasfeedback}}
+
+                {{! Action Buttons — apply only on latest, re-evaluate always available }}
+                <div class="mod_redaction-ai-actions">
+                    {{#is_latest}}
+                    <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-apply" onclick="applyAIGrade({{evaluationid}})">
+                        &#9989; {{#str}}apply_ai_grade, redaction{{/str}}
+                    </button>
+                    {{/is_latest}}
+                    {{#is_latest}}
+                    <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+                        &#128260; {{#str}}reevaluate, redaction{{/str}}
+                    </button>
+                    {{/is_latest}}
+                </div>
+            {{/iscompleted}}
+
+        </div>
+        {{/evaluations}}
+    {{/hasevaluations}}
+
+    {{^hasevaluations}}
+    {{#hasevaluation}}
+        {{! Fallback: single evaluation without list (should not normally reach here) }}
+        <button type="button" class="mod_redaction-btn-ai mod_redaction-btn-ai-trigger" onclick="triggerAIEvaluation({{submissionid}})">
+            &#128260; {{#str}}reevaluate, redaction{{/str}}
+        </button>
     {{/hasevaluation}}
+    {{/hasevaluations}}
+
 </div>
 {{/hassubmission}}
 {{/ai_enabled}}
