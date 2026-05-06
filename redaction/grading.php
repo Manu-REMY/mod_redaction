@@ -147,10 +147,10 @@ if ($submission && $redaction->ai_enabled) {
 }
 
 // Load JS modules.
-$PAGE->requires->js_call_amd('mod_redaction/grading', 'init', [
+$PAGE->requires->js_call_amd('mod_redaction/grading', 'init', [[
     'cmid' => $cm->id,
-    'submissionid' => $submission ? $submission->id : 0
-]);
+    'submissionid' => $submission ? $submission->id : 0,
+]]);
 
 // Get renderer.
 $renderer = $PAGE->get_renderer('mod_redaction');
@@ -567,7 +567,7 @@ echo '</div>'; // .grading-container
 echo $renderer->render_history_modal([]);
 
 // Pass strings and configuration to the grading module.
-$PAGE->requires->js_call_amd('mod_redaction/grading_actions', 'init', [
+$PAGE->requires->js_call_amd('mod_redaction/grading_actions', 'init', [[
     'cmid' => $cm->id,
     'sesskey' => sesskey(),
     'wwwroot' => $CFG->wwwroot,
@@ -581,6 +581,6 @@ $PAGE->requires->js_call_amd('mod_redaction/grading_actions', 'init', [
         'connection_error' => get_string('js:connection_error', 'redaction'),
         'unlock_confirm' => get_string('unlock_confirm', 'redaction'),
     ],
-]);
+]]);
 
 echo $OUTPUT->footer();
