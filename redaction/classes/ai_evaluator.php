@@ -164,8 +164,15 @@ class ai_evaluator {
                 throw new \moodle_exception('error:noconsignes', 'redaction');
             }
 
-            // Build prompts.
-            $prompts = ai_prompt_builder::build_prompt($submission, $consignes, $correction ?? new \stdClass());
+            // Build prompts. Activities in training mode get formative-style guidance
+            // (more detailed feedback, concrete reformulations) — see ai_prompt_builder.
+            $isformative = !empty($redaction->training_enabled);
+            $prompts = ai_prompt_builder::build_prompt(
+                $submission,
+                $consignes,
+                $correction ?? new \stdClass(),
+                $isformative
+            );
 
             // Get API key.
             $apikey = ai_config::get_effective_api_key($redaction->ai_provider, ai_config::decrypt_api_key($redaction->ai_api_key ?? ''));
