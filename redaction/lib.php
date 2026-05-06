@@ -658,6 +658,9 @@ function redaction_correction_complete($redactionid) {
 function redaction_render_teacher_dashboard($cm, $redaction) {
     global $OUTPUT, $PAGE;
 
+    // Pre-load JS strings used by the dashboard AMD module via M.util.get_string.
+    $PAGE->requires->strings_for_js(['dashboard_grade_distribution'], 'mod_redaction');
+
     // Get submission statistics.
     $submissionstats = new \mod_redaction\dashboard\submission_stats($redaction->id);
     $stats = $submissionstats->get_stats();
