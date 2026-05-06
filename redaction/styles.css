@@ -1917,19 +1917,31 @@
     max-width: 180px;
 }
 
-/* Zebra striping on the overview table — alternate row backgrounds while
-   preserving the colored cells (cell-{level}) which keep their own background. */
-.mod_redaction-overview-table tbody tr:nth-child(odd) td.mod_redaction-overview-name,
-.mod_redaction-overview-table tbody tr:nth-child(odd) td.mod_redaction-overview-cell-empty {
-    background-color: #f8f9fa;
+/* Zebra striping — applied directly to <tr> with an opaque background that
+   shows through wherever cell-level colors are absent (name + empty cells).
+   We use !important to defeat Bootstrap's .table > :not(caption) > * > * rule
+   that sets a transparent table background and may override cell bg. */
+.mod_redaction-overview-table > tbody > tr:nth-child(odd) > td.mod_redaction-overview-name,
+.mod_redaction-overview-table > tbody > tr:nth-child(odd) > td.mod_redaction-overview-cell-empty {
+    background-color: #eef1f5 !important;
 }
-.mod_redaction-overview-table tbody tr:nth-child(even) td.mod_redaction-overview-name,
-.mod_redaction-overview-table tbody tr:nth-child(even) td.mod_redaction-overview-cell-empty {
-    background-color: #ffffff;
+.mod_redaction-overview-table > tbody > tr:nth-child(even) > td.mod_redaction-overview-name,
+.mod_redaction-overview-table > tbody > tr:nth-child(even) > td.mod_redaction-overview-cell-empty {
+    background-color: #ffffff !important;
 }
-.mod_redaction-overview-table tbody tr:hover td.mod_redaction-overview-name,
-.mod_redaction-overview-table tbody tr:hover td.mod_redaction-overview-cell-empty {
-    background-color: #e3f2fd;
+.mod_redaction-overview-table > tbody > tr:hover > td.mod_redaction-overview-name,
+.mod_redaction-overview-table > tbody > tr:hover > td.mod_redaction-overview-cell-empty {
+    background-color: #d6eaff !important;
+}
+
+/* Dashboard occupies 100% of the available width. Some Moodle themes wrap the
+   region-main in a container with horizontal padding that makes the dashboard
+   appear narrower than the overview table below it. We undo that visual gap
+   by neutralising any inherited max-width on the dashboard root. */
+.mod_redaction-dashboard {
+    width: 100%;
+    max-width: none !important;
+    margin: 0;
 }
 
 .mod_redaction-overview-cell {
