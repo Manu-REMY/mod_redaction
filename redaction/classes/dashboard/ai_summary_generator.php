@@ -62,29 +62,33 @@ class ai_summary_generator {
     }
 
     /**
-     * Get the cached AI summary, or regenerate on demand.
+     * Get or generate the AI summary for this activity.
      *
-     * Default behaviour ($force=false) NEVER calls the AI provider — it returns
-     * the cached summary as-is (even when stale) or null when no cache exists.
-     * This guarantees the dashboard render is fast and never blocks on a remote
-     * API call. When the cache is stale, the UI shows the timestamp so the user
-     * can click "Refresh" to trigger an explicit synchronous regeneration via
-     * AJAX (force=true), with a spinner.
+     * Behaviour:
+     *  - Cached summary exists → return it as-is (any age). Stale cache is fine
+     *    on a page render; the user can click "Refresh" to update.
+     *  - No cache yet AND enough evaluations AND AI enabled → generate
+     *    synchronously so the user always sees content on first visit.
+     *  - $force=true → always regenerate (used by the "Refresh" AJAX call).
+     *
+     * The synchronous generation happens at most ONCE per redaction (when the
+     * cache is empty), so it never blocks subsequent renders — those return
+     * the cached version instantly.
      *
      * @param bool $force Force regeneration (used by the explicit "Refresh" action)
-     * @return object|null The summary object or null if no cache and no regeneration
+     * @return object|null The summary object or null if not enough data
      */
     public function get_summary(bool $force = false): ?object {
         global $DB;
 
         $summary = $DB->get_record('redaction_ai_summaries', ['redactionid' => $this->redactionid]);
 
-        if (!$force) {
-            // Page render path: never call the AI here. Return cached (any age) or null.
-            return $summary ? $this->format_summary($summary) : null;
+        // Cached summary on a page render: return it regardless of age.
+        if ($summary && !$force) {
+            return $this->format_summary($summary);
         }
 
-        // Explicit refresh path: regenerate synchronously.
+        // First-time generation OR explicit refresh: hit the AI.
         $evaluations = $this->get_completed_evaluations();
         if (count($evaluations) < self::MIN_EVALUATIONS) {
             return null;
