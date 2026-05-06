@@ -493,6 +493,9 @@ function redaction_grade_item_update($redaction, $grades = null) {
 /**
  * Get user grades.
  *
+ * Prefers the manual grade (submission.grade) if set by the teacher.
+ * Falls back to the latest completed/applied AI evaluation grade when no manual grade exists.
+ *
  * @param stdClass $redaction
  * @param int $userid
  * @return array
@@ -535,10 +538,29 @@ function redaction_get_user_grades($redaction, $userid = 0) {
                     'userid' => $member->id
                 ]);
 
-                if ($submission && $submission->grade !== null) {
+                if (!$submission) {
+                    continue;
+                }
+
+                // Prefer manual grade; fall back to latest completed/applied AI evaluation.
+                if ($submission->grade !== null) {
+                    $rawgrade = $submission->grade;
+                } else {
+                    $rawgrade = $DB->get_field_sql(
+                        "SELECT e.parsed_grade
+                           FROM {redaction_ai_evaluations} e
+                          WHERE e.submissionid = :submissionid
+                            AND e.status IN ('completed', 'applied')
+                       ORDER BY e.timecreated DESC, e.id DESC
+                          LIMIT 1",
+                        ['submissionid' => $submission->id]
+                    );
+                }
+
+                if ($rawgrade !== null && $rawgrade !== false) {
                     $grades[$member->id] = new stdClass();
                     $grades[$member->id]->userid = $member->id;
-                    $grades[$member->id]->rawgrade = $submission->grade;
+                    $grades[$member->id]->rawgrade = $rawgrade;
                 }
             }
         } else {
@@ -549,14 +571,33 @@ function redaction_get_user_grades($redaction, $userid = 0) {
                 'userid' => 0
             ]);
 
-            if ($submission && $submission->grade !== null) {
+            if (!$submission) {
+                continue;
+            }
+
+            // Prefer manual grade; fall back to latest completed/applied AI evaluation.
+            if ($submission->grade !== null) {
+                $rawgrade = $submission->grade;
+            } else {
+                $rawgrade = $DB->get_field_sql(
+                    "SELECT e.parsed_grade
+                       FROM {redaction_ai_evaluations} e
+                      WHERE e.submissionid = :submissionid
+                        AND e.status IN ('completed', 'applied')
+                   ORDER BY e.timecreated DESC, e.id DESC
+                      LIMIT 1",
+                    ['submissionid' => $submission->id]
+                );
+            }
+
+            if ($rawgrade !== null && $rawgrade !== false) {
                 foreach ($members as $member) {
                     if ($userid != 0 && $userid != $member->id) {
                         continue;
                     }
                     $grades[$member->id] = new stdClass();
                     $grades[$member->id]->userid = $member->id;
-                    $grades[$member->id]->rawgrade = $submission->grade;
+                    $grades[$member->id]->rawgrade = $rawgrade;
                 }
             }
         }
