@@ -126,51 +126,21 @@ class ai_evaluator_test extends \advanced_testcase {
     }
 
     /**
-     * Test check_rate_limit throws when cooldown has not elapsed for same submission.
+     * Test check_rate_limit ignores per-submission history (no per-submission cooldown).
+     *
+     * The 5-minute per-submission cooldown was removed in 2.1.0 to support the
+     * iterative training mode. Only the activity-level hourly cap remains.
      */
-    public function test_check_rate_limit_cooldown(): void {
-        // Create a recent evaluation for this submission.
+    public function test_check_rate_limit_no_per_submission_cooldown(): void {
+        // Create several recent completed evaluations for the same submission.
         $this->generator->create_evaluation([
             'redactionid' => $this->redaction->id,
             'submissionid' => $this->submission->id,
             'status' => 'completed',
-            'timecreated' => time() - 60, // 1 minute ago, within 5 min cooldown.
+            'timecreated' => time() - 30,
         ]);
 
-        $this->expectException(\moodle_exception::class);
-        ai_evaluator::check_rate_limit($this->redaction->id, $this->submission->id);
-    }
-
-    /**
-     * Test check_rate_limit passes when cooldown has elapsed.
-     */
-    public function test_check_rate_limit_cooldown_elapsed(): void {
-        // Create an old evaluation for this submission.
-        $this->generator->create_evaluation([
-            'redactionid' => $this->redaction->id,
-            'submissionid' => $this->submission->id,
-            'status' => 'completed',
-            'timecreated' => time() - 600, // 10 minutes ago, beyond 5 min cooldown.
-        ]);
-
-        // Should not throw.
-        ai_evaluator::check_rate_limit($this->redaction->id, $this->submission->id);
-        $this->assertTrue(true);
-    }
-
-    /**
-     * Test check_rate_limit ignores pending/processing evaluations for cooldown.
-     */
-    public function test_check_rate_limit_ignores_pending(): void {
-        // Create a recent pending evaluation for this submission.
-        $this->generator->create_evaluation([
-            'redactionid' => $this->redaction->id,
-            'submissionid' => $this->submission->id,
-            'status' => 'pending',
-            'timecreated' => time() - 60,
-        ]);
-
-        // Should not throw because pending evaluations are excluded from cooldown check.
+        // Should NOT throw — per-submission cooldown is gone.
         ai_evaluator::check_rate_limit($this->redaction->id, $this->submission->id);
         $this->assertTrue(true);
     }
@@ -378,12 +348,6 @@ class ai_evaluator_test extends \advanced_testcase {
         $this->assertEquals(60, ai_evaluator::DEFAULT_RATE_LIMIT);
     }
 
-    /**
-     * Test EVALUATION_COOLDOWN constant value.
-     */
-    public function test_evaluation_cooldown_constant(): void {
-        $this->assertEquals(300, ai_evaluator::EVALUATION_COOLDOWN);
-    }
 
     /**
      * Test retry_evaluation resets status and re-queues.

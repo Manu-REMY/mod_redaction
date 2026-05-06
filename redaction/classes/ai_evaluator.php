@@ -53,25 +53,29 @@ class ai_evaluator {
     /** @var int Default rate limit: max evaluations per hour per activity */
     const DEFAULT_RATE_LIMIT = 60;
 
-    /** @var int Cooldown in seconds between re-evaluations of the same submission */
-    const EVALUATION_COOLDOWN = 300;
-
     /**
      * Check rate limiting for AI evaluations.
      *
+     * Enforces an activity-level hourly cap as the only safety net against
+     * runaway evaluation costs. Per-submission cooldown was removed in 2.1.0
+     * to support the iterative training mode where students iterate quickly.
+     * Concurrent evaluations on the same submission are still blocked by
+     * redaction_can_submit_attempt() which checks for pending/processing
+     * status before queuing a new attempt.
+     *
      * @param int $redactionid Activity instance ID
-     * @param int $submissionid Submission ID
-     * @throws \moodle_exception If rate limit is exceeded or cooldown not elapsed.
+     * @param int $submissionid Submission ID (kept for signature compatibility)
+     * @throws \moodle_exception If hourly rate limit is exceeded.
      */
     public static function check_rate_limit(int $redactionid, int $submissionid): void {
         global $DB;
+        unset($submissionid); // No longer used.
 
         $ratelimit = (int) get_config('mod_redaction', 'ai_rate_limit');
         if ($ratelimit <= 0) {
             $ratelimit = self::DEFAULT_RATE_LIMIT;
         }
 
-        // Check activity-level rate limit (evaluations in the last hour).
         $onehourago = time() - 3600;
         $recentcount = $DB->count_records_select(
             'redaction_ai_evaluations',
@@ -81,18 +85,6 @@ class ai_evaluator {
 
         if ($recentcount >= $ratelimit) {
             throw new \moodle_exception('error:rate_limit_exceeded', 'redaction');
-        }
-
-        // Check per-submission cooldown.
-        $cooldowntime = time() - self::EVALUATION_COOLDOWN;
-        $recentforsubmission = $DB->record_exists_select(
-            'redaction_ai_evaluations',
-            'submissionid = ? AND timecreated > ? AND status NOT IN (?, ?)',
-            [$submissionid, $cooldowntime, 'pending', 'processing']
-        );
-
-        if ($recentforsubmission) {
-            throw new \moodle_exception('error:evaluation_cooldown', 'redaction');
         }
     }
 
