@@ -49,15 +49,20 @@ class ai_summary_generator {
     /** @var object The redaction instance record */
     protected $redaction;
 
+    /** @var int Group ID filter (0 = global summary) */
+    protected $groupid;
+
     /**
      * Constructor.
      *
      * @param int $redactionid The redaction instance ID
+     * @param int $groupid Group ID filter (0 = global summary)
      */
-    public function __construct(int $redactionid) {
+    public function __construct(int $redactionid, int $groupid = 0) {
         global $DB;
 
         $this->redactionid = $redactionid;
+        $this->groupid = $groupid;
         $this->redaction = $DB->get_record('redaction', ['id' => $redactionid], '*', MUST_EXIST);
     }
 
@@ -81,7 +86,10 @@ class ai_summary_generator {
     public function get_summary(bool $force = false): ?object {
         global $DB;
 
-        $summary = $DB->get_record('redaction_ai_summaries', ['redactionid' => $this->redactionid]);
+        $summary = $DB->get_record('redaction_ai_summaries', [
+            'redactionid' => $this->redactionid,
+            'groupid' => $this->groupid,
+        ]);
 
         // Cached summary on a page render: return it regardless of age.
         if ($summary && !$force) {
@@ -115,11 +123,24 @@ class ai_summary_generator {
     protected function get_completed_evaluations(int $page = 0, int $perpage = 0): array {
         global $DB;
 
+        $userfilter = '';
+        $userparams = [];
+        if ($this->groupid > 0) {
+            require_once($GLOBALS['CFG']->dirroot . '/mod/redaction/lib.php');
+            $userids = redaction_get_filtered_userids($this->redaction->course, $this->groupid);
+            if (empty($userids)) {
+                return [];
+            }
+            [$insql, $inparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_QM);
+            $userfilter = ' AND userid ' . $insql;
+            $userparams = $inparams;
+        }
+
         $sql = 'SELECT *
                 FROM {redaction_ai_evaluations}
-                WHERE redactionid = ? AND status IN (?, ?)
+                WHERE redactionid = ? AND status IN (?, ?)' . $userfilter . '
                 ORDER BY timecreated DESC';
-        $params = [$this->redactionid, 'completed', 'applied'];
+        $params = array_merge([$this->redactionid, 'completed', 'applied'], $userparams);
 
         if ($perpage > 0) {
             return $DB->get_records_sql($sql, $params, $page * $perpage, $perpage);
@@ -310,7 +331,10 @@ PROMPT;
 
         $now = time();
 
-        $existing = $DB->get_record('redaction_ai_summaries', ['redactionid' => $this->redactionid]);
+        $existing = $DB->get_record('redaction_ai_summaries', [
+            'redactionid' => $this->redactionid,
+            'groupid' => $this->groupid,
+        ]);
 
         if ($existing) {
             $existing->difficulties = $summaryData->difficulties;
@@ -322,12 +346,14 @@ PROMPT;
             $existing->model = $summaryData->model ?? null;
             $existing->prompt_tokens = $summaryData->prompt_tokens ?? null;
             $existing->completion_tokens = $summaryData->completion_tokens ?? null;
+            $existing->groupid = $this->groupid;
             $existing->timemodified = $now;
 
             $DB->update_record('redaction_ai_summaries', $existing);
         } else {
             $record = new \stdClass();
             $record->redactionid = $this->redactionid;
+            $record->groupid = $this->groupid;
             $record->difficulties = $summaryData->difficulties;
             $record->strengths = $summaryData->strengths;
             $record->recommendations = $summaryData->recommendations;
@@ -374,6 +400,9 @@ PROMPT;
     public function invalidate_cache(): void {
         global $DB;
 
-        $DB->delete_records('redaction_ai_summaries', ['redactionid' => $this->redactionid]);
+        $DB->delete_records('redaction_ai_summaries', [
+            'redactionid' => $this->redactionid,
+            'groupid' => $this->groupid,
+        ]);
     }
 }

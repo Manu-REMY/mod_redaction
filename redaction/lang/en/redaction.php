@@ -550,3 +550,15 @@ $string['ai_display_suggestions'] = 'Suggestions:';
 // AI criteria generation prompts.
 $string['ai_generate_criteria_system_prompt'] = 'You are an expert educational assistant. Your task is to generate evaluation criteria for a student writing activity. Respond ONLY in JSON format with the following structure: {"grille_criteres": [{"name": "Criterion name", "weight": 5, "description": "What this criterion evaluates"}], "ai_instructions": "Specific instructions for the AI evaluator"}. The total weight should equal 20. Generate 3 to 5 relevant criteria.';
 $string['ai_generate_criteria_user_prompt'] = 'Generate evaluation criteria for the following writing activity:\n\nTitle: {$a->titre}\n\nInstructions: {$a->consignes}\n\nExisting criteria: {$a->criteres}\n\nGenerate a criteria grid and AI evaluation instructions adapted to this activity.';
+
+// Grading overview.
+$string['tab_grading_detail'] = 'Detailed view';
+$string['tab_grading_overview'] = 'Progression table';
+$string['group_filter_label'] = 'Filter by group';
+$string['group_filter_all'] = 'All students';
+$string['overview_student_col'] = 'Student';
+$string['overview_attempt_header'] = 'Attempt {$a}';
+$string['overview_no_attempt'] = 'No attempt';
+$string['overview_pending'] = 'Pending';
+$string['overview_failed'] = 'Failed';
+$string['overview_no_data'] = 'No submissions to display for this group.';

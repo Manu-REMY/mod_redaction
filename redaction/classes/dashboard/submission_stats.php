@@ -42,17 +42,50 @@ class submission_stats {
     /** @var int The course ID */
     protected $courseid;
 
+    /** @var int Group ID filter (0 = no filter) */
+    protected $groupid;
+
+    /** @var array|null Filtered user IDs, or null when no filter */
+    protected $userids;
+
     /**
      * Constructor.
      *
      * @param int $redactionid The redaction instance ID
+     * @param int $groupid     Group ID to filter by (0 = no filter)
      */
-    public function __construct(int $redactionid) {
+    public function __construct(int $redactionid, int $groupid = 0) {
         global $DB;
 
         $this->redactionid = $redactionid;
+        $this->groupid = $groupid;
         $this->redaction = $DB->get_record('redaction', ['id' => $redactionid], '*', MUST_EXIST);
         $this->courseid = $this->redaction->course;
+
+        if ($groupid > 0) {
+            require_once($GLOBALS['CFG']->dirroot . '/mod/redaction/lib.php');
+            $this->userids = redaction_get_filtered_userids($this->courseid, $groupid);
+        } else {
+            $this->userids = null;
+        }
+    }
+
+    /**
+     * Build a SQL fragment + params array for the optional userid filter.
+     *
+     * @return array [sqlfragment, params] — empty fragment '' when no filter.
+     */
+    protected function build_userid_filter(): array {
+        global $DB;
+        if ($this->userids === null) {
+            return ['', []];
+        }
+        if (empty($this->userids)) {
+            // Group is empty — force no rows.
+            return [' AND 1=0', []];
+        }
+        [$insql, $inparams] = $DB->get_in_or_equal($this->userids, SQL_PARAMS_QM);
+        return [' AND userid ' . $insql, $inparams];
     }
 
     /**
@@ -65,7 +98,7 @@ class submission_stats {
      */
     public function get_stats(bool $forcereload = false): object {
         $cache = \cache::make('mod_redaction', 'dashboard_stats');
-        $key = 'stats_' . $this->redactionid;
+        $key = 'stats_' . $this->redactionid . '_' . $this->groupid;
 
         if (!$forcereload) {
             $cached = $cache->get($key);
@@ -144,15 +177,22 @@ class submission_stats {
      */
     protected function get_expected_submission_count(): int {
         if ($this->redaction->group_submission) {
+            if ($this->groupid > 0) {
+                // Group mode + group filter: 1 expected (the filtered group itself).
+                return 1;
+            }
             // Group mode - count groups.
             $groups = groups_get_all_groups($this->courseid);
             return count($groups);
-        } else {
-            // Individual mode - count enrolled students with submit capability.
-            $context = \context_course::instance($this->courseid);
-            $users = get_enrolled_users($context, 'mod/redaction:submit');
-            return count($users);
         }
+
+        if ($this->userids !== null) {
+            return count($this->userids);
+        }
+        // Individual mode - count enrolled students with submit capability.
+        $context = \context_course::instance($this->courseid);
+        $users = get_enrolled_users($context, 'mod/redaction:submit');
+        return count($users);
     }
 
     /**
@@ -164,10 +204,13 @@ class submission_stats {
     protected function count_by_status(int $status): int {
         global $DB;
 
-        return $DB->count_records('redaction_submission', [
-            'redactionid' => $this->redactionid,
-            'status' => $status,
-        ]);
+        [$userfilter, $userparams] = $this->build_userid_filter();
+        $params = array_merge([$this->redactionid, $status], $userparams);
+        return $DB->count_records_select(
+            'redaction_submission',
+            'redactionid = ? AND status = ?' . $userfilter,
+            $params
+        );
     }
 
     /**
@@ -178,10 +221,12 @@ class submission_stats {
     protected function count_graded(): int {
         global $DB;
 
+        [$userfilter, $userparams] = $this->build_userid_filter();
+        $params = array_merge([$this->redactionid], $userparams);
         return $DB->count_records_select(
             'redaction_submission',
-            'redactionid = ? AND grade IS NOT NULL',
-            [$this->redactionid]
+            'redactionid = ? AND grade IS NOT NULL' . $userfilter,
+            $params
         );
     }
 
@@ -206,10 +251,12 @@ class submission_stats {
         ];
 
         // Get all grades.
+        [$userfilter, $userparams] = $this->build_userid_filter();
+        $params = array_merge([$this->redactionid], $userparams);
         $grades = $DB->get_records_select(
             'redaction_submission',
-            'redactionid = ? AND grade IS NOT NULL',
-            [$this->redactionid],
+            'redactionid = ? AND grade IS NOT NULL' . $userfilter,
+            $params,
             '',
             'grade'
         );
@@ -256,12 +303,12 @@ class submission_stats {
         $result->applied = 0;
         $result->failed = 0;
 
+        [$userfilter, $userparams] = $this->build_userid_filter();
         $sql = "SELECT status, COUNT(*) as count
                 FROM {redaction_ai_evaluations}
-                WHERE redactionid = ?
+                WHERE redactionid = ?" . $userfilter . "
                 GROUP BY status";
-
-        $counts = $DB->get_records_sql($sql, [$this->redactionid]);
+        $counts = $DB->get_records_sql($sql, array_merge([$this->redactionid], $userparams));
 
         foreach ($counts as $row) {
             switch ($row->status) {

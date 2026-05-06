@@ -15,18 +15,35 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other metadata.
+ * Progression overview page (table view) for the grading interface.
+ *
+ * Expected variables in scope (set by grading.php which includes this file):
+ *   $cm, $course, $redaction, $groupid, $renderer
  *
  * @package    mod_redaction
- * @copyright  2025 Emmanuel REMY
+ * @copyright  2026 Emmanuel REMY
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'mod_redaction';
-$plugin->version = 2026050602;  // YYYYMMDDXX format
-$plugin->requires = 2024100700; // Moodle 4.5+
-$plugin->maturity = MATURITY_BETA;
-$plugin->release = '2.2.0';
-$plugin->bugtracker = 'https://forge.apps.education.fr/moodle-ai-plugins/plugin-redaction/-/issues';
+require_once($CFG->dirroot . '/mod/redaction/lib.php');
+
+$maxattempts = redaction_effective_max_attempts($redaction);
+
+$overviewdata = new \mod_redaction\output\grading_overview_data(
+    $cm->id,
+    $redaction->id,
+    $course->id,
+    $groupid,
+    $maxattempts
+);
+
+echo $renderer->render_from_template(
+    'mod_redaction/grading_overview',
+    $overviewdata->export_for_template($renderer)
+);
+
+$PAGE->requires->js_call_amd('mod_redaction/grading_overview', 'init', [[
+    'cmid' => $cm->id,
+]]);
