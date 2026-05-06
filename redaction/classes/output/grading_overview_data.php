@@ -127,6 +127,8 @@ class grading_overview_data implements renderable, templatable {
             $evals = ($sid && isset($evalsBySubmission[$sid])) ? $evalsBySubmission[$sid] : [];
             $rows[] = [
                 'name' => fullname($user),
+                'nameurl' => $sid !== null ? $this->build_detail_url($sid) : '',
+                'has_nameurl' => $sid !== null,
                 'cells' => $this->build_cells($evals, $sid),
             ];
         }
@@ -174,10 +176,27 @@ class grading_overview_data implements renderable, templatable {
             $evals = ($sid && isset($evalsBySubmission[$sid])) ? $evalsBySubmission[$sid] : [];
             $rows[] = [
                 'name' => format_string($group->name),
+                'nameurl' => $sid !== null ? $this->build_detail_url($sid) : '',
+                'has_nameurl' => $sid !== null,
                 'cells' => $this->build_cells($evals, $sid),
             ];
         }
         return $rows;
+    }
+
+    /**
+     * Build the detail-view URL for a given submission row.
+     *
+     * @param int $submissionId
+     * @return string
+     */
+    protected function build_detail_url(int $submissionId): string {
+        return (new moodle_url('/mod/redaction/view.php', [
+            'id' => $this->cmid,
+            'page' => 'grading',
+            'tab' => 'detail',
+            'itemid' => $submissionId,
+        ]))->out(false);
     }
 
     /**
