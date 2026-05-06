@@ -120,12 +120,17 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str', 'core/chartjs'],
         $button.prop('disabled', true);
         $icon.addClass('fa-spin');
 
+        // Pull the current group filter from the dashboard root (set by PHP).
+        var dashRoot = document.querySelector('[data-mod-redaction-dashboard]');
+        var groupid = dashRoot ? parseInt(dashRoot.dataset.groupid || '0', 10) : 0;
+
         // Call the web service.
         Ajax.call([{
             methodname: 'mod_redaction_generate_ai_summary',
             args: {
                 cmid: cmid,
-                force: true
+                force: true,
+                groupid: groupid
             }
         }])[0].then(function(response) {
             if (response.success) {

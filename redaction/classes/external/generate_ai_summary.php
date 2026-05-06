@@ -48,6 +48,7 @@ class generate_ai_summary extends external_api {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'Course module ID'),
             'force' => new external_value(PARAM_BOOL, 'Force regeneration even if cached', VALUE_DEFAULT, false),
+            'groupid' => new external_value(PARAM_INT, 'Group ID filter (0 = global)', VALUE_DEFAULT, 0),
         ]);
     }
 
@@ -58,13 +59,14 @@ class generate_ai_summary extends external_api {
      * @param bool $force Force regeneration
      * @return array Result with summary data
      */
-    public static function execute(int $cmid, bool $force = false): array {
+    public static function execute(int $cmid, bool $force = false, int $groupid = 0): array {
         global $DB;
 
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), [
             'cmid' => $cmid,
             'force' => $force,
+            'groupid' => $groupid,
         ]);
 
         // Get course module and context.
@@ -79,7 +81,7 @@ class generate_ai_summary extends external_api {
         $redaction = $DB->get_record('redaction', ['id' => $cm->instance], '*', MUST_EXIST);
 
         // Generate the summary.
-        $generator = new \mod_redaction\dashboard\ai_summary_generator($redaction->id);
+        $generator = new \mod_redaction\dashboard\ai_summary_generator($redaction->id, $params['groupid']);
         $summary = $generator->get_summary($params['force']);
 
         if ($summary === null) {
