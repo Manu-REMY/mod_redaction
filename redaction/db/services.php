@@ -115,6 +115,15 @@ $functions = [
         'capabilities' => 'mod/redaction:grade',
         'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'mod_redaction_bulk_unlock' => [
+        'classname' => 'mod_redaction\external\bulk_unlock',
+        'methodname' => 'execute',
+        'description' => 'Bulk unlock submissions',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/redaction:grade',
+        'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
     'mod_redaction_bulk_apply_grade' => [
         'classname' => 'mod_redaction\external\bulk_apply_grade',
         'methodname' => 'execute',
