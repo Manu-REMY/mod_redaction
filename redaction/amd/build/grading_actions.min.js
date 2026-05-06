@@ -108,9 +108,13 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
         },
 
         toggleSection: function(toggleElement) {
-            toggleElement.classList.toggle('mod_redaction-collapsed');
-            var content = toggleElement.nextElementSibling;
-            content.classList.toggle('mod_redaction-collapsed');
+            // Walk up to the parent section and toggle the "open" state class.
+            // CSS shows .mod_redaction-ai-section-content only when the parent
+            // carries .mod_redaction-ai-section-open.
+            var section = toggleElement.closest('.mod_redaction-ai-criteria-section');
+            if (section) {
+                section.classList.toggle('mod_redaction-ai-section-open');
+            }
         },
 
         bulkEvaluate: function() {

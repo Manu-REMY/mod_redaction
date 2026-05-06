@@ -615,13 +615,12 @@
 }
 
 .mod_redaction-ai-section-content {
-    max-height: 1000px;
+    display: none;
     overflow: hidden;
-    transition: max-height 0.3s ease;
 }
 
 .mod_redaction-ai-section-content.mod_redaction-collapsed {
-    max-height: 0;
+    display: none;
 }
 
 .mod_redaction-ai-actions {
@@ -2022,6 +2021,10 @@
 }
 .mod_redaction-ai-criteria-static .mod_redaction-ai-section-toggle {
     cursor: default;
+}
+/* Static section is always visible — its content does not depend on the open class. */
+.mod_redaction-ai-criteria-static .mod_redaction-ai-section-content {
+    display: block;
 }
 
 /* Sections marked open by default — content visible without click. */
