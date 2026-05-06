@@ -65,6 +65,8 @@ class grading_overview_data implements renderable, templatable {
 
         $rows = $isgroupmode ? $this->build_group_rows() : $this->build_student_rows();
 
+        $canGrade = has_capability('mod/redaction:grade', \context_module::instance($this->cmid));
+
         return [
             'headers' => $headers,
             'rows' => $rows,
@@ -72,6 +74,7 @@ class grading_overview_data implements renderable, templatable {
             'isgroupmode' => $isgroupmode,
             'cmid' => $this->cmid,
             'maxattempts' => $this->maxattempts,
+            'can_grade' => $canGrade,
         ];
     }
 
@@ -108,14 +111,41 @@ class grading_overview_data implements renderable, templatable {
                  WHERE redactionid = ? AND userid ' . $insql . '
               ORDER BY timecreated ASC, id ASC';
         $submissions = $DB->get_records_sql($sql, array_merge([$this->redactionid], $inparams));
-        $submissionByUser = [];
+        $firstSubByUser = [];   // oldest submission per user — feeds build_cells()
+        $lastSubByUser = [];    // latest submission per user — feeds the bulk-action checkbox
         $submissionIds = [];
         foreach ($submissions as $s) {
-            // Multiple submissions per user: keep the first one we see (oldest).
-            if (!isset($submissionByUser[$s->userid])) {
-                $submissionByUser[$s->userid] = $s->id;
+            if (!isset($firstSubByUser[$s->userid])) {
+                $firstSubByUser[$s->userid] = $s;
             }
+            $lastSubByUser[$s->userid] = $s; // chronological ASC: last seen wins
             $submissionIds[] = $s->id;
+        }
+
+        // Keep $submissionByUser for backward-compat with build_cells path (oldest's id).
+        $submissionByUser = [];
+        foreach ($firstSubByUser as $uid => $s) {
+            $submissionByUser[$uid] = $s->id;
+        }
+
+        // Pre-fetch latest submissions' status + contenu emptiness (single SQL).
+        $lastSubIds = [];
+        foreach ($lastSubByUser as $s) {
+            $lastSubIds[] = (int) $s->id;
+        }
+        $lastContenus = [];
+        if (!empty($lastSubIds)) {
+            [$insql2, $inparams2] = $DB->get_in_or_equal($lastSubIds, SQL_PARAMS_QM);
+            $rowsLatest = $DB->get_records_sql(
+                'SELECT id, contenu, status FROM {redaction_submission} WHERE id ' . $insql2,
+                $inparams2
+            );
+            foreach ($rowsLatest as $r) {
+                $lastContenus[(int) $r->id] = [
+                    'hascontent' => trim((string) $r->contenu) !== '',
+                    'status' => (int) $r->status,
+                ];
+            }
         }
 
         // Fetch all relevant evaluations in one query.
@@ -125,12 +155,22 @@ class grading_overview_data implements renderable, templatable {
         foreach ($users as $user) {
             $sid = $submissionByUser[$user->id] ?? null;
             $evals = ($sid && isset($evalsBySubmission[$sid])) ? $evalsBySubmission[$sid] : [];
+            $lastSub = $lastSubByUser[$user->id] ?? null;
+            $lastInfo = ($lastSub && isset($lastContenus[(int) $lastSub->id])) ? $lastContenus[(int) $lastSub->id] : null;
+
             // The detail view's nav list keys items by userid (individual mode).
             $rows[] = [
-                'name' => fullname($user),
+                'name' => trim($user->lastname . ' ' . $user->firstname),
                 'nameurl' => $this->build_detail_url((int) $user->id),
                 'has_nameurl' => true,
                 'cells' => $this->build_cells($evals, (int) $user->id),
+                'latest' => [
+                    'has' => $lastSub !== null,
+                    'submissionid' => $lastSub ? (int) $lastSub->id : 0,
+                    'status' => $lastInfo['status'] ?? 0,
+                    'hascontent' => $lastInfo['hascontent'] ?? false,
+                    'itemid' => (int) $user->id,
+                ],
             ];
         }
         return $rows;
@@ -160,13 +200,38 @@ class grading_overview_data implements renderable, templatable {
                  WHERE redactionid = ? AND groupid ' . $insql . '
               ORDER BY timecreated ASC, id ASC';
         $submissions = $DB->get_records_sql($sql, array_merge([$this->redactionid], $inparams));
-        $submissionByGroup = [];
+        $firstSubByGroup = [];
+        $lastSubByGroup = [];
         $submissionIds = [];
         foreach ($submissions as $s) {
-            if (!isset($submissionByGroup[$s->groupid])) {
-                $submissionByGroup[$s->groupid] = $s->id;
+            if (!isset($firstSubByGroup[$s->groupid])) {
+                $firstSubByGroup[$s->groupid] = $s;
             }
+            $lastSubByGroup[$s->groupid] = $s;
             $submissionIds[] = $s->id;
+        }
+        $submissionByGroup = [];
+        foreach ($firstSubByGroup as $gid => $s) {
+            $submissionByGroup[$gid] = $s->id;
+        }
+
+        $lastSubIds = [];
+        foreach ($lastSubByGroup as $s) {
+            $lastSubIds[] = (int) $s->id;
+        }
+        $lastContenus = [];
+        if (!empty($lastSubIds)) {
+            [$insql2, $inparams2] = $DB->get_in_or_equal($lastSubIds, SQL_PARAMS_QM);
+            $rowsLatest = $DB->get_records_sql(
+                'SELECT id, contenu, status FROM {redaction_submission} WHERE id ' . $insql2,
+                $inparams2
+            );
+            foreach ($rowsLatest as $r) {
+                $lastContenus[(int) $r->id] = [
+                    'hascontent' => trim((string) $r->contenu) !== '',
+                    'status' => (int) $r->status,
+                ];
+            }
         }
 
         $evalsBySubmission = $this->load_evaluations_by_submission($submissionIds);
@@ -175,12 +240,22 @@ class grading_overview_data implements renderable, templatable {
         foreach ($groups as $group) {
             $sid = $submissionByGroup[$group->id] ?? null;
             $evals = ($sid && isset($evalsBySubmission[$sid])) ? $evalsBySubmission[$sid] : [];
+            $lastSub = $lastSubByGroup[$group->id] ?? null;
+            $lastInfo = ($lastSub && isset($lastContenus[(int) $lastSub->id])) ? $lastContenus[(int) $lastSub->id] : null;
+
             // The detail view's nav list keys items by groupid (group mode).
             $rows[] = [
                 'name' => format_string($group->name),
                 'nameurl' => $this->build_detail_url((int) $group->id),
                 'has_nameurl' => true,
                 'cells' => $this->build_cells($evals, (int) $group->id),
+                'latest' => [
+                    'has' => $lastSub !== null,
+                    'submissionid' => $lastSub ? (int) $lastSub->id : 0,
+                    'status' => $lastInfo['status'] ?? 0,
+                    'hascontent' => $lastInfo['hascontent'] ?? false,
+                    'itemid' => (int) $group->id,
+                ],
             ];
         }
         return $rows;
