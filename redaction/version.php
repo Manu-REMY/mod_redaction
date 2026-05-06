@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_redaction';
-$plugin->version = 2026050601;  // YYYYMMDDXX format
+$plugin->version = 2026050602;  // YYYYMMDDXX format
 $plugin->requires = 2024100700; // Moodle 4.5+
 $plugin->maturity = MATURITY_BETA;
-$plugin->release = '2.1.0';
+$plugin->release = '2.2.0';
 $plugin->bugtracker = 'https://forge.apps.education.fr/moodle-ai-plugins/plugin-redaction/-/issues';
