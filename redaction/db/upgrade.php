@@ -182,5 +182,39 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026050601, 'redaction');
     }
 
+    if ($oldversion < 2026050602) {
+        $table = new xmldb_table('redaction_ai_summaries');
+
+        // Add groupid field if not present.
+        $field = new xmldb_field('groupid', XMLDB_TYPE_INTEGER, '10', null,
+            XMLDB_NOTNULL, null, '0', 'redactionid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Drop the old foreign-unique key on redactionid (if it exists).
+        $oldkey = new xmldb_key('redactionid', XMLDB_KEY_FOREIGN_UNIQUE,
+            ['redactionid'], 'redaction', ['id']);
+        if ($dbman->find_key_name($table, $oldkey)) {
+            $dbman->drop_key($table, $oldkey);
+        }
+
+        // Add a plain foreign key on redactionid.
+        $fkey = new xmldb_key('redactionid', XMLDB_KEY_FOREIGN,
+            ['redactionid'], 'redaction', ['id']);
+        if (!$dbman->find_key_name($table, $fkey)) {
+            $dbman->add_key($table, $fkey);
+        }
+
+        // Add the composite unique key.
+        $newkey = new xmldb_key('redactionid_groupid', XMLDB_KEY_UNIQUE,
+            ['redactionid', 'groupid']);
+        if (!$dbman->find_key_name($table, $newkey)) {
+            $dbman->add_key($table, $newkey);
+        }
+
+        upgrade_mod_savepoint(true, 2026050602, 'redaction');
+    }
+
     return true;
 }

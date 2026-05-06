@@ -1,0 +1,29 @@
+{{!
+    @template mod_redaction/grading_group_filter
+
+    Group filter dropdown for the grading page.
+
+    Context variables required:
+    * cmid - Course module ID
+    * currenttab - Current tab name ('detail' or 'overview')
+    * currentgroupid - Currently selected group ID (0 = all)
+    * baseurl - URL base (without groupid) used for the form action
+    * groups - array of {id, name, selected}
+    * has_groups - Boolean true when at least one group is available
+}}
+<form method="get" action="{{baseurl}}" class="mod_redaction-group-filter mb-3">
+    <input type="hidden" name="id" value="{{cmid}}">
+    <input type="hidden" name="page" value="grading">
+    <input type="hidden" name="tab" value="{{currenttab}}">
+
+    <label for="mod_redaction_group_filter">{{#str}}group_filter_label, redaction{{/str}}</label>
+    <select id="mod_redaction_group_filter" name="groupid" class="form-select"
+            onchange="this.form.submit()">
+        <option value="0" {{^currentgroupid}}selected{{/currentgroupid}}>
+            {{#str}}group_filter_all, redaction{{/str}}
+        </option>
+        {{#groups}}
+            <option value="{{id}}" {{#selected}}selected{{/selected}}>{{name}}</option>
+        {{/groups}}
+    </select>
+</form>

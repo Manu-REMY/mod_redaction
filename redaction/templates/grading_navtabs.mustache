@@ -1,0 +1,23 @@
+{{!
+    @template mod_redaction/grading_navtabs
+
+    Tab navigation between the detail view and the progression overview.
+
+    Context variables required:
+    * detail_url - URL for the detail tab
+    * overview_url - URL for the overview tab
+    * is_detail - Boolean true when the detail tab is active
+    * is_overview - Boolean true when the overview tab is active
+}}
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link {{#is_detail}}active{{/is_detail}}" href="{{detail_url}}">
+            {{#str}}tab_grading_detail, redaction{{/str}}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{#is_overview}}active{{/is_overview}}" href="{{overview_url}}">
+            {{#str}}tab_grading_overview, redaction{{/str}}
+        </a>
+    </li>
+</ul>
