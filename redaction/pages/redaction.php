@@ -433,17 +433,17 @@ $templatedata = [
 $renderer = $PAGE->get_renderer('mod_redaction');
 echo $renderer->render_redaction($templatedata);
 
-// Initialise the redaction page AMD module.
+// Detect whether a pending evaluation exists, to start polling on page load.
+$pollevaluation = $DB->record_exists_select(
+    'redaction_ai_evaluations',
+    'submissionid = ? AND status IN (?, ?)',
+    [$submission->id, 'pending', 'processing']
+);
+
 $jsparams = [
     'cmid' => $cm->id,
-    'sesskey' => sesskey(),
-    'wwwroot' => $CFG->wwwroot,
-    'formurl' => $PAGE->url->out(false),
     'submissionid' => $submission->id,
-    'trainingenabled' => $trainingenabled && !$issubmitted,
-    'strings' => [
-        'ai_request_failed' => get_string('ai_request_failed', 'redaction'),
-    ],
+    'pollEvaluation' => $pollevaluation,
 ];
 $PAGE->requires->js_call_amd('mod_redaction/redaction_page', 'init', [$jsparams]);
 
