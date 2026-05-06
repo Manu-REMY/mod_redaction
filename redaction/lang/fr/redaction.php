@@ -562,3 +562,19 @@ $string['overview_no_attempt'] = 'Pas de tentative';
 $string['overview_pending'] = 'En cours';
 $string['overview_failed'] = 'Échec';
 $string['overview_no_data'] = 'Aucune soumission à afficher pour ce groupe.';
+
+// Actions groupées sur le tableau de progression.
+$string['overview_select_all'] = 'Tout sélectionner';
+$string['overview_selection_count'] = '{$a} sélectionné(s)';
+$string['overview_action_reevaluate'] = 'Réévaluer';
+$string['overview_action_unlock'] = 'Déverrouiller';
+$string['overview_confirm_reevaluate_title'] = 'Confirmer la réévaluation';
+$string['overview_confirm_unlock_title'] = 'Confirmer le déverrouillage';
+$string['overview_confirm_affected'] = 'Sera affecté(e) ({$a}) :';
+$string['overview_confirm_ignored'] = 'Sera ignoré(e) ({$a}) :';
+$string['overview_confirm_button'] = 'Confirmer';
+$string['overview_skip_reason_nocontent'] = 'pas de contenu';
+$string['overview_skip_reason_alreadyunlocked'] = 'déjà déverrouillée';
+$string['overview_bulk_reevaluate_result'] = '{$a->queued} lancée(s), {$a->skipped} ignorée(s)';
+$string['overview_bulk_unlock_result'] = '{$a->unlocked} déverrouillée(s), {$a->skipped} ignorée(s)';
+$string['overview_no_selection'] = 'Aucun élève sélectionné';
