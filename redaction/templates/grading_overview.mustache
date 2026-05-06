@@ -28,7 +28,10 @@
             <tbody>
                 {{#rows}}
                     <tr>
-                        <td class="mod_redaction-overview-name">{{name}}</td>
+                        <td class="mod_redaction-overview-name">
+                            {{#has_nameurl}}<a href="{{nameurl}}" class="mod_redaction-overview-namelink">{{name}}</a>{{/has_nameurl}}
+                            {{^has_nameurl}}{{name}}{{/has_nameurl}}
+                        </td>
                         {{#cells}}
                             {{#hasattempt}}
                                 <td class="mod_redaction-overview-cell mod_redaction-overview-cell-{{levelclass}} {{#is_latest}}mod_redaction-overview-cell-latest{{/is_latest}}">

@@ -1900,8 +1900,17 @@
     user-select: none;
 }
 
-.mod_redaction-overview-name-col,
-.mod_redaction-overview-name {
+.mod_redaction-overview-namelink {
+    color: inherit;
+    text-decoration: none;
+}
+.mod_redaction-overview-namelink:hover {
+    text-decoration: underline;
+    color: #1976d2;
+}
+
+.mod_redaction-overview-table .mod_redaction-overview-name-col,
+.mod_redaction-overview-table .mod_redaction-overview-name {
     text-align: left;
     font-weight: 500;
     min-width: 180px;
