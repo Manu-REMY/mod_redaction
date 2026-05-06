@@ -1870,11 +1870,7 @@
 }
 
 /* ===== Dashboard ===== */
-
-.mod_redaction-dashboard {
-    max-width: 1200px;
-    margin: 0 auto;
-}
+/* Width is now declared in the consolidated rule below (full-width). */
 
 /* ===== Grading progression overview ===== */
 
