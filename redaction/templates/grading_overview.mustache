@@ -7,15 +7,44 @@
     * cmid
     * isgroupmode
     * has_rows
+    * can_grade
     * headers - array of {label}
-    * rows - array of {name, cells}
+    * rows - array of {name, nameurl, has_nameurl, cells, latest}
         cells - array of cell descriptors
+        latest - {has, submissionid, status, hascontent, itemid}
 }}
 <div class="mod_redaction-overview-wrapper">
     {{#has_rows}}
+        {{#can_grade}}
+        <div class="mod_redaction-overview-actionbar">
+            <span class="mod_redaction-overview-selcount" data-count="0">
+                {{#str}}overview_selection_count, redaction, 0{{/str}}
+            </span>
+            <div class="mod_redaction-overview-actions">
+                <button type="button"
+                        class="btn btn-secondary mod_redaction-overview-action-reevaluate"
+                        disabled>
+                    &#128260; {{#str}}overview_action_reevaluate, redaction{{/str}}
+                </button>
+                <button type="button"
+                        class="btn btn-secondary mod_redaction-overview-action-unlock"
+                        disabled>
+                    &#128275; {{#str}}overview_action_unlock, redaction{{/str}}
+                </button>
+            </div>
+        </div>
+        {{/can_grade}}
+
         <table class="mod_redaction-overview-table table table-bordered table-sm" data-sort-name="">
             <thead>
                 <tr>
+                    {{#can_grade}}
+                    <th class="mod_redaction-overview-checkbox-col">
+                        <input type="checkbox"
+                               class="mod_redaction-overview-checkall"
+                               aria-label="{{#str}}overview_select_all, redaction{{/str}}">
+                    </th>
+                    {{/can_grade}}
                     <th class="mod_redaction-overview-name-col" data-sort="name">
                         {{#isgroupmode}}{{#str}}group, group{{/str}}{{/isgroupmode}}
                         {{^isgroupmode}}{{#str}}overview_student_col, redaction{{/str}}{{/isgroupmode}}
@@ -28,6 +57,19 @@
             <tbody>
                 {{#rows}}
                     <tr>
+                        {{#can_grade}}
+                        <td class="mod_redaction-overview-checkbox-col">
+                            {{#latest.has}}
+                            <input type="checkbox"
+                                   class="mod_redaction-overview-rowcheck"
+                                   data-itemid="{{latest.itemid}}"
+                                   data-submissionid="{{latest.submissionid}}"
+                                   data-status="{{latest.status}}"
+                                   data-hascontent="{{#latest.hascontent}}1{{/latest.hascontent}}{{^latest.hascontent}}0{{/latest.hascontent}}"
+                                   data-name="{{name}}">
+                            {{/latest.has}}
+                        </td>
+                        {{/can_grade}}
                         <td class="mod_redaction-overview-name">
                             {{#has_nameurl}}<a href="{{nameurl}}" class="mod_redaction-overview-namelink">{{name}}</a>{{/has_nameurl}}
                             {{^has_nameurl}}{{name}}{{/has_nameurl}}
