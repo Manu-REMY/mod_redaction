@@ -462,6 +462,7 @@ $string['training_attempt_date'] = 'Tentative {$a->num} - {$a->date}';
 $string['training_grade_label'] = 'Note entraînement';
 
 // Training timeline.
+$string['attempt_latest_badge'] = 'Tentative finale';
 $string['training_timeline_title'] = 'Chronologie d\'entraînement';
 $string['training_timeline_progress'] = 'Progression';
 $string['training_timeline_no_data'] = 'Aucune tentative d\'entraînement';

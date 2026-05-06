@@ -124,27 +124,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
     }
 }
 
-// Get AI evaluation if available.
+// Get all AI evaluations for this submission (chronological, newest first).
 $aievaluation = null;
+$aievaluations = [];
 if ($submission && $redaction->ai_enabled) {
-    $aievaluation = $DB->get_record_select(
-        'redaction_ai_evaluations',
-        'submissionid = ? AND status = ?',
-        [$submission->id, 'completed'],
-        '*',
-        IGNORE_MULTIPLE
+    $evalrecords = $DB->get_records_sql(
+        'SELECT * FROM {redaction_ai_evaluations}
+         WHERE submissionid = ?
+           AND status IN (\'completed\', \'applied\', \'failed\', \'pending\', \'processing\')
+         ORDER BY timecreated DESC, id DESC',
+        [$submission->id]
     );
-
-    if (!$aievaluation) {
-        $records = $DB->get_records_sql(
-            'SELECT * FROM {redaction_ai_evaluations}
-             WHERE submissionid = ?
-             ORDER BY timecreated DESC',
-            [$submission->id],
-            0,
-            1
-        );
-        $aievaluation = !empty($records) ? reset($records) : null;
+    $first = true;
+    foreach ($evalrecords as $evalrecord) {
+        $evalrecord->is_latest = $first;
+        $aievaluations[] = $evalrecord;
+        if ($first) {
+            $aievaluation = $evalrecord; // Keep for backward-compat usage below.
+        }
+        $first = false;
     }
 }
 
@@ -386,161 +384,167 @@ if (empty($navitems)) {
     // Grading sidebar.
     echo '<div class="grading-sidebar">';
 
-    // AI evaluation data.
+    // AI evaluation data — build a list of all evaluations (newest first).
     if ($redaction->ai_enabled && $submission) {
+        $levelstrmap = [
+            'excellent' => get_string('level_excellent', 'redaction'),
+            'good' => get_string('level_good', 'redaction'),
+            'medium' => get_string('level_medium', 'redaction'),
+            'low' => get_string('level_low', 'redaction'),
+        ];
+
+        // Build one entry per evaluation for the template loop.
+        $evallist = [];
+        $attemptnum = count($aievaluations);
+        foreach ($aievaluations as $evalitem) {
+            $entry = [
+                'is_latest' => (bool)$evalitem->is_latest,
+                'attemptnum' => $attemptnum,
+                'dateformatted' => userdate($evalitem->timecreated),
+                'evaluationid' => $evalitem->id,
+                'submissionid' => $submission->id,
+                'ispending' => in_array($evalitem->status, ['pending', 'processing']),
+                'isfailed' => ($evalitem->status === 'failed'),
+                'iscompleted' => in_array($evalitem->status, ['completed', 'applied']),
+                'grade' => '',
+                'gradelevel' => '',
+                'gradelevelstr' => '',
+                'confidencepercent' => 0,
+                'confidenceclass' => '',
+                'error_message' => !empty($evalitem->error_message) ? s($evalitem->error_message) : '',
+                'criteria' => [],
+                'hascriteria' => false,
+                'parsed_feedback' => '',
+                'hasfeedback' => false,
+                'overall_appreciation' => '',
+                'hasappreciation' => false,
+                'strengths' => [],
+                'hasstrengths' => false,
+                'weaknesses' => [],
+                'hasweaknesses' => false,
+                'keywords_found' => [],
+                'haskeywordsfound' => false,
+                'keywords_missing' => [],
+                'haskeywordsmissing' => false,
+                'haskeywords' => false,
+                'suggestions' => [],
+                'hassuggestions' => false,
+            ];
+
+            if (in_array($evalitem->status, ['completed', 'applied'])) {
+                // Grade.
+                $entry['grade'] = number_format((float)$evalitem->parsed_grade, 1);
+
+                // Grade level.
+                $gradelevel = \mod_redaction\ai_response_parser::get_grade_level((float)$evalitem->parsed_grade);
+                $entry['gradelevel'] = $gradelevel;
+                $entry['gradelevelstr'] = $levelstrmap[$gradelevel] ?? '';
+
+                // Confidence from raw response.
+                $rawresponse = null;
+                if (!empty($evalitem->raw_response)) {
+                    $rawjson = json_decode($evalitem->raw_response, true);
+                    if (is_array($rawjson)) {
+                        $rawresponse = $rawjson;
+                    } else {
+                        if (preg_match('/\{[\s\S]*\}/', $evalitem->raw_response, $matches)) {
+                            $rawresponse = json_decode($matches[0], true);
+                        }
+                    }
+                }
+                $confidence = isset($rawresponse['confidence']) ? (float)$rawresponse['confidence'] : 0.8;
+                $confidence = max(0.0, min(1.0, $confidence));
+                $confidencepercent = round($confidence * 100);
+                $entry['confidencepercent'] = $confidencepercent;
+                $entry['confidenceclass'] = $confidencepercent >= 80 ? 'good' : ($confidencepercent >= 60 ? 'medium' : 'low');
+
+                // Criteria.
+                $criteria = [];
+                if (!empty($evalitem->criteria_json)) {
+                    $criteria = json_decode($evalitem->criteria_json, true);
+                    if (!is_array($criteria)) {
+                        $criteria = [];
+                    }
+                }
+                if (!empty($criteria)) {
+                    $entry['hascriteria'] = true;
+                    foreach ($criteria as $criterion) {
+                        $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
+                        $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
+                        $percentage = $max > 0 ? ($score / $max) * 100 : 0;
+                        $scoreClass = \mod_redaction\ai_response_parser::calculate_level($percentage);
+                        $entry['criteria'][] = [
+                            'name' => s($criterion['name'] ?? get_string('ai_criterion_default', 'mod_redaction')),
+                            'score' => number_format($score, 1),
+                            'max' => number_format($max, 0),
+                            'percentage' => $percentage,
+                            'scoreclass' => $scoreClass,
+                            'comment' => !empty($criterion['comment']) ? nl2br(s($criterion['comment'])) : '',
+                            'hascomment' => !empty($criterion['comment']),
+                            'levelstr' => $levelstrmap[$scoreClass] ?? '',
+                        ];
+                    }
+                }
+
+                // Extended fields from raw response.
+                if ($rawresponse) {
+                    if (!empty($rawresponse['strengths']) && is_array($rawresponse['strengths'])) {
+                        $entry['hasstrengths'] = true;
+                        foreach ($rawresponse['strengths'] as $strength) {
+                            $entry['strengths'][] = ['text' => s(trim($strength))];
+                        }
+                    }
+                    if (!empty($rawresponse['weaknesses']) && is_array($rawresponse['weaknesses'])) {
+                        $entry['hasweaknesses'] = true;
+                        foreach ($rawresponse['weaknesses'] as $weakness) {
+                            $entry['weaknesses'][] = ['text' => s(trim($weakness))];
+                        }
+                    }
+                    if (!empty($rawresponse['keywords_found']) && is_array($rawresponse['keywords_found'])) {
+                        $entry['haskeywordsfound'] = true;
+                        foreach ($rawresponse['keywords_found'] as $kw) {
+                            $entry['keywords_found'][] = ['word' => s(trim($kw))];
+                        }
+                    }
+                    if (!empty($rawresponse['keywords_missing']) && is_array($rawresponse['keywords_missing'])) {
+                        $entry['haskeywordsmissing'] = true;
+                        foreach ($rawresponse['keywords_missing'] as $kw) {
+                            $entry['keywords_missing'][] = ['word' => s(trim($kw))];
+                        }
+                    }
+                    $entry['haskeywords'] = $entry['haskeywordsfound'] || $entry['haskeywordsmissing'];
+                    if (!empty($rawresponse['suggestions']) && is_array($rawresponse['suggestions'])) {
+                        $entry['hassuggestions'] = true;
+                        foreach ($rawresponse['suggestions'] as $suggestion) {
+                            $entry['suggestions'][] = ['text' => s(trim($suggestion))];
+                        }
+                    }
+                    if (!empty($rawresponse['overall_appreciation'])) {
+                        $entry['hasappreciation'] = true;
+                        $entry['overall_appreciation'] = nl2br(s(trim($rawresponse['overall_appreciation'])));
+                    }
+                }
+
+                if (!empty($evalitem->parsed_feedback)) {
+                    $entry['hasfeedback'] = true;
+                    $entry['parsed_feedback'] = nl2br(s($evalitem->parsed_feedback));
+                }
+            }
+
+            $evallist[] = $entry;
+            $attemptnum--;
+        }
+
         $aidata = [
             'ai_enabled' => true,
             'hassubmission' => true,
-            'hasevaluation' => !empty($aievaluation),
-            'ispending' => ($aievaluation && in_array($aievaluation->status, ['pending', 'processing'])),
-            'isfailed' => ($aievaluation && $aievaluation->status === 'failed'),
-            'iscompleted' => ($aievaluation && in_array($aievaluation->status, ['completed', 'applied'])),
+            'hasevaluation' => !empty($evallist),
             'submissionid' => $submission->id,
             'evaluationid' => $aievaluation ? $aievaluation->id : 0,
-            'grade' => $aievaluation ? number_format($aievaluation->parsed_grade, 1) : '',
-            'gradelevel' => '',
-            'gradelevelstr' => '',
-            'confidencepercent' => 0,
-            'confidenceclass' => '',
-            'error_message' => ($aievaluation && !empty($aievaluation->error_message)) ? s($aievaluation->error_message) : '',
-            'criteria' => [],
-            'hascriteria' => false,
-            'parsed_feedback' => '',
-            'hasfeedback' => false,
-            'overall_appreciation' => '',
-            'hasappreciation' => false,
-            'strengths' => [],
-            'hasstrengths' => false,
-            'weaknesses' => [],
-            'hasweaknesses' => false,
-            'keywords_found' => [],
-            'haskeywordsfound' => false,
-            'keywords_missing' => [],
-            'haskeywordsmissing' => false,
-            'haskeywords' => false,
-            'suggestions' => [],
-            'hassuggestions' => false,
+            'evaluations' => $evallist,
+            'hasevaluations' => !empty($evallist),
+            'totalevaluations' => count($evallist),
         ];
-
-        if ($aievaluation && in_array($aievaluation->status, ['completed', 'applied'])) {
-            // Grade level.
-            $gradeVal = (float)$aievaluation->parsed_grade;
-            $gradelevel = \mod_redaction\ai_response_parser::get_grade_level($gradeVal);
-            $aidata['gradelevel'] = $gradelevel;
-            $levelstrmap = [
-                'excellent' => get_string('level_excellent', 'redaction'),
-                'good' => get_string('level_good', 'redaction'),
-                'medium' => get_string('level_medium', 'redaction'),
-                'low' => get_string('level_low', 'redaction'),
-            ];
-            $aidata['gradelevelstr'] = $levelstrmap[$gradelevel] ?? '';
-
-            // Confidence.
-            $rawresponse = null;
-            if (!empty($aievaluation->raw_response)) {
-                $rawjson = json_decode($aievaluation->raw_response, true);
-                if (is_array($rawjson)) {
-                    $rawresponse = $rawjson;
-                } else {
-                    // Try to extract JSON from raw response.
-                    if (preg_match('/\{[\s\S]*\}/', $aievaluation->raw_response, $matches)) {
-                        $rawresponse = json_decode($matches[0], true);
-                    }
-                }
-            }
-            $confidence = isset($rawresponse['confidence']) ? (float)$rawresponse['confidence'] : 0.8;
-            $confidence = max(0.0, min(1.0, $confidence));
-            $confidencepercent = round($confidence * 100);
-            $aidata['confidencepercent'] = $confidencepercent;
-            $aidata['confidenceclass'] = $confidencepercent >= 80 ? 'good' : ($confidencepercent >= 60 ? 'medium' : 'low');
-
-            // Parse criteria.
-            $criteria = [];
-            if (!empty($aievaluation->criteria_json)) {
-                $criteria = json_decode($aievaluation->criteria_json, true);
-                if (!is_array($criteria)) {
-                    $criteria = [];
-                }
-            }
-
-            if (!empty($criteria)) {
-                $aidata['hascriteria'] = true;
-                foreach ($criteria as $criterion) {
-                    $score = isset($criterion['score']) ? (float)$criterion['score'] : 0;
-                    $max = isset($criterion['max']) ? (float)$criterion['max'] : 5;
-                    $percentage = $max > 0 ? ($score / $max) * 100 : 0;
-                    $scoreClass = \mod_redaction\ai_response_parser::calculate_level($percentage);
-                    $criterionLevelStr = $levelstrmap[$scoreClass] ?? '';
-
-                    $aidata['criteria'][] = [
-                        'name' => s($criterion['name'] ?? get_string('ai_criterion_default', 'mod_redaction')),
-                        'score' => number_format($score, 1),
-                        'max' => number_format($max, 0),
-                        'percentage' => $percentage,
-                        'scoreclass' => $scoreClass,
-                        'comment' => !empty($criterion['comment']) ? nl2br(s($criterion['comment'])) : '',
-                        'hascomment' => !empty($criterion['comment']),
-                        'levelstr' => $criterionLevelStr,
-                    ];
-                }
-            }
-
-            // Parse extended fields from raw response.
-            if ($rawresponse) {
-                // Strengths.
-                if (!empty($rawresponse['strengths']) && is_array($rawresponse['strengths'])) {
-                    $aidata['hasstrengths'] = true;
-                    foreach ($rawresponse['strengths'] as $strength) {
-                        $aidata['strengths'][] = ['text' => s(trim($strength))];
-                    }
-                }
-
-                // Weaknesses.
-                if (!empty($rawresponse['weaknesses']) && is_array($rawresponse['weaknesses'])) {
-                    $aidata['hasweaknesses'] = true;
-                    foreach ($rawresponse['weaknesses'] as $weakness) {
-                        $aidata['weaknesses'][] = ['text' => s(trim($weakness))];
-                    }
-                }
-
-                // Keywords found.
-                if (!empty($rawresponse['keywords_found']) && is_array($rawresponse['keywords_found'])) {
-                    $aidata['haskeywordsfound'] = true;
-                    foreach ($rawresponse['keywords_found'] as $kw) {
-                        $aidata['keywords_found'][] = ['word' => s(trim($kw))];
-                    }
-                }
-
-                // Keywords missing.
-                if (!empty($rawresponse['keywords_missing']) && is_array($rawresponse['keywords_missing'])) {
-                    $aidata['haskeywordsmissing'] = true;
-                    foreach ($rawresponse['keywords_missing'] as $kw) {
-                        $aidata['keywords_missing'][] = ['word' => s(trim($kw))];
-                    }
-                }
-
-                $aidata['haskeywords'] = $aidata['haskeywordsfound'] || $aidata['haskeywordsmissing'];
-
-                // Suggestions.
-                if (!empty($rawresponse['suggestions']) && is_array($rawresponse['suggestions'])) {
-                    $aidata['hassuggestions'] = true;
-                    foreach ($rawresponse['suggestions'] as $suggestion) {
-                        $aidata['suggestions'][] = ['text' => s(trim($suggestion))];
-                    }
-                }
-
-                // Overall appreciation.
-                if (!empty($rawresponse['overall_appreciation'])) {
-                    $aidata['hasappreciation'] = true;
-                    $aidata['overall_appreciation'] = nl2br(s(trim($rawresponse['overall_appreciation'])));
-                }
-            }
-
-            if (!empty($aievaluation->parsed_feedback)) {
-                $aidata['hasfeedback'] = true;
-                $aidata['parsed_feedback'] = nl2br(s($aievaluation->parsed_feedback));
-            }
-        }
 
         echo $renderer->render_ai_evaluation($aidata);
     }
