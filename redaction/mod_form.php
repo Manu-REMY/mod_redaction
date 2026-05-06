@@ -92,29 +92,6 @@ class mod_redaction_mod_form extends moodleform_mod {
         $mform->setDefault('training_enabled', 0);
         $mform->addHelpButton('training_enabled', 'training_enabled', 'redaction');
 
-        // Cooldown between training submissions.
-        $cooldownoptions = [
-            300 => '5 ' . get_string('minutes'),
-            600 => '10 ' . get_string('minutes'),
-            900 => '15 ' . get_string('minutes'),
-            1800 => '30 ' . get_string('minutes'),
-            3600 => '60 ' . get_string('minutes'),
-        ];
-        $mform->addElement('select', 'training_cooldown', get_string('training_cooldown', 'redaction'), $cooldownoptions);
-        $mform->setDefault('training_cooldown', 900);
-        $mform->addHelpButton('training_cooldown', 'training_cooldown', 'redaction');
-        $mform->hideIf('training_cooldown', 'training_enabled', 'eq', 0);
-
-        // Minimum change percentage.
-        $changeoptions = [];
-        for ($i = 5; $i <= 50; $i += 5) {
-            $changeoptions[$i] = $i . '%';
-        }
-        $mform->addElement('select', 'training_min_change', get_string('training_min_change', 'redaction'), $changeoptions);
-        $mform->setDefault('training_min_change', 10);
-        $mform->addHelpButton('training_min_change', 'training_min_change', 'redaction');
-        $mform->hideIf('training_min_change', 'training_enabled', 'eq', 0);
-
         // Maximum training attempts.
         $attemptoptions = [0 => get_string('unlimited', 'redaction')];
         for ($i = 1; $i <= 20; $i++) {

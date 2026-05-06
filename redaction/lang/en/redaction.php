@@ -414,17 +414,10 @@ $string['mobile_evaluation_title'] = 'Evaluation';
 $string['training_settings'] = 'Training mode';
 $string['training_enabled'] = 'Enable training mode';
 $string['training_enabled_help'] = 'Allows students to submit their work multiple times to receive immediate AI feedback before their final submission. Requires AI evaluation to be enabled. Note: AI token usage will be multiplied by the number of attempts.';
-$string['training_cooldown'] = 'Cooldown between submissions';
-$string['training_cooldown_help'] = 'Minimum time to wait between two training submissions.';
-$string['training_min_change'] = 'Minimum change required';
-$string['training_min_change_help'] = 'Minimum percentage of content change required between two training submissions to prevent identical resubmissions.';
 $string['training_max_attempts'] = 'Maximum attempts';
 $string['training_max_attempts_help'] = 'Maximum number of training submissions allowed. 0 = unlimited.';
 $string['training_requires_ai'] = 'Training mode requires AI evaluation to be enabled.';
-$string['training_submit'] = 'Submit for feedback';
 $string['training_submitted'] = 'Training submission sent. Feedback will be available shortly.';
-$string['training_final_submit'] = 'Final submission';
-$string['training_final_confirm'] = 'Are you sure you want to make your final submission? You will no longer be able to edit it. This version will be graded.';
 $string['training_history'] = 'Feedback history';
 $string['training_attempt'] = 'Attempt {$a}';
 $string['training_remaining'] = 'Remaining attempts: {$a}';
@@ -433,14 +426,18 @@ $string['training_error_training_not_enabled'] = 'Training mode is not enabled f
 $string['training_error_already_submitted'] = 'The writing has already been submitted as final.';
 $string['training_error_deadline_passed'] = 'The deadline has passed.';
 $string['training_error_max_attempts_reached'] = 'Maximum number of attempts reached.';
-$string['training_error_cooldown_active'] = 'Please wait before the next submission.';
-$string['training_error_cooldown_remaining'] = 'Please wait {$a} more minute(s) before the next submission.';
 $string['training_error_evaluation_pending'] = 'An evaluation is in progress. Wait for the result before submitting again.';
-$string['training_error_min_change'] = 'The content has not changed enough since the last submission. Make more changes before resubmitting.';
 $string['training_evaluating'] = 'Evaluating...';
 $string['training_feedback_title'] = 'Training feedback';
 $string['training_no_feedback'] = 'No training feedback available.';
 $string['unlimited'] = 'Unlimited';
+
+// Attempt strings.
+$string['attempt_button_first'] = 'Submit';
+$string['attempt_button_last'] = 'Submit final version (last attempt)';
+$string['attempt_button_remaining'] = 'Resubmit ({$a->used}/{$a->max} used)';
+$string['attempt_last_confirm'] = 'This is your last attempt. You will not be able to edit afterwards. Continue?';
+$string['attempts_exhausted'] = 'You have used all {$a} attempts. Final grade recorded.';
 
 // Visual criteria editor.
 $string['grille_criteres_visual_help'] = 'Define your evaluation criteria. The sum of weights should ideally equal 20.';
@@ -465,6 +462,7 @@ $string['training_attempt_date'] = 'Attempt {$a->num} - {$a->date}';
 $string['training_grade_label'] = 'Training grade';
 
 // Training timeline.
+$string['attempt_latest_badge'] = 'Latest attempt';
 $string['training_timeline_title'] = 'Training timeline';
 $string['training_timeline_progress'] = 'Progress';
 $string['training_timeline_no_data'] = 'No training attempts';

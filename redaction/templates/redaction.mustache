@@ -35,8 +35,11 @@
     * titre - Current title value
     * editorhtml - Pre-rendered editor HTML (when not submitted)
     * submittedcontent - Formatted submitted content (HTML, when submitted)
-    * trainingfinalconfirm - Confirmation message for final submit
     * submitconfirm - Confirmation message for regular submit
+    * attemptbuttonlabel - Submit button label (training mode)
+    * attemptconfirm - JS confirm string for last attempt (empty if not last)
+    * hasattemptconfirm - Boolean true when confirmation must trigger
+    * attemptsexhaustedstr - String shown when student has used all attempts
 
     Example context (json):
     {
@@ -155,6 +158,12 @@
         </div>
     {{/issubmitted}}
 
+    {{#attemptsexhaustedstr}}
+        <div class="mod_redaction-attempts-exhausted">
+            &#x1F3C1; {{attemptsexhaustedstr}}
+        </div>
+    {{/attemptsexhaustedstr}}
+
     {{! Training Mode Panel }}
     {{#trainingenabled}}
         {{^issubmitted}}
@@ -170,26 +179,13 @@
                         <span class="mod_redaction-training-remaining">{{trainingremainingstr}}</span>
                     {{/hasremainingstr}}
                 </div>
-                <div class="mod_redaction-training-actions">
-                    <button type="button"
-                            id="btn-training-submit"
-                            class="mod_redaction-btn-training"
-                            {{^cantraining}}disabled{{/cantraining}}
-                            onclick="submitTraining()">
-                        &#x1F504; {{#str}}training_submit, mod_redaction{{/str}}
-                    </button>
-                    {{^cantraining}}
-                        {{#trainingblockedreason}}
-                            <div class="mod_redaction-training-blocked-reason">
-                                {{trainingblockedreason}}
-                            </div>
-                        {{/trainingblockedreason}}
-                    {{/cantraining}}
-                </div>
-                <div id="training-progress" style="display:none;">
-                    <div class="mod_redaction-training-spinner"></div>
-                    <span>{{#str}}training_evaluating, mod_redaction{{/str}}</span>
-                </div>
+                {{^cantraining}}
+                    {{#trainingblockedreason}}
+                        <div class="mod_redaction-training-blocked-reason">
+                            {{trainingblockedreason}}
+                        </div>
+                    {{/trainingblockedreason}}
+                {{/cantraining}}
             </div>
         {{/issubmitted}}
 
@@ -295,9 +291,9 @@
                         &#x1F4BE; {{#str}}savechanges, moodle{{/str}}
                     </button>
                     {{#trainingenabled}}
-                        <button type="submit" name="action" value="submit" class="mod_redaction-btn-submit mod_redaction-btn-final"
-                                onclick="return confirm('{{trainingfinalconfirm}}');">
-                            &#x2713; {{#str}}training_final_submit, mod_redaction{{/str}}
+                        <button type="submit" name="action" value="submit" class="mod_redaction-btn-submit"
+                                {{#hasattemptconfirm}}onclick="return confirm('{{attemptconfirm}}');"{{/hasattemptconfirm}}>
+                            &#x2728; {{attemptbuttonlabel}}
                         </button>
                     {{/trainingenabled}}
                     {{^trainingenabled}}

@@ -406,4 +406,20 @@ class ai_evaluator_test extends \advanced_testcase {
         $this->assertEquals('pending', $updated->status);
         $this->assertNull($updated->error_message);
     }
+
+    /**
+     * Test redaction_effective_max_attempts returns default when training_max_attempts is 0,
+     * and returns the configured value otherwise.
+     *
+     * Covers the unified attempt quota introduced when is_training was removed:
+     * all evaluations share the same quota governed by this helper.
+     */
+    public function test_effective_max_attempts_defaults_when_zero(): void {
+        require_once($GLOBALS['CFG']->dirroot . '/mod/redaction/lib.php');
+        $r = (object) ['training_max_attempts' => 0];
+        $this->assertSame(REDACTION_DEFAULT_TRAINING_ATTEMPTS, redaction_effective_max_attempts($r));
+
+        $r->training_max_attempts = 8;
+        $this->assertSame(8, redaction_effective_max_attempts($r));
+    }
 }
