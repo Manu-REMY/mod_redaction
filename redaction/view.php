@@ -55,9 +55,20 @@ if (!$cm) {
     throw new \moodle_exception('missingidandcmid', 'redaction');
 }
 
-require_login($course, true, $cm);
-
+// Teachers and admins must always be able to access the activity, even when a
+// grouping restricts visibility for students. require_login($course, true, $cm)
+// would otherwise redirect them to enrol/login because they are not members of
+// any group in the grouping. We pre-check the grading capability via the course
+// context and, when granted, log in against the course only.
 $context = context_module::instance($cm->id);
+$coursecontext = context_course::instance($course->id);
+$bypassgrouping = has_capability('mod/redaction:grade', $coursecontext)
+    || has_capability('moodle/site:accessallgroups', $coursecontext);
+if ($bypassgrouping) {
+    require_login($course, true);
+} else {
+    require_login($course, true, $cm);
+}
 
 require_capability('mod/redaction:view', $context);
 
