@@ -28,6 +28,17 @@ defined('MOODLE_INTERNAL') || die();
 $PAGE->set_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading']);
 $PAGE->set_title(format_string($redaction->name) . ' - ' . get_string('grading', 'redaction'));
 
+$groupid = optional_param('groupid', 0, PARAM_INT);
+$tab = optional_param('tab', 'detail', PARAM_ALPHA);
+if ($tab !== 'overview') {
+    $tab = 'detail';
+}
+
+$availablegroups = redaction_get_grading_filter_groups($cm, $course->id);
+if ($groupid > 0 && !isset($availablegroups[$groupid])) {
+    $groupid = 0;
+}
+
 // Get group mode.
 $groupmode = groups_get_activity_groupmode($cm);
 $isGroupSubmission = $redaction->group_submission;
@@ -37,7 +48,11 @@ $navitems = [];
 $currentid = optional_param('itemid', 0, PARAM_INT);
 
 if ($isGroupSubmission) {
-    $groups = groups_get_all_groups($course->id);
+    if ($groupid > 0) {
+        $groups = [$DB->get_record('groups', ['id' => $groupid], '*', MUST_EXIST)];
+    } else {
+        $groups = groups_get_all_groups($course->id);
+    }
     foreach ($groups as $group) {
         $navitems[$group->id] = [
             'id' => $group->id,
@@ -47,7 +62,7 @@ if ($isGroupSubmission) {
     }
 } else {
     $coursecontext = context_course::instance($course->id);
-    $users = get_enrolled_users($coursecontext, 'mod/redaction:submit', 0, 'u.*', 'u.lastname, u.firstname');
+    $users = get_enrolled_users($coursecontext, 'mod/redaction:submit', $groupid, 'u.*', 'u.lastname, u.firstname');
     foreach ($users as $user) {
         $navitems[$user->id] = [
             'id' => $user->id,
@@ -118,7 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && confirm_sesskey()) {
             'id' => $cm->id,
             'page' => 'grading',
             'itemid' => $redirectid,
-            'dashboard' => $showDashboard
+            'dashboard' => $showDashboard,
+            'groupid' => $groupid,
         ]);
         redirect($url, get_string('grade_saved', 'redaction'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
@@ -162,6 +178,38 @@ echo $OUTPUT->heading(get_string('grading', 'redaction'));
 $homeurl = new moodle_url('/mod/redaction/view.php', ['id' => $cm->id]);
 echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'), ['class' => 'btn btn-secondary mb-3']);
 
+// Group filter dropdown.
+$baseurl = (new moodle_url('/mod/redaction/view.php'))->out(false);
+$filterdata = [
+    'cmid' => $cm->id,
+    'currenttab' => $tab,
+    'currentgroupid' => $groupid,
+    'baseurl' => $baseurl,
+    'has_groups' => !empty($availablegroups),
+    'groups' => array_values(array_map(function($g) use ($groupid) {
+        return [
+            'id' => $g->id,
+            'name' => format_string($g->name),
+            'selected' => ($g->id == $groupid),
+        ];
+    }, $availablegroups)),
+];
+echo $OUTPUT->render_from_template('mod_redaction/grading_group_filter', $filterdata);
+
+// Tabs.
+$detailurl = new moodle_url('/mod/redaction/view.php', [
+    'id' => $cm->id, 'page' => 'grading', 'tab' => 'detail', 'groupid' => $groupid,
+]);
+$overviewurl = new moodle_url('/mod/redaction/view.php', [
+    'id' => $cm->id, 'page' => 'grading', 'tab' => 'overview', 'groupid' => $groupid,
+]);
+echo $OUTPUT->render_from_template('mod_redaction/grading_navtabs', [
+    'detail_url' => $detailurl->out(false),
+    'overview_url' => $overviewurl->out(false),
+    'is_detail' => ($tab === 'detail'),
+    'is_overview' => ($tab === 'overview'),
+]);
+
 // Render teacher dashboard with statistics and AI synthesis.
 $showDashboard = optional_param('dashboard', 1, PARAM_INT);
 if ($showDashboard) {
@@ -169,20 +217,22 @@ if ($showDashboard) {
         'id' => $cm->id,
         'page' => 'grading',
         'itemid' => $currentid,
-        'dashboard' => 0
+        'dashboard' => 0,
+        'groupid' => $groupid,
     ]);
     echo '<div class="mb-3">';
     echo '<a href="' . $dashboardToggleUrl . '" class="btn btn-sm btn-outline-secondary">';
     echo '<i class="fa fa-chevron-up mr-1"></i> ' . get_string('dashboard_hide', 'redaction');
     echo '</a>';
     echo '</div>';
-    echo redaction_render_teacher_dashboard($cm, $redaction);
+    echo redaction_render_teacher_dashboard($cm, $redaction, $groupid);
 } else {
     $dashboardToggleUrl = new moodle_url('/mod/redaction/view.php', [
         'id' => $cm->id,
         'page' => 'grading',
         'itemid' => $currentid,
-        'dashboard' => 1
+        'dashboard' => 1,
+        'groupid' => $groupid,
     ]);
     echo '<div class="mb-3">';
     echo '<a href="' . $dashboardToggleUrl . '" class="btn btn-sm btn-outline-primary">';
@@ -191,19 +241,26 @@ if ($showDashboard) {
     echo '</div>';
 }
 
+// Branch: progression overview.
+if ($tab === 'overview') {
+    require_once(__DIR__ . '/pages/grading_overview.php');
+    echo $OUTPUT->footer();
+    exit;
+}
+
 // Build navigation data.
 $navdata = [
     'hasprev' => ($previd !== null),
-    'prevurl' => ($previd !== null) ? (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $previd, 'dashboard' => $showDashboard]))->out(false) : '',
+    'prevurl' => ($previd !== null) ? (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $previd, 'dashboard' => $showDashboard, 'groupid' => $groupid]))->out(false) : '',
     'hasnext' => ($nextid !== null),
-    'nexturl' => ($nextid !== null) ? (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $nextid, 'dashboard' => $showDashboard]))->out(false) : '',
+    'nexturl' => ($nextid !== null) ? (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $nextid, 'dashboard' => $showDashboard, 'groupid' => $groupid]))->out(false) : '',
     'currentpos' => ($currentpos !== false ? $currentpos + 1 : 0),
     'totalitems' => count($navitems),
     'navitems' => [],
 ];
 foreach ($navitems as $item) {
     $navdata['navitems'][] = [
-        'url' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $item['id'], 'dashboard' => $showDashboard]))->out(false),
+        'url' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading', 'itemid' => $item['id'], 'dashboard' => $showDashboard, 'groupid' => $groupid]))->out(false),
         'name' => $item['name'],
         'selected' => ($item['id'] == $currentid),
     ];
