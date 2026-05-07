@@ -17,6 +17,24 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
 
     var config = {};
 
+    // Module-scoped flag and handler for the delegated keydown listener,
+    // ensuring init() is idempotent and never stacks listeners on document.
+    var keydownListenerAttached = false;
+    function attemptHeaderKeydownHandler(ev) {
+        if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') {
+            return;
+        }
+        var target = ev.target;
+        if (!target || !target.classList ||
+            !target.classList.contains('mod_redaction-ai-attempt-header')) {
+            return;
+        }
+        ev.preventDefault();
+        if (typeof window.toggleAttempt === 'function') {
+            window.toggleAttempt(target);
+        }
+    }
+
     return {
         init: function(params) {
             config = params;
@@ -32,21 +50,12 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
             window.bulkApplyGrade = this.bulkApplyGrade;
 
             // Keyboard support for collapsible attempt headers.
-            // Delegated listener avoids re-binding when blocks are re-rendered.
-            document.addEventListener('keydown', function(ev) {
-                if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') {
-                    return;
-                }
-                var target = ev.target;
-                if (!target || !target.classList ||
-                    !target.classList.contains('mod_redaction-ai-attempt-header')) {
-                    return;
-                }
-                ev.preventDefault();
-                if (typeof window.toggleAttempt === 'function') {
-                    window.toggleAttempt(target);
-                }
-            });
+            // Idempotent: only attach the listener on the first init() call so
+            // repeat invocations do not stack duplicate handlers on document.
+            if (!keydownListenerAttached) {
+                document.addEventListener('keydown', attemptHeaderKeydownHandler);
+                keydownListenerAttached = true;
+            }
         },
 
         unlockSubmission: function(submissionId) {
