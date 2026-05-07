@@ -223,14 +223,21 @@ class ai_summary_generator {
             return $parsed;
 
         } catch (\Exception $e) {
+            // moodle_exception carries the real provider error (HTTP code +
+            // upstream message) in $debuginfo, while getMessage() returns only
+            // the translated user-facing string. Capture both.
+            $debuginfo = ($e instanceof \moodle_exception && !empty($e->debuginfo))
+                ? $e->debuginfo
+                : '(none)';
             self::log_diagnostic(sprintf(
-                '[mod_redaction summary] generate_summary exception (redactionid=%d, groupid=%d, provider=%s, elapsed=%.1fs): %s — %s',
+                '[mod_redaction summary] generate_summary exception (redactionid=%d, groupid=%d, provider=%s, elapsed=%.1fs): %s — %s | debuginfo: %s',
                 $this->redactionid,
                 $this->groupid,
                 $config->provider,
                 microtime(true) - $startTime,
                 get_class($e),
-                $e->getMessage()
+                $e->getMessage(),
+                $debuginfo
             ));
             return null;
         }
