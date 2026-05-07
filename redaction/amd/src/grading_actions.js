@@ -26,9 +26,27 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
             window.triggerAIEvaluation = this.triggerAIEvaluation;
             window.applyAIGrade = this.applyAIGrade;
             window.toggleSection = this.toggleSection;
+            window.toggleAttempt = this.toggleAttempt;
             window.showHistory = this.showHistory;
             window.bulkEvaluate = this.bulkEvaluate;
             window.bulkApplyGrade = this.bulkApplyGrade;
+
+            // Keyboard support for collapsible attempt headers.
+            // Delegated listener avoids re-binding when blocks are re-rendered.
+            document.addEventListener('keydown', function(ev) {
+                if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') {
+                    return;
+                }
+                var target = ev.target;
+                if (!target || !target.classList ||
+                    !target.classList.contains('mod_redaction-ai-attempt-header')) {
+                    return;
+                }
+                ev.preventDefault();
+                if (typeof window.toggleAttempt === 'function') {
+                    window.toggleAttempt(target);
+                }
+            });
         },
 
         unlockSubmission: function(submissionId) {
@@ -115,6 +133,18 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
             if (section) {
                 section.classList.toggle('mod_redaction-ai-section-open');
             }
+        },
+
+        toggleAttempt: function(headerElement) {
+            // Walk up to the parent attempt block and toggle the open state.
+            // CSS hides .mod_redaction-ai-attempt-content unless the parent block
+            // carries .mod_redaction-ai-section-open.
+            var block = headerElement.closest('.mod_redaction-ai-attempt-block');
+            if (!block) {
+                return;
+            }
+            var isOpen = block.classList.toggle('mod_redaction-ai-section-open');
+            headerElement.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         },
 
         bulkEvaluate: function() {
