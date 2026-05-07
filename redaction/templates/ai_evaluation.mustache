@@ -104,7 +104,7 @@
                 {{/is_latest}}
                 {{#iscompleted}}
                 <span class="mod_redaction-ai-attempt-summary-grade mod_redaction-ai-level-{{gradelevel}}">
-                    {{grade}}/20
+                    {{#str}}attempt_summary_grade, redaction, {{grade}}{{/str}}
                 </span>
                 {{/iscompleted}}
                 <span class="mod_redaction-toggle-icon" aria-hidden="true">&#9660;</span>
