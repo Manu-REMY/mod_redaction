@@ -83,10 +83,16 @@
 
     {{#hasevaluations}}
         {{#evaluations}}
-        <div class="mod_redaction-ai-attempt-block{{#is_latest}} mod_redaction-ai-attempt-latest{{/is_latest}}">
+        <div class="mod_redaction-ai-attempt-block{{#is_latest}} mod_redaction-ai-attempt-latest mod_redaction-ai-section-open{{/is_latest}}">
 
-            {{! Attempt header with date and latest badge }}
-            <div class="mod_redaction-ai-attempt-header">
+            {{! Collapsible header — clicking or pressing Enter/Space toggles
+                the .mod_redaction-ai-section-open class on the parent block. }}
+            <div class="mod_redaction-ai-attempt-header"
+                 role="button"
+                 tabindex="0"
+                 aria-expanded="{{#is_latest}}true{{/is_latest}}{{^is_latest}}false{{/is_latest}}"
+                 aria-label="{{#str}}attempt_toggle, redaction{{/str}}"
+                 onclick="toggleAttempt(this)">
                 <span class="mod_redaction-ai-attempt-label">
                     {{#str}}training_attempt, redaction, {{attemptnum}}{{/str}}
                     &mdash; {{dateformatted}}
@@ -96,7 +102,14 @@
                     {{#str}}attempt_latest_badge, redaction{{/str}}
                 </span>
                 {{/is_latest}}
+                {{#iscompleted}}
+                <span class="mod_redaction-ai-attempt-summary-grade mod_redaction-ai-level-{{gradelevel}}">
+                    {{grade}}/20
+                </span>
+                {{/iscompleted}}
+                <span class="mod_redaction-toggle-icon" aria-hidden="true">&#9660;</span>
             </div>
+            <div class="mod_redaction-ai-attempt-content">
 
             {{#ispending}}
                 <div class="mod_redaction-ai-pending">
@@ -250,6 +263,7 @@
                 </div>
             {{/iscompleted}}
 
+            </div>{{! /mod_redaction-ai-attempt-content }}
         </div>
         {{/evaluations}}
     {{/hasevaluations}}
