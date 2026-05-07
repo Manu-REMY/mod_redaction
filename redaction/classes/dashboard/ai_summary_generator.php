@@ -178,7 +178,7 @@ class ai_summary_generator {
         // Get AI configuration.
         $config = ai_config::get_config($this->redactionid);
         if (!$config || !$config->enabled) {
-            error_log(sprintf(
+            self::log_diagnostic(sprintf(
                 '[mod_redaction summary] generate_summary aborted: AI config disabled (redactionid=%d, groupid=%d)',
                 $this->redactionid,
                 $this->groupid
@@ -209,7 +209,7 @@ class ai_summary_generator {
                 $parsed->prompt_tokens = $response['prompt_tokens'] ?? 0;
                 $parsed->completion_tokens = $response['completion_tokens'] ?? 0;
             } else {
-                error_log(sprintf(
+                self::log_diagnostic(sprintf(
                     '[mod_redaction summary] generate_summary parse failure (redactionid=%d, groupid=%d, provider=%s, model=%s, elapsed=%.1fs, response_chars=%d)',
                     $this->redactionid,
                     $this->groupid,
@@ -223,7 +223,7 @@ class ai_summary_generator {
             return $parsed;
 
         } catch (\Exception $e) {
-            error_log(sprintf(
+            self::log_diagnostic(sprintf(
                 '[mod_redaction summary] generate_summary exception (redactionid=%d, groupid=%d, provider=%s, elapsed=%.1fs): %s — %s',
                 $this->redactionid,
                 $this->groupid,
@@ -430,5 +430,25 @@ PROMPT;
             'redactionid' => $this->redactionid,
             'groupid' => $this->groupid,
         ]);
+    }
+
+    /**
+     * Append a diagnostic line to dataroot/temp/mod_redaction_summary.log.
+     *
+     * The shared host serves PHP with `error_log` pointing at /dev/null,
+     * so error_log() calls vanish silently. This helper writes through
+     * file_put_contents so generator + external service failures stay
+     * inspectable for post-mortem analysis.
+     *
+     * @param string $message Human-readable diagnostic line
+     */
+    public static function log_diagnostic(string $message): void {
+        global $CFG;
+        $line = '[' . date('Y-m-d H:i:s') . '] ' . $message . "\n";
+        @file_put_contents(
+            $CFG->dataroot . '/temp/mod_redaction_summary.log',
+            $line,
+            FILE_APPEND | LOCK_EX
+        );
     }
 }

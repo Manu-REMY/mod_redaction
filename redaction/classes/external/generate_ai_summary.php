@@ -87,7 +87,9 @@ class generate_ai_summary extends external_api {
         if ($summary === null) {
             // Log so we can investigate why generation came back empty in prod
             // (provider timeout, rate-limit, parse failure, no eligible evals…).
-            error_log(sprintf(
+            // Routed through the generator helper because this host serves PHP
+            // with error_log = /dev/null.
+            \mod_redaction\dashboard\ai_summary_generator::log_diagnostic(sprintf(
                 '[mod_redaction summary] null result: cmid=%d, redactionid=%d, groupid=%d, force=%s',
                 $params['cmid'],
                 $redaction->id,
