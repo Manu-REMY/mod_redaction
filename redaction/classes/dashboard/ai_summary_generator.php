@@ -260,10 +260,14 @@ class ai_summary_generator {
             }
 
             if (!empty($eval->parsed_feedback)) {
-                // Truncate long feedback.
+                // Truncate long feedback. mb_substr (not substr) so the cut
+                // lands on a character boundary — substr at byte 500 in a
+                // multi-byte UTF-8 string can land mid-character, leaving an
+                // invalid sequence that makes json_encode return false and
+                // OpenAI reject the request as HTTP 400 invalid JSON body.
                 $feedback = strip_tags($eval->parsed_feedback);
-                if (strlen($feedback) > 500) {
-                    $feedback = substr($feedback, 0, 500) . '...';
+                if (mb_strlen($feedback, 'UTF-8') > 500) {
+                    $feedback = mb_substr($feedback, 0, 500, 'UTF-8') . '...';
                 }
                 $entry[] = "Feedback: " . $feedback;
             }
@@ -276,7 +280,8 @@ class ai_summary_generator {
                         if (isset($c['name'], $c['score'], $c['max'])) {
                             $criteriaTexts[] = "{$c['name']}: {$c['score']}/{$c['max']}";
                             if (!empty($c['comment'])) {
-                                $criteriaTexts[] = "  -> " . substr($c['comment'], 0, 200);
+                                // mb_substr per the same UTF-8 boundary rationale above.
+                                $criteriaTexts[] = "  -> " . mb_substr($c['comment'], 0, 200, 'UTF-8');
                             }
                         }
                     }

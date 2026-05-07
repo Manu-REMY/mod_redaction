@@ -122,7 +122,24 @@ abstract class base_provider implements provider_interface {
         $headers = $this->build_headers();
         $body = $this->build_body($systemprompt, $userprompt, $model, $maxtokens);
 
-        $response = $curl->post($this->get_endpoint(), json_encode($body), [
+        // JSON_INVALID_UTF8_SUBSTITUTE replaces any stray invalid byte
+        // sequence with U+FFFD instead of making json_encode return false.
+        // Without this, an upstream truncation that lands inside a multi-byte
+        // UTF-8 character produces no payload and the provider rejects the
+        // call as HTTP 400 "invalid JSON body" — see prior incident in
+        // ai_summary_generator::build_synthesis_prompt.
+        $payload = json_encode(
+            $body,
+            JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE
+        );
+        if ($payload === false) {
+            throw new \moodle_exception(
+                'ai_request_failed', 'redaction', '', null,
+                'json_encode of request body failed: ' . json_last_error_msg()
+            );
+        }
+
+        $response = $curl->post($this->get_endpoint(), $payload, [
             'CURLOPT_HTTPHEADER' => $headers,
         ]);
 
