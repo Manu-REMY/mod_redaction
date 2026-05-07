@@ -462,6 +462,8 @@ $string['training_grade_label'] = 'Training grade';
 
 // Training timeline.
 $string['attempt_latest_badge'] = 'Latest attempt';
+$string['attempt_toggle'] = 'Toggle attempt details';
+$string['attempt_summary_grade'] = 'Grade: {$a}';
 $string['training_timeline_title'] = 'Training timeline';
 $string['training_timeline_progress'] = 'Progress';
 $string['training_timeline_no_data'] = 'No training attempts';
