@@ -178,6 +178,11 @@ class ai_summary_generator {
         // Get AI configuration.
         $config = ai_config::get_config($this->redactionid);
         if (!$config || !$config->enabled) {
+            error_log(sprintf(
+                '[mod_redaction summary] generate_summary aborted: AI config disabled (redactionid=%d, groupid=%d)',
+                $this->redactionid,
+                $this->groupid
+            ));
             return null;
         }
 
@@ -185,6 +190,7 @@ class ai_summary_generator {
         $userprompt = $this->build_synthesis_prompt($evaluations);
         $systemprompt = "Tu es un assistant pedagogique expert. Tu analyses des feedbacks d'evaluation et generes des syntheses structurees au format JSON.";
 
+        $startTime = microtime(true);
         try {
             // Get the AI provider.
             $apiKey = ai_config::get_effective_api_key($config->provider, $config->api_key);
@@ -202,12 +208,30 @@ class ai_summary_generator {
                 $parsed->model = $model;
                 $parsed->prompt_tokens = $response['prompt_tokens'] ?? 0;
                 $parsed->completion_tokens = $response['completion_tokens'] ?? 0;
+            } else {
+                error_log(sprintf(
+                    '[mod_redaction summary] generate_summary parse failure (redactionid=%d, groupid=%d, provider=%s, model=%s, elapsed=%.1fs, response_chars=%d)',
+                    $this->redactionid,
+                    $this->groupid,
+                    $config->provider,
+                    $model,
+                    microtime(true) - $startTime,
+                    strlen($response['content'] ?? '')
+                ));
             }
 
             return $parsed;
 
         } catch (\Exception $e) {
-            debugging('AI summary generation failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            error_log(sprintf(
+                '[mod_redaction summary] generate_summary exception (redactionid=%d, groupid=%d, provider=%s, elapsed=%.1fs): %s — %s',
+                $this->redactionid,
+                $this->groupid,
+                $config->provider,
+                microtime(true) - $startTime,
+                get_class($e),
+                $e->getMessage()
+            ));
             return null;
         }
     }

@@ -85,10 +85,22 @@ class generate_ai_summary extends external_api {
         $summary = $generator->get_summary($params['force']);
 
         if ($summary === null) {
+            // Log so we can investigate why generation came back empty in prod
+            // (provider timeout, rate-limit, parse failure, no eligible evals…).
+            error_log(sprintf(
+                '[mod_redaction summary] null result: cmid=%d, redactionid=%d, groupid=%d, force=%s',
+                $params['cmid'],
+                $redaction->id,
+                $params['groupid'],
+                $params['force'] ? 'true' : 'false'
+            ));
+            // The summary key is omitted (not set to null): it is declared
+            // VALUE_OPTIONAL in execute_returns and clean_returnvalue rejects
+            // null for an external_single_structure, surfacing as
+            // "invalidresponse" client-side.
             return [
                 'success' => false,
                 'message' => get_string('dashboard_no_data', 'mod_redaction'),
-                'summary' => null,
             ];
         }
 
