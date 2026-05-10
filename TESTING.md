@@ -11,19 +11,21 @@ URL Moodle prod : https://ent-occitanie.com
 ### Comptes de Test
 | Rôle | Identifiant | Mot de passe | Notes |
 |------|-------------|--------------|-------|
-| Enseignant | prof | <password — voir TESTING.local.md> | Droits de création d'activité |
-| Élève 1 | 3a1 | <password — voir TESTING.local.md> | Groupe A |
-| Élève 2 | 3a2 | <password — voir TESTING.local.md> | Groupe A |
-| Élève 3 | 3b1 | <password — voir TESTING.local.md> | Groupe B (pour test multi-groupe) |
+| Enseignant | prof | *(voir TESTING.local.md)* | Droits de création d'activité |
+| Élève 1 | 3a1 | *(voir TESTING.local.md)* | Groupe A |
+| Élève 2 | 3a2 | *(voir TESTING.local.md)* | Groupe A |
+| Élève 3 | 3b1 | *(voir TESTING.local.md)* | Groupe B (pour test multi-groupe) |
 
 ### Accès SSH/CLI
 ```
 Hôte           : favi5410.odns.fr
 Utilisateur    : favi5410
-Méthode auth   : <password — voir TESTING.local.md>
+Méthode auth   : (voir TESTING.local.md — credentials hors repo public)
 Chemin Moodle préprod  : /preprod.ent-occitanie.com/public
 Chemin Moodle prod	   : /ent-occitanie.com/moodle
 ```
+
+> **Pourquoi `TESTING.local.md`** : ce repo est public sur forge.apps.education.fr. Les vrais credentials (passwords, clés API, tokens) ne doivent JAMAIS être commités. Le fichier `TESTING.local.md` est ignoré par git (`.gitignore`) et contient les valeurs courantes — partage hors-ligne (1Password, signal, etc.) entre développeurs autorisés.
 
 ### Cours de Test
 ```

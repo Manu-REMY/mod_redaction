@@ -1,1 +1,6 @@
 PLAN_PLUGIN_REDACTION.md
+
+# Local-only configuration not for the public repo.
+# Real credentials live in TESTING.local.md, never committed.
+TESTING.local.md
+.claude/settings.local.json
