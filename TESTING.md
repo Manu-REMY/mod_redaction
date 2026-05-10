@@ -4,7 +4,8 @@
 
 ### Navigateur (Kapture/Chrome MCP)
 ```
-URL Moodle     : https://preprod.ent-occitanie.com/
+URL Moodle preprod    : https://preprod.ent-occitanie.com/public
+URL Moodle prod : https://ent-occitanie.com
 ```
 
 ### Comptes de Test
@@ -20,7 +21,8 @@ URL Moodle     : https://preprod.ent-occitanie.com/
 Hôte           : favi5410.odns.fr
 Utilisateur    : favi5410
 Méthode auth   : <password — voir TESTING.local.md>
-Chemin Moodle  : /preprod.ent-occitanie.com
+Chemin Moodle préprod  : /preprod.ent-occitanie.com/public
+Chemin Moodle prod	   : /ent-occitanie.com/moodle
 ```
 
 ### Cours de Test
