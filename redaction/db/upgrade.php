@@ -216,5 +216,32 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026050602, 'redaction');
     }
 
+    if ($oldversion < 2026051200) {
+        $table = new xmldb_table('redaction_overrides');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('redactionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('groupid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('deadline_date', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('redactionid', XMLDB_KEY_FOREIGN, ['redactionid'], 'redaction', ['id']);
+        $table->add_key('groupid', XMLDB_KEY_FOREIGN, ['groupid'], 'groups', ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+
+        $table->add_index('redactionid_userid', XMLDB_INDEX_NOTUNIQUE, ['redactionid', 'userid']);
+        $table->add_index('redactionid_groupid', XMLDB_INDEX_NOTUNIQUE, ['redactionid', 'groupid']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_mod_savepoint(true, 2026051200, 'redaction');
+    }
+
     return true;
 }
