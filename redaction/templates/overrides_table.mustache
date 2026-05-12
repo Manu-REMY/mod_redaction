@@ -1,0 +1,55 @@
+{{!
+    Overrides listing template.
+    Context vars:
+        mode (string), cmid (int), is_user_mode (bool), is_group_mode (bool),
+        has_rows (bool), rows (array), instance_deadline (string), add_url (string)
+}}
+<div class="mod_redaction-overrides">
+    <p class="mod_redaction-overrides-instance">
+        {{#str}}overrides_table_original, mod_redaction{{/str}} : <strong>{{instance_deadline}}</strong>
+    </p>
+
+    <p>
+        <a class="btn btn-primary mod_redaction-overrides-add" href="{{add_url}}">
+            {{#is_user_mode}}{{#str}}adduseroverride, mod_redaction{{/str}}{{/is_user_mode}}
+            {{#is_group_mode}}{{#str}}addgroupoverride, mod_redaction{{/str}}{{/is_group_mode}}
+        </a>
+    </p>
+
+    {{^has_rows}}
+        <div class="mod_redaction-overrides-empty alert alert-info">
+            {{#str}}overrides_none, mod_redaction{{/str}}
+        </div>
+    {{/has_rows}}
+
+    {{#has_rows}}
+        <table class="mod_redaction-overrides-table generaltable">
+            <thead>
+                <tr>
+                    <th scope="col">{{#str}}overrides_table_target, mod_redaction{{/str}}</th>
+                    <th scope="col">{{#str}}overrides_table_deadline, mod_redaction{{/str}}</th>
+                    {{#is_group_mode}}
+                        <th scope="col">{{#str}}overrides_table_sortorder, mod_redaction{{/str}}</th>
+                    {{/is_group_mode}}
+                    <th scope="col">{{#str}}overrides_table_actions, mod_redaction{{/str}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#rows}}
+                    <tr>
+                        <td>{{target}}</td>
+                        <td>{{deadline}}</td>
+                        {{#../is_group_mode}}
+                            <td>{{sortorder}}</td>
+                        {{/../is_group_mode}}
+                        <td class="mod_redaction-overrides-actions">
+                            <a href="{{edit_url}}">{{#str}}edit{{/str}}</a>
+                            &nbsp;|&nbsp;
+                            <a href="{{delete_url}}">{{#str}}delete{{/str}}</a>
+                        </td>
+                    </tr>
+                {{/rows}}
+            </tbody>
+        </table>
+    {{/has_rows}}
+</div>
