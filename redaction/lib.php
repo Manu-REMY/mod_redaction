@@ -1010,3 +1010,46 @@ function redaction_get_effective_deadline($redaction, $userid, $groupid = 0) {
     }
     return null;
 }
+
+/**
+ * Add overrides entries to the module admin menu.
+ *
+ * @param settings_navigation $settings
+ * @param navigation_node $redactionnode
+ */
+function redaction_extend_settings_navigation(settings_navigation $settings, navigation_node $redactionnode) {
+    global $PAGE;
+
+    $cm = $PAGE->cm;
+    if (!$cm) {
+        return;
+    }
+    $context = context_module::instance($cm->id);
+
+    if (!has_capability('mod/redaction:manageoverrides', $context)) {
+        return;
+    }
+
+    $useruri = new moodle_url('/mod/redaction/pages/overrides.php',
+        ['id' => $cm->id, 'mode' => 'user']);
+    $redactionnode->add(
+        get_string('useroverrides', 'mod_redaction'),
+        $useruri,
+        navigation_node::TYPE_SETTING,
+        null,
+        'mod_redaction_overrides_user'
+    );
+
+    $course = $PAGE->course;
+    if ($course && groups_get_all_groups($course->id)) {
+        $groupuri = new moodle_url('/mod/redaction/pages/overrides.php',
+            ['id' => $cm->id, 'mode' => 'group']);
+        $redactionnode->add(
+            get_string('groupoverrides', 'mod_redaction'),
+            $groupuri,
+            navigation_node::TYPE_SETTING,
+            null,
+            'mod_redaction_overrides_group'
+        );
+    }
+}
