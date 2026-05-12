@@ -896,3 +896,109 @@ function redaction_get_filtered_userids(int $courseid, int $groupid): array {
     $users = get_enrolled_users($coursecontext, 'mod/redaction:submit', $groupid, 'u.id');
     return array_keys($users);
 }
+
+/**
+ * Return the user-specific override record for a redaction, if any.
+ *
+ * @param int $redactionid
+ * @param int $userid
+ * @return stdClass|null
+ */
+function redaction_get_user_override($redactionid, $userid) {
+    global $DB;
+    if (empty($userid)) {
+        return null;
+    }
+    $record = $DB->get_record('redaction_overrides', [
+        'redactionid' => $redactionid,
+        'userid' => $userid,
+    ]);
+    return $record ?: null;
+}
+
+/**
+ * Return the group-specific override for a given group, if any.
+ *
+ * @param int $redactionid
+ * @param int $groupid
+ * @return stdClass|null
+ */
+function redaction_get_group_override($redactionid, $groupid) {
+    global $DB;
+    if (empty($groupid)) {
+        return null;
+    }
+    $record = $DB->get_record('redaction_overrides', [
+        'redactionid' => $redactionid,
+        'groupid' => $groupid,
+    ]);
+    return $record ?: null;
+}
+
+/**
+ * Return all group overrides applicable to a user, ordered by sortorder asc.
+ *
+ * @param int $redactionid
+ * @param int $userid
+ * @return array<int,stdClass> Records keyed by id; lowest sortorder first.
+ */
+function redaction_get_group_overrides_for_user($redactionid, $userid) {
+    global $DB;
+    if (empty($userid)) {
+        return [];
+    }
+    $sql = "SELECT o.*
+              FROM {redaction_overrides} o
+              JOIN {groups_members} gm ON gm.groupid = o.groupid AND gm.userid = :userid
+             WHERE o.redactionid = :redactionid
+               AND o.groupid IS NOT NULL
+          ORDER BY COALESCE(o.sortorder, 0) ASC, o.id ASC";
+    return $DB->get_records_sql($sql, [
+        'userid' => $userid,
+        'redactionid' => $redactionid,
+    ]);
+}
+
+/**
+ * Return the effective deadline for a user/group draft on a redaction instance.
+ *
+ * Precedence:
+ *   1. User override (deadline_date NOT NULL) — short-circuit.
+ *   2. Lowest-sortorder group override the user is member of.
+ *   3. Instance deadline from redaction_correction.
+ *
+ * For a group draft (userid = 0, groupid > 0): step 1 is skipped.
+ *
+ * @param stdClass $redaction
+ * @param int $userid 0 for group drafts
+ * @param int $groupid 0 for individual drafts
+ * @return int|null Timestamp; null if no deadline applies
+ */
+function redaction_get_effective_deadline($redaction, $userid, $groupid = 0) {
+    global $DB;
+
+    if (!empty($userid)) {
+        $user = redaction_get_user_override($redaction->id, $userid);
+        if ($user && !empty($user->deadline_date)) {
+            return (int) $user->deadline_date;
+        }
+
+        $groupoverrides = redaction_get_group_overrides_for_user($redaction->id, $userid);
+        foreach ($groupoverrides as $row) {
+            if (!empty($row->deadline_date)) {
+                return (int) $row->deadline_date;
+            }
+        }
+    } else if (!empty($groupid)) {
+        $g = redaction_get_group_override($redaction->id, $groupid);
+        if ($g && !empty($g->deadline_date)) {
+            return (int) $g->deadline_date;
+        }
+    }
+
+    $correction = $DB->get_record('redaction_correction', ['redactionid' => $redaction->id]);
+    if ($correction && !empty($correction->deadline_date)) {
+        return (int) $correction->deadline_date;
+    }
+    return null;
+}
