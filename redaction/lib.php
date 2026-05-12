@@ -760,7 +760,12 @@ function redaction_can_submit_attempt($redaction, $submission, $correction = nul
         return ['allowed' => false, 'reason' => 'already_submitted'];
     }
 
-    if ($correction && !empty($correction->deadline_date) && time() > $correction->deadline_date) {
+    $effectivedeadline = redaction_get_effective_deadline(
+        $redaction,
+        (int) ($submission->userid ?? 0),
+        (int) ($submission->groupid ?? 0)
+    );
+    if (!empty($effectivedeadline) && time() > $effectivedeadline) {
         return ['allowed' => false, 'reason' => 'deadline_passed'];
     }
 

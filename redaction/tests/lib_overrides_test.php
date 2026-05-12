@@ -205,4 +205,34 @@ final class lib_overrides_test extends \advanced_testcase {
         $effective = redaction_get_effective_deadline($this->redaction, 0, $this->group->id);
         $this->assertEquals(7000, $effective);
     }
+
+    public function test_can_submit_blocked_when_effective_deadline_passed(): void {
+        global $DB;
+        // Enable training so submit attempt is even considered.
+        $DB->set_field('redaction', 'training_enabled', 1, ['id' => $this->redaction->id]);
+        $DB->set_field('redaction', 'ai_enabled', 1, ['id' => $this->redaction->id]);
+
+        // Make instance deadline far in the future, but user override in the past.
+        $DB->set_field('redaction_correction', 'deadline_date', time() + 86400, ['id' => $this->correction->id]);
+        $this->gen->create_override([
+            'redactionid' => $this->redaction->id,
+            'userid' => $this->student->id,
+            'deadline_date' => time() - 3600,
+        ]);
+
+        $submission = (object) [
+            'id' => 0,
+            'redactionid' => $this->redaction->id,
+            'userid' => $this->student->id,
+            'groupid' => 0,
+            'status' => 0,
+            'training_count' => 0,
+        ];
+        $redaction = $DB->get_record('redaction', ['id' => $this->redaction->id]);
+        $correction = $DB->get_record('redaction_correction', ['redactionid' => $this->redaction->id]);
+
+        $result = redaction_can_submit_attempt($redaction, $submission, $correction);
+        $this->assertFalse($result['allowed']);
+        $this->assertEquals('deadline_passed', $result['reason']);
+    }
 }
