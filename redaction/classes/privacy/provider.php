@@ -107,6 +107,18 @@ class provider implements
             'privacy:metadata:redaction_ai_evaluations'
         );
 
+        // The redaction_overrides table stores per-user deadline overrides.
+        $collection->add_database_table(
+            'redaction_overrides',
+            [
+                'userid' => 'privacy:metadata:redaction_overrides:userid',
+                'deadline_date' => 'privacy:metadata:redaction_overrides:deadline_date',
+                'timecreated' => 'privacy:metadata:redaction_overrides:timecreated',
+                'timemodified' => 'privacy:metadata:redaction_overrides:timemodified',
+            ],
+            'privacy:metadata:redaction_overrides'
+        );
+
         // External AI services that may process user data.
         $collection->add_external_location_link(
             'ai_provider',
@@ -180,6 +192,19 @@ class provider implements
 
         $contextlist->add_from_sql($sql, $params);
 
+        $sql = "SELECT c.id
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+            INNER JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+            INNER JOIN {redaction} r ON r.id = cm.instance
+            INNER JOIN {redaction_overrides} ro ON ro.redactionid = r.id
+                 WHERE ro.userid = :userid";
+        $contextlist->add_from_sql($sql, [
+            'contextlevel' => CONTEXT_MODULE,
+            'modname' => 'redaction',
+            'userid' => $userid,
+        ]);
+
         return $contextlist;
     }
 
@@ -238,6 +263,14 @@ class provider implements
                   JOIN {redaction_ai_evaluations} rae ON rae.redactionid = r.id
                  WHERE cm.id = :instanceid AND rae.applied_by IS NOT NULL";
 
+        $userlist->add_from_sql('userid', $sql, $params);
+
+        $sql = "SELECT ro.userid
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modulename
+                  JOIN {redaction} r ON r.id = cm.instance
+                  JOIN {redaction_overrides} ro ON ro.redactionid = r.id
+                 WHERE cm.id = :instanceid AND ro.userid IS NOT NULL";
         $userlist->add_from_sql('userid', $sql, $params);
     }
 
@@ -379,6 +412,38 @@ class provider implements
                 (object) ['evaluations' => $evaldata]
             );
         }
+
+        $sql = "SELECT cm.id AS cmid,
+                       ro.deadline_date,
+                       ro.timecreated,
+                       ro.timemodified
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid
+            INNER JOIN {redaction} r ON r.id = cm.instance
+            INNER JOIN {redaction_overrides} ro ON ro.redactionid = r.id
+                 WHERE c.id {$contextsql}
+                   AND ro.userid = :userid
+              ORDER BY cm.id";
+        $params = ['userid' => $user->id] + $contextparams;
+        $overrides = $DB->get_recordset_sql($sql, $params);
+
+        $bycontext = [];
+        foreach ($overrides as $o) {
+            $bycontext[$o->cmid][] = [
+                'deadline' => $o->deadline_date ? transform::datetime($o->deadline_date) : null,
+                'timecreated' => transform::datetime($o->timecreated),
+                'timemodified' => transform::datetime($o->timemodified),
+            ];
+        }
+        $overrides->close();
+
+        foreach ($bycontext as $cmid => $data) {
+            $context = \context_module::instance($cmid);
+            writer::with_context($context)->export_data(
+                [get_string('overrides', 'mod_redaction')],
+                (object) ['overrides' => $data]
+            );
+        }
     }
 
     /**
@@ -408,6 +473,8 @@ class provider implements
 
         // Delete all submissions.
         $DB->delete_records('redaction_submission', ['redactionid' => $redactionid]);
+
+        $DB->delete_records('redaction_overrides', ['redactionid' => $redactionid]);
     }
 
     /**
@@ -476,6 +543,11 @@ class provider implements
                 'redactionid = :redactionid AND applied_by = :userid',
                 ['redactionid' => $redactionid, 'userid' => $userid]
             );
+
+            $DB->delete_records('redaction_overrides', [
+                'redactionid' => $redactionid,
+                'userid' => $userid,
+            ]);
         }
     }
 
@@ -530,6 +602,12 @@ class provider implements
         // Delete user submissions.
         $DB->delete_records_select(
             'redaction_submission',
+            "redactionid = :redactionid AND userid {$usersql}",
+            ['redactionid' => $redactionid] + $userparams
+        );
+
+        $DB->delete_records_select(
+            'redaction_overrides',
             "redactionid = :redactionid AND userid {$usersql}",
             ['redactionid' => $redactionid] + $userparams
         );
