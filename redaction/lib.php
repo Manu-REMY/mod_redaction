@@ -148,6 +148,7 @@ function redaction_delete_instance($id) {
     $DB->delete_records('redaction_ai_evaluations', ['redactionid' => $id]);
     $DB->delete_records('redaction_ai_summaries', ['redactionid' => $id]);
     $DB->delete_records('redaction_submission', ['redactionid' => $id]);
+    $DB->delete_records('redaction_overrides', ['redactionid' => $id]);
 
     // Delete the instance.
     $DB->delete_records('redaction', ['id' => $id]);
