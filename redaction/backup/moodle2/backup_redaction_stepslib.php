@@ -137,10 +137,22 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'timemodified',
         ]);
 
+        $overrides = new backup_nested_element('overrides');
+        $override = new backup_nested_element('override', ['id'], [
+            'groupid',
+            'userid',
+            'deadline_date',
+            'sortorder',
+            'timecreated',
+            'timemodified',
+        ]);
+
         // Build the tree.
         $redaction->add_child($consignes);
         $redaction->add_child($correction);
         $redaction->add_child($submissions);
+        $redaction->add_child($overrides);
+        $overrides->add_child($override);
         $submissions->add_child($submission);
         $submission->add_child($histories);
         $histories->add_child($history);
@@ -151,6 +163,7 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
         $redaction->set_source_table('redaction', ['id' => backup::VAR_ACTIVITYID]);
         $consignes->set_source_table('redaction_consignes', ['redactionid' => backup::VAR_PARENTID]);
         $correction->set_source_table('redaction_correction', ['redactionid' => backup::VAR_PARENTID]);
+        $override->set_source_table('redaction_overrides', ['redactionid' => backup::VAR_PARENTID]);
 
         // Only include user data if requested.
         if ($userinfo) {
@@ -168,6 +181,8 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
         $aievaluation->annotate_ids('user', 'userid');
         $aievaluation->annotate_ids('user', 'applied_by');
         $aievaluation->annotate_ids('group', 'groupid');
+        $override->annotate_ids('user', 'userid');
+        $override->annotate_ids('group', 'groupid');
 
         // Define file annotations.
         $redaction->annotate_files('mod_redaction', 'intro', null);
