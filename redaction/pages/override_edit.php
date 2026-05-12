@@ -65,6 +65,7 @@ if ($mform->is_cancelled()) {
 }
 
 if ($data = $mform->get_data()) {
+    require_sesskey();
     $now = time();
     $record = (object) [
         'redactionid' => (int) $redaction->id,

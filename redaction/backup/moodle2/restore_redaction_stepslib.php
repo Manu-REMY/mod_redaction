@@ -128,7 +128,6 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
         $data->redactionid = $this->get_new_parentid('redaction');
         $data->userid = $this->get_mappingid('user', $data->userid);
         $data->groupid = $this->get_mappingid('group', $data->groupid);
-        $data->last_training_time = !empty($data->last_training_time) ? $this->apply_date_offset($data->last_training_time) : null;
         $data->timesubmitted = $this->apply_date_offset($data->timesubmitted);
         $data->timecreated = $this->apply_date_offset($data->timecreated);
         $data->timemodified = $this->apply_date_offset($data->timemodified);

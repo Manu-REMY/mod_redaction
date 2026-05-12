@@ -15,7 +15,6 @@ $redaction = $DB->get_record('redaction', ['id' => $cm->instance], '*', MUST_EXI
 require_login($course, false, $cm);
 $context = context_module::instance($cm->id);
 require_capability('mod/redaction:manageoverrides', $context);
-require_sesskey();
 
 $override = $DB->get_record('redaction_overrides',
     ['id' => $overrideid, 'redactionid' => $redaction->id], '*', MUST_EXIST);
