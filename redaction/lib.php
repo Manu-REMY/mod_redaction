@@ -746,7 +746,9 @@ function redaction_effective_max_attempts($redaction) {
  *
  * @param stdClass $redaction
  * @param stdClass $submission
- * @param stdClass|null $correction
+ * @param stdClass|null $correction Retained for backward compatibility; unused.
+ *                                  Deadline resolution now goes through
+ *                                  redaction_get_effective_deadline().
  * @return array ['allowed' => bool, 'reason' => string]
  */
 function redaction_can_submit_attempt($redaction, $submission, $correction = null) {

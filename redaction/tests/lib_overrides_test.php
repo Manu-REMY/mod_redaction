@@ -206,6 +206,9 @@ final class lib_overrides_test extends \advanced_testcase {
         $this->assertEquals(7000, $effective);
     }
 
+    /**
+     * @covers ::redaction_can_submit_attempt
+     */
     public function test_can_submit_blocked_when_effective_deadline_passed(): void {
         global $DB;
         // Enable training so submit attempt is even considered.
