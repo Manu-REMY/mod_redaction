@@ -156,4 +156,31 @@ class mod_redaction_generator extends testing_module_generator {
         $history->id = $DB->insert_record('redaction_history', $history);
         return $history;
     }
+
+    /**
+     * Create an override record for a redaction.
+     *
+     * @param array|stdClass $record Required keys: redactionid, deadline_date. Plus either userid or groupid.
+     * @return stdClass The inserted record with its id.
+     */
+    public function create_override($record) {
+        global $DB;
+
+        $record = (object) (array) $record;
+        $record->userid = $record->userid ?? null;
+        $record->groupid = $record->groupid ?? null;
+        $record->sortorder = $record->sortorder ?? 0;
+        $record->timecreated = $record->timecreated ?? time();
+        $record->timemodified = $record->timemodified ?? time();
+
+        if (empty($record->redactionid)) {
+            throw new \coding_exception('create_override: redactionid is required');
+        }
+        if (empty($record->userid) && empty($record->groupid)) {
+            throw new \coding_exception('create_override: userid or groupid is required');
+        }
+
+        $record->id = $DB->insert_record('redaction_overrides', $record);
+        return $record;
+    }
 }
