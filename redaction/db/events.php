@@ -41,4 +41,12 @@ $observers = [
         'eventname' => '\mod_redaction\event\ai_grade_applied',
         'callback' => '\mod_redaction\notification_manager::handle_ai_grade_applied',
     ],
+    [
+        'eventname' => '\core\event\user_deleted',
+        'callback'  => '\mod_redaction\observer::user_deleted',
+    ],
+    [
+        'eventname' => '\core\event\group_deleted',
+        'callback'  => '\mod_redaction\observer::group_deleted',
+    ],
 ];

@@ -238,4 +238,36 @@ final class lib_overrides_test extends \advanced_testcase {
         $this->assertFalse($result['allowed']);
         $this->assertEquals('deadline_passed', $result['reason']);
     }
+
+    public function test_user_deleted_observer_cleans_overrides(): void {
+        global $DB;
+        $this->gen->create_override([
+            'redactionid' => $this->redaction->id,
+            'userid' => $this->student->id,
+            'deadline_date' => 2000,
+        ]);
+        $this->assertTrue($DB->record_exists('redaction_overrides',
+            ['userid' => $this->student->id]));
+
+        delete_user($this->student);
+
+        $this->assertFalse($DB->record_exists('redaction_overrides',
+            ['userid' => $this->student->id]));
+    }
+
+    public function test_group_deleted_observer_cleans_overrides(): void {
+        global $DB;
+        $this->gen->create_override([
+            'redactionid' => $this->redaction->id,
+            'groupid' => $this->group->id,
+            'deadline_date' => 2000,
+        ]);
+        $this->assertTrue($DB->record_exists('redaction_overrides',
+            ['groupid' => $this->group->id]));
+
+        groups_delete_group($this->group);
+
+        $this->assertFalse($DB->record_exists('redaction_overrides',
+            ['groupid' => $this->group->id]));
+    }
 }
