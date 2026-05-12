@@ -607,6 +607,7 @@ $string['overridesortorder_help'] = 'When a user belongs to several groups with 
 $string['override_user_in_group_mode_warning'] = 'This activity is configured for group submissions. User overrides will be ignored at enforcement time; create a group override instead.';
 $string['override_no_deadline'] = 'You must set an override deadline.';
 $string['override_duplicate_user'] = 'An override already exists for this user.';
+$string['override_duplicate_group'] = 'An override already exists for this group.';
 $string['override_confirm_delete_user'] = 'Are you sure you want to delete the override for user {$a}?';
 $string['override_confirm_delete_group'] = 'Are you sure you want to delete the override for group {$a}?';
 

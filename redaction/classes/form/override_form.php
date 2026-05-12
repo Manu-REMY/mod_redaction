@@ -84,13 +84,42 @@ class override_form extends \moodleform {
             $errors['deadline_date'] = get_string('override_no_deadline', 'mod_redaction');
         }
 
-        if ($data['mode'] === 'user' && empty($data['overrideid'])) {
-            $exists = $DB->record_exists('redaction_overrides', [
-                'redactionid' => (int) $this->_customdata['redactionid'],
-                'userid' => (int) $data['userid'],
-            ]);
-            if ($exists) {
-                $errors['userid'] = get_string('override_duplicate_user', 'mod_redaction');
+        $redactionid = (int) $this->_customdata['redactionid'];
+        $overrideid = (int) ($data['overrideid'] ?? 0);
+
+        if ($data['mode'] === 'user') {
+            if (empty($data['userid'])) {
+                $errors['userid'] = get_string('required');
+            } else {
+                $exists = $DB->record_exists_select(
+                    'redaction_overrides',
+                    'redactionid = :rid AND userid = :uid AND id <> :self',
+                    [
+                        'rid' => $redactionid,
+                        'uid' => (int) $data['userid'],
+                        'self' => $overrideid,
+                    ]
+                );
+                if ($exists) {
+                    $errors['userid'] = get_string('override_duplicate_user', 'mod_redaction');
+                }
+            }
+        } else if ($data['mode'] === 'group') {
+            if (empty($data['groupid'])) {
+                $errors['groupid'] = get_string('required');
+            } else {
+                $exists = $DB->record_exists_select(
+                    'redaction_overrides',
+                    'redactionid = :rid AND groupid = :gid AND id <> :self',
+                    [
+                        'rid' => $redactionid,
+                        'gid' => (int) $data['groupid'],
+                        'self' => $overrideid,
+                    ]
+                );
+                if ($exists) {
+                    $errors['groupid'] = get_string('override_duplicate_group', 'mod_redaction');
+                }
             }
         }
 

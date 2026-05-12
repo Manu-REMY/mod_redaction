@@ -607,6 +607,7 @@ $string['overridesortorder_help'] = 'Si un élève appartient à plusieurs group
 $string['override_user_in_group_mode_warning'] = 'Cette activité est configurée en mode soumission par groupe. Les dérogations utilisateur seront ignorées lors de l\'application ; créez plutôt une dérogation de groupe.';
 $string['override_no_deadline'] = 'Vous devez définir une date limite dérogatoire.';
 $string['override_duplicate_user'] = 'Une dérogation existe déjà pour cet utilisateur.';
+$string['override_duplicate_group'] = 'Une dérogation existe déjà pour ce groupe.';
 $string['override_confirm_delete_user'] = 'Confirmez-vous la suppression de la dérogation pour l\'utilisateur {$a} ?';
 $string['override_confirm_delete_group'] = 'Confirmez-vous la suppression de la dérogation pour le groupe {$a} ?';
 
