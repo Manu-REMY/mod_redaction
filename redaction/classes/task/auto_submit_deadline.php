@@ -51,86 +51,75 @@ class auto_submit_deadline extends \core\task\scheduled_task {
         $now = time();
         mtrace('Starting auto-submit deadline task...');
 
-        // Find all redactions with passed deadlines.
-        $sql = "SELECT r.id, r.name, r.course, r.group_submission, r.ai_enabled,
-                       c.deadline_date
-                FROM {redaction} r
-                JOIN {redaction_correction} c ON c.redactionid = r.id
-                WHERE c.deadline_date IS NOT NULL
-                  AND c.deadline_date > 0
-                  AND c.deadline_date <= :now";
-
-        $redactions = $DB->get_records_sql($sql, ['now' => $now]);
-
-        if (empty($redactions)) {
-            mtrace('No redactions with passed deadlines found.');
-            mtrace('Auto-submit deadline task completed. Processed: 0, Errors: 0');
-            return;
-        }
+        // Walk all open drafts; per-draft we compute the effective deadline (taking overrides into account).
+        $sql = "SELECT s.id AS submissionid, s.userid, s.groupid, s.contenu,
+                       r.id AS redactionid, r.name, r.course, r.group_submission, r.ai_enabled
+                  FROM {redaction_submission} s
+                  JOIN {redaction} r ON r.id = s.redactionid
+                 WHERE s.status = 0";
+        $drafts = $DB->get_recordset_sql($sql);
 
         $totalprocessed = 0;
         $totalerrors = 0;
         $totalevaluations = 0;
+        $redactionsseen = [];
 
-        foreach ($redactions as $redaction) {
-            // Use date() instead of userdate() to avoid IntlTimeZone dependency.
-            $deadlinestr = date('Y-m-d H:i:s', $redaction->deadline_date);
-            mtrace("  Processing redaction ID {$redaction->id} (deadline: {$deadlinestr})...");
+        foreach ($drafts as $draft) {
+            $redaction = (object) [
+                'id' => (int) $draft->redactionid,
+                'name' => $draft->name,
+                'course' => (int) $draft->course,
+                'group_submission' => (int) $draft->group_submission,
+                'ai_enabled' => (int) $draft->ai_enabled,
+            ];
 
-            // Get all draft submissions (status = 0) for this redaction.
-            $drafts = $DB->get_records('redaction_submission', [
-                'redactionid' => $redaction->id,
-                'status' => 0
-            ]);
+            $effective = redaction_get_effective_deadline(
+                $redaction,
+                (int) $draft->userid,
+                (int) $draft->groupid
+            );
 
-            if (!empty($drafts)) {
-                mtrace("    Found " . count($drafts) . " draft(s) to auto-submit");
-
-                foreach ($drafts as $draft) {
-                    try {
-                        // Skip empty drafts entirely: no auto-submit, no lock.
-                        // Otherwise these become "submitted but ungraded" ghosts that pollute
-                        // the dashboard and require manual cleanup by the teacher.
-                        if (empty(trim(strip_tags($draft->contenu ?? '')))) {
-                            $identifier = $draft->groupid ? "group {$draft->groupid}" : "user {$draft->userid}";
-                            mtrace("      Skipped empty draft for {$identifier}");
-                            continue;
-                        }
-
-                        // Update to submitted status.
-                        $draft->status = 1; // Submitted.
-                        $draft->timesubmitted = $redaction->deadline_date;
-                        $draft->timemodified = $now;
-
-                        $DB->update_record('redaction_submission', $draft);
-
-                        // Log the auto-submission.
-                        $identifier = $draft->groupid ? "group {$draft->groupid}" : "user {$draft->userid}";
-                        mtrace("      Auto-submitted {$identifier}");
-
-                        // Skip history save in cron to avoid PHP extension issues.
-                        // History is already saved when student submits manually.
-
-                        // Trigger AI evaluation if enabled.
-                        if ($redaction->ai_enabled) {
-                            $this->trigger_ai_evaluation($draft);
-                            $totalevaluations++;
-                        }
-
-                        $totalprocessed++;
-                    } catch (\Exception $e) {
-                        mtrace("      ERROR: " . $e->getMessage());
-                        $totalerrors++;
-                    }
-                }
-            } else {
-                mtrace("    No draft submissions found.");
+            if (empty($effective) || $effective > $now) {
+                continue;
             }
 
-            // Check for submitted submissions without AI evaluation (catch-up mechanism).
-            if ($redaction->ai_enabled) {
-                $evaluated = $this->queue_missing_evaluations($redaction);
-                $totalevaluations += $evaluated;
+            // Skip empty drafts entirely: avoids ghost submissions in dashboard.
+            if (empty(trim(strip_tags($draft->contenu ?? '')))) {
+                $identifier = $draft->groupid ? "group {$draft->groupid}" : "user {$draft->userid}";
+                mtrace("  Skipped empty draft for {$identifier} on redaction {$redaction->id}");
+                continue;
+            }
+
+            try {
+                $update = (object) [
+                    'id' => (int) $draft->submissionid,
+                    'status' => 1,
+                    'timesubmitted' => $effective,
+                    'timemodified' => $now,
+                ];
+                $DB->update_record('redaction_submission', $update);
+                $identifier = $draft->groupid ? "group {$draft->groupid}" : "user {$draft->userid}";
+                mtrace("  Auto-submitted {$identifier} on redaction {$redaction->id} (deadline " . date('Y-m-d H:i:s', $effective) . ")");
+
+                if ($redaction->ai_enabled) {
+                    $submission = $DB->get_record('redaction_submission', ['id' => (int) $draft->submissionid]);
+                    $this->trigger_ai_evaluation($submission);
+                    $totalevaluations++;
+                }
+
+                $totalprocessed++;
+                $redactionsseen[$redaction->id] = $redaction;
+            } catch (\Exception $e) {
+                mtrace("  ERROR on draft {$draft->submissionid}: " . $e->getMessage());
+                $totalerrors++;
+            }
+        }
+        $drafts->close();
+
+        // Catch-up evaluations for any submitted drafts that lack one.
+        foreach ($redactionsseen as $r) {
+            if (!empty($r->ai_enabled)) {
+                $totalevaluations += $this->queue_missing_evaluations($r);
             }
         }
 
