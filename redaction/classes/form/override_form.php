@@ -32,8 +32,11 @@ class override_form extends \moodleform {
         $custom = $this->_customdata;
         $mode = $custom['mode'];
 
-        $mform->addElement('hidden', 'cmid', $custom['cmid']);
-        $mform->setType('cmid', PARAM_INT);
+        // Use 'id' (not 'cmid') because moodleform strips the query string from the
+        // default action URL — so the cmid must travel in the form body to satisfy
+        // the page-level required_param('id') call.
+        $mform->addElement('hidden', 'id', $custom['cmid']);
+        $mform->setType('id', PARAM_INT);
         $mform->addElement('hidden', 'mode', $mode);
         $mform->setType('mode', PARAM_ALPHA);
         $mform->addElement('hidden', 'overrideid', !empty($custom['existing']->id) ? $custom['existing']->id : 0);
