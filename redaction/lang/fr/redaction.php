@@ -580,3 +580,55 @@ $string['overview_skip_reason_alreadyunlocked'] = 'déjà déverrouillée';
 $string['overview_bulk_reevaluate_result'] = '{$a->queued} lancée(s), {$a->skipped} ignorée(s)';
 $string['overview_bulk_unlock_result'] = '{$a->unlocked} déverrouillée(s), {$a->skipped} ignorée(s)';
 $string['overview_no_selection'] = 'Aucun élève sélectionné';
+
+// Dérogations (overrides).
+$string['redaction:manageoverrides'] = 'Gérer les dérogations de dates de soumission';
+
+$string['overrides'] = 'Dérogations';
+$string['useroverrides'] = 'Dérogations utilisateur';
+$string['groupoverrides'] = 'Dérogations de groupe';
+$string['overrides_for'] = 'Dérogations pour {$a}';
+$string['overrides_none'] = 'Aucune dérogation n\'a été créée.';
+
+$string['addoverride'] = 'Ajouter une dérogation';
+$string['adduseroverride'] = 'Ajouter une dérogation utilisateur';
+$string['addgroupoverride'] = 'Ajouter une dérogation de groupe';
+$string['editoverride'] = 'Modifier la dérogation';
+$string['deleteoverride'] = 'Supprimer la dérogation';
+$string['duplicateoverride'] = 'Dupliquer la dérogation';
+
+$string['overrideuser'] = 'Utilisateur concerné';
+$string['overridegroup'] = 'Groupe concerné';
+$string['overridedeadline'] = 'Deadline dérogatoire';
+$string['overridedeadline_help'] = 'Deadline qui remplace celle de l\'instance pour l\'utilisateur ou le groupe ciblé. Décochez pour ne pas définir de deadline ; pour supprimer une dérogation existante, utilisez l\'action « Supprimer ».';
+$string['overridesortorder'] = 'Priorité de la dérogation';
+$string['overridesortorder_help'] = 'Si un élève appartient à plusieurs groupes ayant des dérogations conflictuelles, celle de plus petite priorité est retenue.';
+
+$string['override_user_in_group_mode_warning'] = 'Cette activité est configurée en mode soumission par groupe. Les dérogations utilisateur seront ignorées lors de l\'application ; créez plutôt une dérogation de groupe.';
+$string['override_no_deadline'] = 'Vous devez définir une deadline dérogatoire.';
+$string['override_duplicate_user'] = 'Une dérogation existe déjà pour cet utilisateur.';
+$string['override_confirm_delete_user'] = 'Confirmez-vous la suppression de la dérogation pour l\'utilisateur {$a} ?';
+$string['override_confirm_delete_group'] = 'Confirmez-vous la suppression de la dérogation pour le groupe {$a} ?';
+
+$string['overrides_table_target'] = 'Cible';
+$string['overrides_table_deadline'] = 'Deadline dérogatoire';
+$string['overrides_table_original'] = 'Deadline d\'origine';
+$string['overrides_table_actions'] = 'Actions';
+$string['overrides_table_sortorder'] = 'Priorité';
+
+$string['override_created'] = 'Dérogation créée.';
+$string['override_updated'] = 'Dérogation mise à jour.';
+$string['override_deleted'] = 'Dérogation supprimée.';
+
+$string['event_user_override_created'] = 'Dérogation utilisateur créée';
+$string['event_user_override_updated'] = 'Dérogation utilisateur modifiée';
+$string['event_user_override_deleted'] = 'Dérogation utilisateur supprimée';
+$string['event_group_override_created'] = 'Dérogation groupe créée';
+$string['event_group_override_updated'] = 'Dérogation groupe modifiée';
+$string['event_group_override_deleted'] = 'Dérogation groupe supprimée';
+
+$string['privacy:metadata:redaction_overrides'] = 'Informations sur les dérogations individuelles de deadline.';
+$string['privacy:metadata:redaction_overrides:userid'] = 'L\'utilisateur concerné par la dérogation.';
+$string['privacy:metadata:redaction_overrides:deadline_date'] = 'Timestamp de la deadline dérogatoire.';
+$string['privacy:metadata:redaction_overrides:timecreated'] = 'Date de création de la dérogation.';
+$string['privacy:metadata:redaction_overrides:timemodified'] = 'Date de dernière modification de la dérogation.';

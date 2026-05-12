@@ -580,3 +580,55 @@ $string['overview_skip_reason_alreadyunlocked'] = 'already unlocked';
 $string['overview_bulk_reevaluate_result'] = '{$a->queued} queued, {$a->skipped} skipped';
 $string['overview_bulk_unlock_result'] = '{$a->unlocked} unlocked, {$a->skipped} skipped';
 $string['overview_no_selection'] = 'No student selected';
+
+// Overrides feature.
+$string['redaction:manageoverrides'] = 'Manage submission date overrides';
+
+$string['overrides'] = 'Overrides';
+$string['useroverrides'] = 'User overrides';
+$string['groupoverrides'] = 'Group overrides';
+$string['overrides_for'] = 'Overrides for {$a}';
+$string['overrides_none'] = 'No overrides have been added yet.';
+
+$string['addoverride'] = 'Add override';
+$string['adduseroverride'] = 'Add user override';
+$string['addgroupoverride'] = 'Add group override';
+$string['editoverride'] = 'Edit override';
+$string['deleteoverride'] = 'Delete override';
+$string['duplicateoverride'] = 'Duplicate override';
+
+$string['overrideuser'] = 'Override user';
+$string['overridegroup'] = 'Override group';
+$string['overridedeadline'] = 'Override deadline';
+$string['overridedeadline_help'] = 'Deadline that replaces the instance deadline for the targeted user or group. Leave unchecked to remove the override (use the form deletion instead).';
+$string['overridesortorder'] = 'Override priority';
+$string['overridesortorder_help'] = 'When a user belongs to several groups with conflicting overrides, the override with the lowest priority value applies.';
+
+$string['override_user_in_group_mode_warning'] = 'This activity is configured for group submissions. User overrides will be ignored at enforcement time; create a group override instead.';
+$string['override_no_deadline'] = 'You must set an override deadline.';
+$string['override_duplicate_user'] = 'An override already exists for this user.';
+$string['override_confirm_delete_user'] = 'Are you sure you want to delete the override for user {$a}?';
+$string['override_confirm_delete_group'] = 'Are you sure you want to delete the override for group {$a}?';
+
+$string['overrides_table_target'] = 'Target';
+$string['overrides_table_deadline'] = 'Override deadline';
+$string['overrides_table_original'] = 'Original deadline';
+$string['overrides_table_actions'] = 'Actions';
+$string['overrides_table_sortorder'] = 'Priority';
+
+$string['override_created'] = 'Override created.';
+$string['override_updated'] = 'Override updated.';
+$string['override_deleted'] = 'Override deleted.';
+
+$string['event_user_override_created'] = 'User override created';
+$string['event_user_override_updated'] = 'User override updated';
+$string['event_user_override_deleted'] = 'User override deleted';
+$string['event_group_override_created'] = 'Group override created';
+$string['event_group_override_updated'] = 'Group override updated';
+$string['event_group_override_deleted'] = 'Group override deleted';
+
+$string['privacy:metadata:redaction_overrides'] = 'Information about per-user submission deadline overrides.';
+$string['privacy:metadata:redaction_overrides:userid'] = 'The user the override applies to.';
+$string['privacy:metadata:redaction_overrides:deadline_date'] = 'The overridden deadline timestamp.';
+$string['privacy:metadata:redaction_overrides:timecreated'] = 'The time the override was created.';
+$string['privacy:metadata:redaction_overrides:timemodified'] = 'The time the override was last modified.';
