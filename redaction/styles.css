@@ -2093,3 +2093,28 @@
     white-space: nowrap;
 }
 
+/* Overrides feature */
+.mod_redaction-overrides {
+    margin: 1rem 0;
+}
+.mod_redaction-overrides-instance {
+    font-size: 0.95em;
+    color: var(--gray, #666);
+    margin-bottom: 1rem;
+}
+.mod_redaction-overrides-add {
+    margin-bottom: 1rem;
+}
+.mod_redaction-overrides-empty {
+    margin: 1rem 0;
+}
+.mod_redaction-overrides-table {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+.mod_redaction-overrides-actions a {
+    margin-right: 0.5rem;
+}
+.mod_redaction-overrides-warning {
+    margin-bottom: 1rem;
+}
