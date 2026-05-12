@@ -23,6 +23,14 @@ class overrides_table implements \renderable, \templatable {
     /** @var int|null Instance deadline timestamp */
     protected $instancedeadline;
 
+    /**
+     * Constructor.
+     *
+     * @param string $mode 'user' or 'group'
+     * @param int $cmid Course module id
+     * @param array $rows Override records, each augmented with a `_target_label` string property by the caller
+     * @param int|null $instancedeadline Instance deadline timestamp, or null if none
+     */
     public function __construct(string $mode, int $cmid, array $rows, ?int $instancedeadline) {
         $this->mode = $mode;
         $this->cmid = $cmid;
@@ -30,6 +38,12 @@ class overrides_table implements \renderable, \templatable {
         $this->instancedeadline = $instancedeadline;
     }
 
+    /**
+     * Export data for the overrides_table Mustache template.
+     *
+     * @param \renderer_base $output
+     * @return \stdClass
+     */
     public function export_for_template(\renderer_base $output) {
         $data = (object) [
             'mode' => $this->mode,
