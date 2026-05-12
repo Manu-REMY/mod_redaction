@@ -45,6 +45,7 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
         $paths[] = new restore_path_element('redaction', '/activity/redaction');
         $paths[] = new restore_path_element('redaction_consignes', '/activity/redaction/consignes');
         $paths[] = new restore_path_element('redaction_correction', '/activity/redaction/correction');
+        $paths[] = new restore_path_element('redaction_override', '/activity/redaction/overrides/override');
 
         if ($userinfo) {
             $paths[] = new restore_path_element('redaction_submission', '/activity/redaction/submissions/submission');
@@ -178,6 +179,39 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
 
         $newitemid = $DB->insert_record('redaction_ai_evaluations', $data);
         $this->set_mapping('redaction_ai_evaluation', $oldid, $newitemid);
+    }
+
+    /**
+     * Process a redaction override element.
+     *
+     * @param array $data
+     */
+    protected function process_redaction_override($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $data->redactionid = $this->get_new_parentid('redaction');
+
+        if (!empty($data->userid)) {
+            $data->userid = $this->get_mappingid('user', $data->userid);
+            if (!$data->userid) {
+                return;
+            }
+        }
+        if (!empty($data->groupid)) {
+            $data->groupid = $this->get_mappingid('group', $data->groupid);
+            if (!$data->groupid) {
+                return;
+            }
+        }
+
+        $data->deadline_date = !empty($data->deadline_date)
+            ? $this->apply_date_offset($data->deadline_date) : null;
+        $data->timecreated = $this->apply_date_offset($data->timecreated);
+        $data->timemodified = $this->apply_date_offset($data->timemodified);
+
+        unset($data->id);
+        $DB->insert_record('redaction_overrides', $data);
     }
 
     /**
