@@ -129,6 +129,10 @@ La commande de build dans `CLAUDE.md` est `zip -r redaction.zip redaction/ -x "r
 
 ---
 
+## Shippé depuis l'audit
+
+- **2026-05-12** : feature « Dérogations aux dates de soumission » (user + group overrides, modèle `mod_assign`). Voir spec `docs/superpowers/specs/2026-05-12-overrides-dates-design.md` et plan `docs/superpowers/plans/2026-05-12-overrides-dates.md`. 30 commits, version bumpée à `2026051201`. Aucun des 4 blockers C1-C4 n'a été aggravé. Le feature respecte CONTRIB-10280 (i18n via `get_string()`, CSS scoped `.mod_redaction-overrides-*`, templates Mustache, External Services non requises, Privacy API étendue, backup/restore, events CRUD, observers).
+
 ## Hors-scope (passé)
 
 - Internationalisation : EN/FR ont une parité parfaite (460 clés chacun). ✅
