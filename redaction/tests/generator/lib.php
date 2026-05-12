@@ -160,7 +160,9 @@ class mod_redaction_generator extends testing_module_generator {
     /**
      * Create an override record for a redaction.
      *
-     * @param array|stdClass $record Required keys: redactionid, deadline_date. Plus either userid or groupid.
+     * @param array|stdClass $record Required: redactionid AND (userid OR groupid).
+     *                               Optional: deadline_date (may be null to test NULL handling),
+     *                               sortorder, timecreated, timemodified.
      * @return stdClass The inserted record with its id.
      */
     public function create_override($record) {
