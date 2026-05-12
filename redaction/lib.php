@@ -967,7 +967,8 @@ function redaction_get_group_overrides_for_user($redactionid, $userid) {
  *   2. Lowest-sortorder group override the user is member of.
  *   3. Instance deadline from redaction_correction.
  *
- * For a group draft (userid = 0, groupid > 0): step 1 is skipped.
+ * For a group draft (userid = 0, groupid > 0): steps 1 and 2 are skipped;
+ * only the direct group override for that groupid is consulted.
  *
  * @param stdClass $redaction
  * @param int $userid 0 for group drafts

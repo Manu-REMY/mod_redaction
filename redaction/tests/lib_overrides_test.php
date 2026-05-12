@@ -75,6 +75,21 @@ final class lib_overrides_test extends \advanced_testcase {
         $this->assertEquals(2000, (int) $result->deadline_date);
     }
 
+    public function test_get_user_override_returns_null_for_zero_userid(): void {
+        $result = redaction_get_user_override($this->redaction->id, 0);
+        $this->assertNull($result);
+    }
+
+    public function test_get_group_override_returns_null_for_zero_groupid(): void {
+        $result = redaction_get_group_override($this->redaction->id, 0);
+        $this->assertNull($result);
+    }
+
+    public function test_get_group_override_returns_null_when_absent(): void {
+        $result = redaction_get_group_override($this->redaction->id, $this->group->id);
+        $this->assertNull($result);
+    }
+
     public function test_get_group_override_returns_record(): void {
         $this->gen->create_override([
             'redactionid' => $this->redaction->id,
