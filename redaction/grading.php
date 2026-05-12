@@ -317,13 +317,16 @@ if (empty($navitems)) {
             $correction = $DB->get_record('redaction_correction', ['redactionid' => $redaction->id]);
         }
 
-        // Determine timeline bounds.
+        // Determine timeline bounds. The deadline must honour user/group overrides.
+        $effectivedeadline = redaction_get_effective_deadline(
+            $redaction,
+            (int) ($submission->userid ?? 0),
+            (int) ($submission->groupid ?? 0)
+        );
         $timelinestart = ($correction && !empty($correction->submission_date))
             ? $correction->submission_date
             : $redaction->timecreated;
-        $timelineend = ($correction && !empty($correction->deadline_date))
-            ? $correction->deadline_date
-            : time();
+        $timelineend = !empty($effectivedeadline) ? $effectivedeadline : time();
         $effectiveend = max($timelineend, time());
         $timespan = max($effectiveend - $timelinestart, 1); // Avoid division by zero.
 
@@ -418,9 +421,8 @@ if (empty($navitems)) {
             'hasfinalsubmission' => $hasfinal,
             'finalpositionpercent' => round($finalpositionpercent, 2),
             'finaldate' => $hasfinal ? userdate($submission->timesubmitted) : '',
-            'hasdeadline' => ($correction && !empty($correction->deadline_date)),
-            'deadlinedatestr' => ($correction && !empty($correction->deadline_date))
-                ? userdate($correction->deadline_date) : '',
+            'hasdeadline' => !empty($effectivedeadline),
+            'deadlinedatestr' => !empty($effectivedeadline) ? userdate($effectivedeadline) : '',
         ];
 
         echo $renderer->render_training_timeline($timelinedata);
