@@ -599,20 +599,20 @@ $string['duplicateoverride'] = 'Dupliquer la dérogation';
 
 $string['overrideuser'] = 'Utilisateur concerné';
 $string['overridegroup'] = 'Groupe concerné';
-$string['overridedeadline'] = 'Deadline dérogatoire';
-$string['overridedeadline_help'] = 'Deadline qui remplace celle de l\'instance pour l\'utilisateur ou le groupe ciblé. Décochez pour ne pas définir de deadline ; pour supprimer une dérogation existante, utilisez l\'action « Supprimer ».';
+$string['overridedeadline'] = 'Date limite dérogatoire';
+$string['overridedeadline_help'] = 'Date limite qui remplace la date limite de l\'activité pour l\'utilisateur ou le groupe ciblé. Si vous décochez la case, aucune dérogation de date limite ne sera appliquée. Pour supprimer une dérogation existante, utilisez l\'action « Supprimer » dans le tableau des dérogations.';
 $string['overridesortorder'] = 'Priorité de la dérogation';
 $string['overridesortorder_help'] = 'Si un élève appartient à plusieurs groupes ayant des dérogations conflictuelles, celle de plus petite priorité est retenue.';
 
 $string['override_user_in_group_mode_warning'] = 'Cette activité est configurée en mode soumission par groupe. Les dérogations utilisateur seront ignorées lors de l\'application ; créez plutôt une dérogation de groupe.';
-$string['override_no_deadline'] = 'Vous devez définir une deadline dérogatoire.';
+$string['override_no_deadline'] = 'Vous devez définir une date limite dérogatoire.';
 $string['override_duplicate_user'] = 'Une dérogation existe déjà pour cet utilisateur.';
 $string['override_confirm_delete_user'] = 'Confirmez-vous la suppression de la dérogation pour l\'utilisateur {$a} ?';
 $string['override_confirm_delete_group'] = 'Confirmez-vous la suppression de la dérogation pour le groupe {$a} ?';
 
 $string['overrides_table_target'] = 'Cible';
-$string['overrides_table_deadline'] = 'Deadline dérogatoire';
-$string['overrides_table_original'] = 'Deadline d\'origine';
+$string['overrides_table_deadline'] = 'Date limite dérogatoire';
+$string['overrides_table_original'] = 'Date limite d\'origine';
 $string['overrides_table_actions'] = 'Actions';
 $string['overrides_table_sortorder'] = 'Priorité';
 
@@ -629,6 +629,6 @@ $string['event_group_override_deleted'] = 'Dérogation groupe supprimée';
 
 $string['privacy:metadata:redaction_overrides'] = 'Informations sur les dérogations individuelles de deadline.';
 $string['privacy:metadata:redaction_overrides:userid'] = 'L\'utilisateur concerné par la dérogation.';
-$string['privacy:metadata:redaction_overrides:deadline_date'] = 'Timestamp de la deadline dérogatoire.';
+$string['privacy:metadata:redaction_overrides:deadline_date'] = 'Horodatage de la date limite dérogatoire.';
 $string['privacy:metadata:redaction_overrides:timecreated'] = 'Date de création de la dérogation.';
 $string['privacy:metadata:redaction_overrides:timemodified'] = 'Date de dernière modification de la dérogation.';

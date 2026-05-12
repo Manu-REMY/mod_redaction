@@ -600,7 +600,7 @@ $string['duplicateoverride'] = 'Duplicate override';
 $string['overrideuser'] = 'Override user';
 $string['overridegroup'] = 'Override group';
 $string['overridedeadline'] = 'Override deadline';
-$string['overridedeadline_help'] = 'Deadline that replaces the instance deadline for the targeted user or group. Leave unchecked to remove the override (use the form deletion instead).';
+$string['overridedeadline_help'] = 'Deadline that replaces the activity deadline for the targeted user or group. If left unchecked, no deadline override will be applied. To remove an existing override, use the Delete action in the overrides table.';
 $string['overridesortorder'] = 'Override priority';
 $string['overridesortorder_help'] = 'When a user belongs to several groups with conflicting overrides, the override with the lowest priority value applies.';
 
