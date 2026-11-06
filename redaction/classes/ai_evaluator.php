@@ -678,7 +678,7 @@ class ai_evaluator {
      */
     public static function phrases_commentaire(): array {
         $phrases = [];
-        foreach (['piece', 'fonctionnement', 'les_deux', 'precision', 'juste'] as $cle) {
+        foreach (['fonctionnement', 'les_deux', 'precision', 'juste'] as $cle) {
             $phrases[$cle] = get_string('sujets_commentaire_' . $cle, 'mod_redaction');
         }
         return $phrases;

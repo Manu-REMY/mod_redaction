@@ -677,7 +677,6 @@ $string['ai_prompt_sujet_format'] = 'Answer only with this JSON, in this order: 
 $string['ai_prompt_sujet_systeme'] = 'System to explain';
 $string['ai_prompt_sujet_corrige'] = 'Answer key';
 $string['ai_prompt_sujet_reponse'] = 'Answer to grade, between the tags:';
-$string['sujets_commentaire_piece'] = 'The part that steers is missing.';
 $string['sujets_commentaire_fonctionnement'] = 'Part of how it works is missing: say how the system changes direction.';
 $string['sujets_commentaire_les_deux'] = 'Explain which part steers and how the system changes direction.';
 $string['sujets_commentaire_precision'] = 'Make your explanation more precise.';

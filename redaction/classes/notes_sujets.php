@@ -171,7 +171,7 @@ class notes_sujets {
      *
      * @param array $lu An answer read by lire_reponse_ia.
      * @param float $seuil Grade from which the work is validated: nothing is missing from there.
-     * @param array $phrases Sentences for the keys piece, fonctionnement, les_deux, precision, juste.
+     * @param array $phrases Sentences for the keys fonctionnement, les_deux, precision, juste.
      * @return string
      */
     public static function commentaire_final(array $lu, float $seuil, array $phrases): string {
@@ -184,10 +184,8 @@ class notes_sujets {
                 $ajout = $lu['erreurs'] && $texte !== '' ? '' : $phrases['precision'];
             } else if ($piece) {
                 $ajout = $phrases['fonctionnement'];
-            } else if ($fonctionnement) {
-                $ajout = $phrases['piece'];
             } else {
-                // Not "the part is missing": the AI may have refused an answer that does name it.
+                // Not "the part is missing": the AI may have refused an answer that does name it, or marked it E2 alone.
                 $ajout = $phrases['les_deux'];
             }
         } else if ($texte === '') {
@@ -201,6 +199,7 @@ class notes_sujets {
      * Removes what a comment says is missing: the end of a sentence after a separator, or else the whole sentence.
      *
      * "Tu ne dis pas que la machine se plie" is how an AI told not to say what is missing gives the answer all the same.
+     * What is kept is checked again: a second "missing" may follow the first, and "En revanche." alone says nothing.
      *
      * @param string $commentaire
      * @return string
@@ -209,14 +208,18 @@ class notes_sujets {
         $manque = '(?:(?:il\s+)?(?:te\s+|t[\'’])?manqu'
             . '|(?:(?:tu|il|elle|ta\s+\S+|ton\s+\S+)\s+)?n(?:e\s+|[\'’])(?:as?\s+pas\s+)?'
             . '(?:dis|dit|parl|mentionn|cit|expliqu|décri|précis|donn|indiqu|nomm|montr))';
+        $liaison = '(?:mais|par\s+contre|en\s+revanche|cependant|toutefois|néanmoins|pourtant)';
         $gardees = [];
         foreach (preg_split('/(?<=[.!?…])\s+/u', $commentaire) as $phrase) {
             if (!preg_match('/(?<!\w)' . $manque . '/iu', $phrase)) {
                 $gardees[] = $phrase;
             } else if (preg_match(
-                '/^(.+?)(?:\s*[,;:]\s*(?:mais\s+|et\s+|cependant\s+|pourtant\s+)?|\s+(?:mais|et|cependant|pourtant)\s+)' . $manque . '/iu',
+                '/^(.+?)(?:\s*[,;:]\s*(?:(?:et|' . $liaison . ')\s+)?|\s+(?:et|' . $liaison . ')\s+)' . $manque . '/iu',
                 $phrase, $m)) {
-                $gardees[] = $m[1] . '.';
+                $debut = trim(preg_replace('/(?:^|[,;:\s])\s*' . $liaison . '$/iu', '', $m[1]));
+                if ($debut !== '' && !preg_match('/(?<!\w)' . $manque . '/iu', $debut)) {
+                    $gardees[] = $debut . '.';
+                }
             }
         }
         return trim(implode(' ', $gardees));

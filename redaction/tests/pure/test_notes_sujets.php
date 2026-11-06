@@ -100,7 +100,7 @@ test('texte : null accepté', fn() => notes_sujets::texte_reponse(null, BRUT) ==
 
 // Le commentaire de l'IA et la phrase écrite par le plugin.
 const PHRASES = [
-    'piece' => 'PHRASE-PIECE', 'fonctionnement' => 'PHRASE-FONCTIONNEMENT', 'les_deux' => 'PHRASE-LES-DEUX',
+    'fonctionnement' => 'PHRASE-FONCTIONNEMENT', 'les_deux' => 'PHRASE-LES-DEUX',
     'precision' => 'PHRASE-PRECISION', 'juste' => 'PHRASE-JUSTE',
 ];
 /** Comment shown to the student, from the fields of the AI answer. */
@@ -136,7 +136,8 @@ test('pièce citée, fonctionnement absent : ne dit jamais que la pièce manque'
 });
 test('pièce citée, même avec « mais il manque la pièce » dans la phrase', fn() =>
     final_ia(12, 'Tu cites les rails, mais il manque la pièce qui dirige.', ['E1']) === 'Tu cites les rails. PHRASE-FONCTIONNEMENT');
-test('fonctionnement présent, pièce absente', fn() => final_ia(12, 'Bien.', ['E2']) === 'Bien. PHRASE-PIECE');
+test('E2 sans E1 : une phrase qui n\'affirme pas que la pièce manque', fn() =>
+    final_ia(12, 'Tu expliques le rôle du rotor de queue.', ['E2']) === 'Tu expliques le rôle du rotor de queue. PHRASE-LES-DEUX');
 test('rien de présent : une phrase qui n\'affirme pas que la pièce manque', fn() =>
     final_ia(4, 'Cette idée est fausse. Il manque la pièce.', []) === 'Cette idée est fausse. PHRASE-LES-DEUX');
 test('à 16 : rien ne manque', fn() => final_ia(16, 'Bien vu. Il manque juste un détail.', ['E1', 'E2']) === 'Bien vu.');
@@ -157,6 +158,20 @@ test('« mais tu ne dis pas que… » : la suite part avec l\'explication', fn()
         === 'Tu cites les chenilles. PHRASE-FONCTIONNEMENT');
 test('« Mais tu ne dis pas que… » en début de phrase : phrase retirée', fn() =>
     final_ia(12, 'Tu cites l\'articulation. Mais tu ne dis pas que la machine se plie.', ['E1']) === 'Tu cites l\'articulation. PHRASE-FONCTIONNEMENT');
+test('« En revanche, il manque… » : pas de « En revanche. » seul', fn() =>
+    final_ia(12, 'Tu expliques le rotor de queue. En revanche, il manque le grand rotor.', ['E1']) === 'Tu expliques le rotor de queue. PHRASE-FONCTIONNEMENT');
+test('« Par contre, tu ne parles pas… » : pas de « Par contre. » seul', fn() =>
+    final_ia(12, 'Tu expliques le rotor de queue. Par contre, tu ne parles pas du grand rotor.', ['E1']) === 'Tu expliques le rotor de queue. PHRASE-FONCTIONNEMENT');
+test('« Mais, il manque… » : pas de « Mais. » seul', fn() =>
+    final_ia(12, 'Bien vu. Mais, il manque le grand rotor.', ['E1']) === 'Bien vu. PHRASE-FONCTIONNEMENT');
+test('« …, par contre il manque… » : le début reste', fn() =>
+    final_ia(12, 'Tu cites les rails, par contre il manque leur rôle.', ['E1']) === 'Tu cites les rails. PHRASE-FONCTIONNEMENT');
+test('« …, en revanche, il manque… » : le début reste, sans le mot de liaison', fn() =>
+    final_ia(12, 'Tu cites les rails, en revanche, il manque leur rôle.', ['E1']) === 'Tu cites les rails. PHRASE-FONCTIONNEMENT');
+test('deux manques dans une phrase : rien de l\'explication ne reste', fn() =>
+    final_ia(12, 'Tu cites le rotor de queue. Mais tu ne dis rien du grand rotor qui penche, il manque son rôle.', ['E1']) === 'Tu cites le rotor de queue. PHRASE-FONCTIONNEMENT');
+test('deux manques après un début juste : le début reste', fn() =>
+    final_ia(12, 'Tu cites les rails, mais tu ne dis rien du guidage, il manque son rôle.', ['E1']) === 'Tu cites les rails. PHRASE-FONCTIONNEMENT');
 test('« Tu ne mentionnes pas… » : phrase retirée', fn() =>
     final_ia(6, 'Cette idée est fausse. Tu ne mentionnes pas l\'articulation au milieu.', []) === 'Cette idée est fausse. PHRASE-LES-DEUX');
 test('« Il ne cite aucun rotor » : phrase retirée', fn() =>

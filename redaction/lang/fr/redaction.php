@@ -677,7 +677,6 @@ $string['ai_prompt_sujet_format'] = 'Réponds uniquement avec ce JSON, dans cet 
 $string['ai_prompt_sujet_systeme'] = 'Système à expliquer';
 $string['ai_prompt_sujet_corrige'] = 'Corrigé';
 $string['ai_prompt_sujet_reponse'] = 'Réponse à noter, entre les balises :';
-$string['sujets_commentaire_piece'] = 'Il manque la pièce qui permet de diriger.';
 $string['sujets_commentaire_fonctionnement'] = 'Il manque une partie du fonctionnement : dis comment le système change de direction.';
 $string['sujets_commentaire_les_deux'] = 'Explique quelle pièce permet de diriger et comment le système change de direction.';
 $string['sujets_commentaire_precision'] = 'Précise encore ton explication.';
