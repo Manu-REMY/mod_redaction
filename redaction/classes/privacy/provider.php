@@ -119,6 +119,26 @@ class provider implements
             'privacy:metadata:redaction_overrides'
         );
 
+        // Answers to assigned subjects (the expected answer, "corrige", is teacher-only and not personal data).
+        $collection->add_database_table(
+            'redaction_sujet_reponse',
+            [
+                'userid' => 'privacy:metadata:redaction_sujet_reponse:userid',
+                'contenu' => 'privacy:metadata:redaction_sujet_reponse:contenu',
+                'timemodified' => 'privacy:metadata:redaction_sujet_reponse:timemodified',
+            ],
+            'privacy:metadata:redaction_sujet_reponse'
+        );
+
+        // Group members credited by an AI evaluation in assigned subjects mode.
+        $collection->add_database_table(
+            'redaction_sujet_membre',
+            [
+                'userid' => 'privacy:metadata:redaction_sujet_membre:userid',
+            ],
+            'privacy:metadata:redaction_sujet_membre'
+        );
+
         // External AI services that may process user data.
         $collection->add_external_location_link(
             'ai_provider',
@@ -205,6 +225,34 @@ class provider implements
             'userid' => $userid,
         ]);
 
+        $sql = "SELECT c.id
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+            INNER JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+            INNER JOIN {redaction} r ON r.id = cm.instance
+            INNER JOIN {redaction_submission} rs ON rs.redactionid = r.id
+            INNER JOIN {redaction_sujet_reponse} rsr ON rsr.submissionid = rs.id
+                 WHERE rsr.userid = :userid";
+        $contextlist->add_from_sql($sql, [
+            'contextlevel' => CONTEXT_MODULE,
+            'modname' => 'redaction',
+            'userid' => $userid,
+        ]);
+
+        $sql = "SELECT c.id
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+            INNER JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+            INNER JOIN {redaction} r ON r.id = cm.instance
+            INNER JOIN {redaction_ai_evaluations} rae ON rae.redactionid = r.id
+            INNER JOIN {redaction_sujet_membre} rsm ON rsm.evaluationid = rae.id
+                 WHERE rsm.userid = :userid";
+        $contextlist->add_from_sql($sql, [
+            'contextlevel' => CONTEXT_MODULE,
+            'modname' => 'redaction',
+            'userid' => $userid,
+        ]);
+
         return $contextlist;
     }
 
@@ -271,6 +319,24 @@ class provider implements
                   JOIN {redaction} r ON r.id = cm.instance
                   JOIN {redaction_overrides} ro ON ro.redactionid = r.id
                  WHERE cm.id = :instanceid AND ro.userid IS NOT NULL";
+        $userlist->add_from_sql('userid', $sql, $params);
+
+        $sql = "SELECT rsr.userid
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modulename
+                  JOIN {redaction} r ON r.id = cm.instance
+                  JOIN {redaction_submission} rs ON rs.redactionid = r.id
+                  JOIN {redaction_sujet_reponse} rsr ON rsr.submissionid = rs.id
+                 WHERE cm.id = :instanceid AND rsr.userid != 0";
+        $userlist->add_from_sql('userid', $sql, $params);
+
+        $sql = "SELECT rsm.userid
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modulename
+                  JOIN {redaction} r ON r.id = cm.instance
+                  JOIN {redaction_ai_evaluations} rae ON rae.redactionid = r.id
+                  JOIN {redaction_sujet_membre} rsm ON rsm.evaluationid = rae.id
+                 WHERE cm.id = :instanceid";
         $userlist->add_from_sql('userid', $sql, $params);
     }
 
@@ -444,6 +510,78 @@ class provider implements
                 (object) ['overrides' => $data]
             );
         }
+
+        // Answers to assigned subjects written by this user. The expected answer is never exported.
+        $sql = "SELECT rsr.id,
+                       cm.id AS cmid,
+                       rsj.titre,
+                       rsr.contenu,
+                       rsr.timemodified
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid
+            INNER JOIN {redaction} r ON r.id = cm.instance
+            INNER JOIN {redaction_submission} rs ON rs.redactionid = r.id
+            INNER JOIN {redaction_sujet_reponse} rsr ON rsr.submissionid = rs.id
+            INNER JOIN {redaction_sujet} rsj ON rsj.id = rsr.sujetid
+                 WHERE c.id {$contextsql}
+                   AND rsr.userid = :userid
+              ORDER BY cm.id, rsj.sortorder";
+        $params = ['userid' => $user->id] + $contextparams;
+        $answers = $DB->get_recordset_sql($sql, $params);
+
+        $answersbycontext = [];
+        foreach ($answers as $answer) {
+            $answersbycontext[$answer->cmid][] = [
+                'subject' => $answer->titre,
+                'content' => $answer->contenu,
+                'timemodified' => transform::datetime($answer->timemodified),
+            ];
+        }
+        $answers->close();
+
+        foreach ($answersbycontext as $cmid => $data) {
+            $context = \context_module::instance($cmid);
+            writer::with_context($context)->export_data(
+                [get_string('sujets_answers', 'mod_redaction')],
+                (object) ['answers' => $data]
+            );
+        }
+
+        // The corrections that credited this user, whoever of the group wrote the answers.
+        $sql = "SELECT rae.id,
+                       cm.id AS cmid,
+                       rae.parsed_grade,
+                       rae.parsed_feedback,
+                       rae.status,
+                       rae.timecreated
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid
+            INNER JOIN {redaction} r ON r.id = cm.instance
+            INNER JOIN {redaction_ai_evaluations} rae ON rae.redactionid = r.id
+            INNER JOIN {redaction_sujet_membre} rsm ON rsm.evaluationid = rae.id
+                 WHERE c.id {$contextsql}
+                   AND rsm.userid = :userid
+              ORDER BY cm.id, rae.timecreated, rae.id";
+        $credited = $DB->get_recordset_sql($sql, $params);
+
+        $creditedbycontext = [];
+        foreach ($credited as $evaluation) {
+            $creditedbycontext[$evaluation->cmid][] = [
+                'grade' => $evaluation->parsed_grade,
+                'feedback' => $evaluation->parsed_feedback,
+                'status' => $evaluation->status,
+                'timecreated' => transform::datetime($evaluation->timecreated),
+            ];
+        }
+        $credited->close();
+
+        foreach ($creditedbycontext as $cmid => $data) {
+            $context = \context_module::instance($cmid);
+            writer::with_context($context)->export_data(
+                [get_string('sujets_credited', 'mod_redaction')],
+                (object) ['evaluations' => $data]
+            );
+        }
     }
 
     /**
@@ -464,6 +602,12 @@ class provider implements
         }
 
         $redactionid = $cm->instance;
+
+        // Delete assigned subjects answers and credited members.
+        $DB->delete_records_select('redaction_sujet_membre',
+            'evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE redactionid = :rid)', ['rid' => $redactionid]);
+        $DB->delete_records_select('redaction_sujet_reponse',
+            'submissionid IN (SELECT id FROM {redaction_submission} WHERE redactionid = :rid)', ['rid' => $redactionid]);
 
         // Delete all AI evaluations.
         $DB->delete_records('redaction_ai_evaluations', ['redactionid' => $redactionid]);
@@ -509,7 +653,22 @@ class provider implements
                 'userid' => $userid,
             ]);
 
+            // Credited-member rows of this user, wherever the evaluation belongs.
+            $DB->delete_records_select('redaction_sujet_membre',
+                'userid = :uid AND evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE redactionid = :rid)',
+                ['uid' => $userid, 'rid' => $redactionid]);
+
+            // Group answers stay (they belong to the group): only detach the author.
+            $DB->set_field_select('redaction_sujet_reponse', 'userid', 0,
+                'userid = :uid AND submissionid IN (SELECT id FROM {redaction_submission} WHERE redactionid = :rid)',
+                ['uid' => $userid, 'rid' => $redactionid]);
+
             foreach ($submissions as $submission) {
+                $DB->delete_records_select('redaction_sujet_membre',
+                    'evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE submissionid = :sid)',
+                    ['sid' => $submission->id]);
+                $DB->delete_records('redaction_sujet_reponse', ['submissionid' => $submission->id]);
+
                 // Delete AI evaluations for this submission.
                 $DB->delete_records('redaction_ai_evaluations', [
                     'submissionid' => $submission->id,
@@ -585,8 +744,20 @@ class provider implements
         $params = ['redactionid' => $redactionid] + $userparams;
         $submissionids = $DB->get_fieldset_sql($sql, $params);
 
+        // Credited-member rows of these users, and detach them as authors of group answers.
+        $DB->delete_records_select('redaction_sujet_membre',
+            "userid {$usersql} AND evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE redactionid = :rid)",
+            $userparams + ['rid' => $redactionid]);
+        $DB->set_field_select('redaction_sujet_reponse', 'userid', 0,
+            "userid {$usersql} AND submissionid IN (SELECT id FROM {redaction_submission} WHERE redactionid = :rid)",
+            $userparams + ['rid' => $redactionid]);
+
         if (!empty($submissionids)) {
             list($subsql, $subparams) = $DB->get_in_or_equal($submissionids, SQL_PARAMS_NAMED);
+
+            $DB->delete_records_select('redaction_sujet_membre',
+                "evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE submissionid {$subsql})", $subparams);
+            $DB->delete_records_select('redaction_sujet_reponse', "submissionid {$subsql}", $subparams);
 
             // Delete AI evaluations for these submissions.
             $DB->delete_records_select(

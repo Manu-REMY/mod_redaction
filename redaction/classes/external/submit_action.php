@@ -82,6 +82,11 @@ class submit_action extends external_api {
         $context = context_module::instance($cm->id);
         self::validate_context($context);
 
+        // The status of a submission of this mode follows the corrections: it is not set by hand.
+        if (!empty($redaction->sujets_enabled)) {
+            return ['success' => false, 'message' => get_string('sujets_statut_refuse', 'mod_redaction')];
+        }
+
         switch ($params['action']) {
             case 'submit':
                 require_capability('mod/redaction:submit', $context);

@@ -1,0 +1,160 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+{{!
+    @template mod_redaction/grading_sujets_detail
+
+    Teacher detail of one group in the assigned subjects mode: systems, answers, corrections, grade, change of systems.
+
+    Context variables required for this template:
+    * nom, retour, action, sesskey - Group name, link back to the overview, form target, session key
+    * membres - nom
+    * systemes - numero, titre, contenu (HTML), corrige, hasreponse, reponse (plain text)
+    * used, max, hasnote, note, seuil, valide, pasvalide, aucunenote, prof, noteprof, commentaireprof (current teacher comment, prefilled)
+    * hasalerte, alerte - Warning about failed or late corrections
+    * evaluations - id, hasnumero, numero (failed ones have none), date, statut, ispending, isfailed, age, longue, hasnote, note, haserror, error, hastexte, texte (text given to that correction), details
+    * choix - rang, options (id, titre, selected)
+    * confirmer - The group has already written: the change must be confirmed
+
+    Example context (json):
+    {
+        "nom": "4A-GRP01", "retour": "#", "action": "#", "sesskey": "abc",
+        "membres": [{"nom": "Eleve A"}], "hasmembres": true,
+        "hassystemes": true,
+        "systemes": [{"numero": 1, "titre": "Train", "contenu": "<p>Enonce</p>", "corrige": "Expected", "hasreponse": true, "reponse": "Answer"}],
+        "hassubmission": true, "used": 1, "max": 5, "hasnote": true, "note": "12", "seuil": "16", "valide": false, "pasvalide": true,
+        "aucunenote": false, "prof": false, "noteprof": "", "commentaireprof": "", "hasalerte": false, "alerte": "",
+        "hasevaluations": true,
+        "evaluations": [{"id": 1, "hasnumero": true, "numero": 1, "date": "6 Nov", "statut": "Done", "ispending": false, "isfailed": false, "age": "",
+            "longue": false, "hasnote": true, "note": "12", "haserror": false, "error": "", "hastexte": true, "texte": "Train\nAnswer", "hasdetails": true,
+            "details": [{"titre": "Train", "hasnote": true, "note": "12", "commentaire": "Good."}]}],
+        "choix": [{"rang": 1, "options": [{"id": 1, "titre": "Train", "selected": true}]}],
+        "confirmer": true
+    }
+}}
+<div class="mod_redaction mod_redaction-sujets-ens" id="mod_redaction-sujets-ens-detail">
+    <p><a href="{{retour}}">&larr; {{#str}}sujets_ens_retour, mod_redaction{{/str}}</a></p>
+    <h3>{{nom}}</h3>
+    {{#hasmembres}}
+    <p class="mod_redaction-ens-membres">{{#str}}sujets_ens_membres, mod_redaction{{/str}}
+        {{#membres}}<span class="mod_redaction-ens-membre">{{nom}}</span> {{/membres}}</p>
+    {{/hasmembres}}
+
+    {{#hasalerte}}
+    <div class="mod_redaction-ens-alerte" role="alert"><span aria-hidden="true">&#9888;</span> {{alerte}}</div>
+    {{/hasalerte}}
+
+    <ul class="mod_redaction-ens-faits">
+        <li>{{#str}}sujets_ens_essais, mod_redaction{{/str}} : {{used}} / {{max}}</li>
+        <li>
+            {{#hasnote}}{{#str}}sujets_meilleure_note, mod_redaction, {{note}}{{/str}}
+                {{#prof}}<span class="mod_redaction-ens-tag">{{#str}}sujets_ens_note_prof, mod_redaction{{/str}}</span>{{/prof}}{{/hasnote}}
+            {{^hasnote}}{{#str}}sujets_pas_de_note, mod_redaction{{/str}}{{/hasnote}}
+        </li>
+        <li>
+            {{#valide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ok"><span aria-hidden="true">&#10003;</span> {{#str}}sujets_valide, mod_redaction{{/str}}</span>{{/valide}}
+            {{#pasvalide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_pas_valide, mod_redaction{{/str}}</span>{{/pasvalide}}
+            {{#aucunenote}}<span class="mod_redaction-ens-etat">{{#str}}sujets_pas_de_note, mod_redaction{{/str}}</span>{{/aucunenote}}
+            {{#str}}sujets_seuil_rappel, mod_redaction, {{seuil}}{{/str}}
+        </li>
+    </ul>
+
+    <h4>{{#str}}sujets_ens_systemes_reponses, mod_redaction{{/str}}</h4>
+    {{^hassystemes}}<p><em>{{#str}}sujets_ens_pas_ouvert, mod_redaction{{/str}}</em></p>{{/hassystemes}}
+    {{#systemes}}
+    <div class="mod_redaction-ens-systeme">
+        <h5>{{numero}}. {{titre}}</h5>
+        <div class="mod_redaction-ens-enonce">{{{contenu}}}</div>
+        <p class="mod_redaction-ens-label">{{#str}}sujets_ens_reponse_groupe, mod_redaction{{/str}}</p>
+        {{#hasreponse}}<div class="mod_redaction-ens-texte">{{reponse}}</div>{{/hasreponse}}
+        {{^hasreponse}}<p><em>{{#str}}sujets_ens_pas_de_reponse, mod_redaction{{/str}}</em></p>{{/hasreponse}}
+        <details class="mod_redaction-ens-corrige">
+            <summary>{{#str}}sujets_ens_corrige, mod_redaction{{/str}}</summary>
+            <div class="mod_redaction-ens-texte">{{corrige}}</div>
+        </details>
+    </div>
+    {{/systemes}}
+
+    <h4>{{#str}}sujets_ens_corrections, mod_redaction{{/str}}</h4>
+    {{^hasevaluations}}<p><em>{{#str}}sujets_ens_aucune_correction, mod_redaction{{/str}}</em></p>{{/hasevaluations}}
+    {{#evaluations}}
+    <div class="mod_redaction-ens-eval {{#isfailed}}mod_redaction-ens-eval-echec{{/isfailed}}">
+        <p>
+            {{#hasnumero}}<strong>{{#str}}sujets_ens_essai_numero, mod_redaction, {{numero}}{{/str}}</strong> &ndash; {{/hasnumero}}{{date}} &ndash;
+            {{#isfailed}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#9888;</span> {{statut}}</span>{{/isfailed}}
+            {{^isfailed}}{{statut}}{{/isfailed}}
+            {{#hasnote}} &ndash; {{note}}/20{{/hasnote}}
+            {{#ispending}} &ndash; {{#str}}sujets_ens_depuis, mod_redaction, {{age}}{{/str}}
+                {{#longue}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#9888;</span> {{#str}}sujets_ens_trop_longue, mod_redaction{{/str}}</span>{{/longue}}{{/ispending}}
+        </p>
+        {{#haserror}}<p class="mod_redaction-ens-erreur">{{error}}</p>{{/haserror}}
+        {{#hastexte}}
+        <details class="mod_redaction-ens-sujet">
+            <summary>{{#str}}sujets_ens_texte_soumis, mod_redaction{{/str}}</summary>
+            <div class="mod_redaction-ens-texte">{{texte}}</div>
+        </details>
+        {{/hastexte}}
+        {{#hasdetails}}
+        <ul class="mod_redaction-ens-details">
+            {{#details}}
+            <li><strong>{{titre}}</strong>{{#hasnote}} &ndash; {{note}}/20{{/hasnote}}<br>{{commentaire}}</li>
+            {{/details}}
+        </ul>
+        {{/hasdetails}}
+    </div>
+    {{/evaluations}}
+
+    <h4>{{#str}}sujets_ens_note_titre, mod_redaction{{/str}}</h4>
+    {{#hassubmission}}
+    <form method="post" action="{{action}}" class="mod_redaction-ens-form">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="note">
+        <p>{{#str}}sujets_ens_note_aide, mod_redaction{{/str}}</p>
+        <label for="mod_redaction_ens_note">{{#str}}sujets_ens_note_champ, mod_redaction{{/str}}</label>
+        <input type="number" id="mod_redaction_ens_note" name="grade" min="0" max="20" step="0.01" value="{{noteprof}}" required>
+        <label for="mod_redaction_ens_commentaire">{{#str}}sujets_ens_commentaire, mod_redaction{{/str}}</label>
+        <textarea id="mod_redaction_ens_commentaire" name="feedback" rows="3">{{commentaireprof}}</textarea>
+        <button type="submit" class="btn btn-primary">{{#str}}sujets_ens_poser, mod_redaction{{/str}}</button>
+    </form>
+    {{#prof}}
+    <form method="post" action="{{action}}" class="mod_redaction-ens-form">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="retirer">
+        <button type="submit" class="btn btn-secondary">{{#str}}sujets_ens_retirer, mod_redaction{{/str}}</button>
+    </form>
+    {{/prof}}
+    {{/hassubmission}}
+    {{^hassubmission}}<p><em>{{#str}}sujets_ens_pas_de_travail, mod_redaction{{/str}}</em></p>{{/hassubmission}}
+
+    <h4>{{#str}}sujets_ens_changer_titre, mod_redaction{{/str}}</h4>
+    <form method="post" action="{{action}}" class="mod_redaction-ens-form">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="systemes">
+        <p>{{#str}}sujets_ens_changer_aide, mod_redaction{{/str}}</p>
+        {{#choix}}
+        <label for="mod_redaction_ens_sujet_{{rang}}">{{#str}}sujets_ens_systeme_numero, mod_redaction, {{rang}}{{/str}}</label>
+        <select id="mod_redaction_ens_sujet_{{rang}}" name="sujetid[]">
+            {{#options}}<option value="{{id}}" {{#selected}}selected{{/selected}}>{{titre}}</option>{{/options}}
+        </select>
+        {{/choix}}
+        {{#confirmer}}
+        <p class="mod_redaction-ens-confirmer">
+            <input type="checkbox" id="mod_redaction_ens_confirme" name="confirme" value="1">
+            <label for="mod_redaction_ens_confirme">{{#str}}sujets_ens_changer_confirmer, mod_redaction{{/str}}</label>
+        </p>
+        {{/confirmer}}
+        <button type="submit" class="btn btn-secondary">{{#str}}sujets_ens_changer, mod_redaction{{/str}}</button>
+    </form>
+</div>

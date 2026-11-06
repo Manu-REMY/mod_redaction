@@ -39,6 +39,8 @@ $templatedata = [
     'correctioncomplete' => $correctioncomplete,
     'consignesurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'consignes']))->out(false),
     'correctionurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'correction']))->out(false),
+    'sujetsenabled' => !empty($redaction->sujets_enabled),
+    'sujetsurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'sujets']))->out(false),
     'gradingurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading']))->out(false),
     'redactionurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'redaction']))->out(false),
     'haswarning' => false,
@@ -58,17 +60,25 @@ $templatedata = [
 
 // Teacher-specific data.
 if ($caneditconsignes && $cangrade) {
-    $submittedcount = $DB->count_records('redaction_submission', [
-        'redactionid' => $redaction->id,
-        'status' => 1,
-    ]);
+    // In the assigned subjects mode no submission is ever "handed in": count the groups that sent a correction.
+    $submittedcount = !empty($redaction->sujets_enabled)
+        ? $DB->count_records_select('redaction_submission', 'redactionid = ? AND training_count > 0', [$redaction->id])
+        : $DB->count_records('redaction_submission', [
+            'redactionid' => $redaction->id,
+            'status' => 1,
+        ]);
     $templatedata['submittedcount'] = $submittedcount;
     $templatedata['submittedcountstr'] = get_string('submissions_count', 'redaction', $submittedcount);
 }
 
 // Student-specific data.
 if (!$caneditconsignes) {
-    if (!$consignescomplete) {
+    // The assigned subjects mode has no instructions: the way in opens as soon as there are subjects.
+    $sujetsmode = !empty($redaction->sujets_enabled);
+    if ($sujetsmode && !$DB->record_exists('redaction_sujet', ['redactionid' => $redaction->id])) {
+        $templatedata['haswarning'] = true;
+        $templatedata['warningmessage'] = get_string('sujets_aucun', 'redaction');
+    } else if (!$sujetsmode && !$consignescomplete) {
         $templatedata['haswarning'] = true;
         $templatedata['warningmessage'] = get_string('error:noconsignes', 'redaction');
     } else if ($redaction->group_submission && $usergroup == 0) {

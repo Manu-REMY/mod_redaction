@@ -78,6 +78,16 @@ class bulk_unlock extends external_api {
         self::validate_context($context);
         require_capability('mod/redaction:grade', $context);
 
+        // The status of a submission of this mode follows the corrections: it is not set by hand.
+        if (!empty($redaction->sujets_enabled)) {
+            return [
+                'success' => false,
+                'unlocked' => 0,
+                'skipped' => count($params['submissionids']),
+                'errors' => [get_string('sujets_statut_refuse', 'mod_redaction')],
+            ];
+        }
+
         $results = [
             'success' => true,
             'unlocked' => 0,

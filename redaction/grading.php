@@ -28,6 +28,11 @@ defined('MOODLE_INTERNAL') || die();
 $PAGE->set_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading']);
 $PAGE->set_title(format_string($redaction->name) . ' - ' . get_string('grading', 'redaction'));
 
+// The assigned subjects mode has its own screens: its grades go through the teacher grade.
+if (!empty($redaction->sujets_enabled)) {
+    require_once(__DIR__ . '/pages/grading_sujets.php');
+}
+
 $groupid = optional_param('groupid', 0, PARAM_INT);
 $tab = optional_param('tab', 'detail', PARAM_ALPHA);
 if ($tab !== 'overview') {

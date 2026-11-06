@@ -56,7 +56,8 @@ class auto_submit_deadline extends \core\task\scheduled_task {
                        r.id AS redactionid, r.name, r.course, r.group_submission, r.ai_enabled
                   FROM {redaction_submission} s
                   JOIN {redaction} r ON r.id = s.redactionid
-                 WHERE s.status = 0";
+                 WHERE s.status = 0
+                   AND r.sujets_enabled = 0";
         $drafts = $DB->get_recordset_sql($sql);
 
         $totalprocessed = 0;

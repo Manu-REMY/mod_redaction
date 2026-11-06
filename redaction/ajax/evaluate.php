@@ -55,6 +55,11 @@ try {
         throw new moodle_exception('ai_not_enabled', 'redaction');
     }
 
+    // A correction launched here would count as handed in without the group having submitted.
+    if (!empty($redaction->sujets_enabled)) {
+        throw new moodle_exception('sujets_evaluation_refusee', 'redaction');
+    }
+
     // Get submission.
     $submission = $DB->get_record('redaction_submission', ['id' => $submissionid], '*', MUST_EXIST);
 

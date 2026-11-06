@@ -85,21 +85,28 @@ class apply_ai_grade extends external_api {
 
         $submission = $DB->get_record('redaction_submission', ['id' => $evaluation->submissionid], '*', MUST_EXIST);
 
-        // Apply the grade.
-        $submission->grade = $evaluation->parsed_grade;
-        $submission->feedback = $evaluation->parsed_feedback;
-        $submission->timemodified = time();
-        $DB->update_record('redaction_submission', $submission);
+        if (!empty($redaction->sujets_enabled)) {
+            // The best grade counts, and a teacher grade wins: the evaluator works it out.
+            if (!\mod_redaction\ai_evaluator::apply_evaluation($evaluation->id, $USER->id)) {
+                throw new \moodle_exception('apply_failed', 'mod_redaction');
+            }
+        } else {
+            // Apply the grade.
+            $submission->grade = $evaluation->parsed_grade;
+            $submission->feedback = $evaluation->parsed_feedback;
+            $submission->timemodified = time();
+            $DB->update_record('redaction_submission', $submission);
 
-        // Mark evaluation as applied.
-        $evaluation->status = 'applied';
-        $evaluation->applied_by = $USER->id;
-        $evaluation->applied_at = time();
-        $evaluation->timemodified = time();
-        $DB->update_record('redaction_ai_evaluations', $evaluation);
+            // Mark evaluation as applied.
+            $evaluation->status = 'applied';
+            $evaluation->applied_by = $USER->id;
+            $evaluation->applied_at = time();
+            $evaluation->timemodified = time();
+            $DB->update_record('redaction_ai_evaluations', $evaluation);
 
-        // Update gradebook.
-        redaction_update_grades($redaction);
+            // Update gradebook.
+            redaction_update_grades($redaction);
+        }
 
         // Trigger event.
         $event = \mod_redaction\event\ai_grade_applied::create([

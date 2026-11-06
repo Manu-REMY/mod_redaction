@@ -31,6 +31,12 @@ if (!defined('EDITOR_UNLIMITED_FILES')) {
     define('EDITOR_UNLIMITED_FILES', -1);
 }
 
+// Assigned subjects mode has its own student screen.
+if (!empty($redaction->sujets_enabled)) {
+    require_once(__DIR__ . '/sujets_eleve.php');
+    exit;
+}
+
 // Get consignes.
 $consignes = $DB->get_record('redaction_consignes', ['redactionid' => $redaction->id]);
 if (!$consignes || !$consignes->locked) {

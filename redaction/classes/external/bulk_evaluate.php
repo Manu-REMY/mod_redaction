@@ -86,6 +86,16 @@ class bulk_evaluate extends external_api {
             ];
         }
 
+        // A correction launched here would count as handed in without the group having submitted.
+        if (!empty($redaction->sujets_enabled)) {
+            return [
+                'success' => false,
+                'queued' => 0,
+                'skipped' => count($params['submissionids']),
+                'errors' => [get_string('sujets_evaluation_refusee', 'mod_redaction')],
+            ];
+        }
+
         $results = [
             'success' => true,
             'queued' => 0,

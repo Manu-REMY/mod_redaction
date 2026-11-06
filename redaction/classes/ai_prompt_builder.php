@@ -48,6 +48,36 @@ class ai_prompt_builder {
     }
 
     /**
+     * Build the prompts that correct the answer to one subject (assigned subjects mode).
+     *
+     * Only the subject title, its answer key and the text of the answer are sent: no student or group name.
+     *
+     * @param object $sujet The subject (titre, corrige)
+     * @param string $reponse The student's answer as stored
+     * @param int $format Format of the answer, plain text by default
+     * @return array ['system' => string, 'user' => string]
+     */
+    public static function build_sujet_prompt(object $sujet, string $reponse, int $format = notes_sujets::FORMAT_TEXTE): array {
+        $system = get_string('ai_prompt_sujet_intro', 'mod_redaction') . "\n\n";
+        foreach (['bareme', 'mots', 'tolerance', 'copie', 'donnees', 'commentaire', 'secret'] as $regle) {
+            $system .= '- ' . get_string('ai_prompt_sujet_' . $regle, 'mod_redaction') . "\n";
+        }
+        $system .= "\n## " . get_string('ai_prompt_response_format', 'mod_redaction') . "\n";
+        $system .= get_string('ai_prompt_sujet_format', 'mod_redaction') . "\n";
+        $system .= "\n## " . get_string('ai_prompt_sujet_systeme', 'mod_redaction') . "\n";
+        $system .= notes_sujets::texte_reponse($sujet->titre, notes_sujets::FORMAT_TEXTE) . "\n";
+        $system .= "\n## " . get_string('ai_prompt_sujet_corrige', 'mod_redaction') . "\n";
+        $system .= notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE) . "\n";
+
+        // The student cannot close the block that holds the answer.
+        $texte = strtr(notes_sujets::texte_reponse($reponse, $format), ['<' => '‹', '>' => '›']);
+        $user = get_string('ai_prompt_sujet_reponse', 'mod_redaction') . "\n";
+        $user .= "<reponse_eleve>\n" . $texte . "\n</reponse_eleve>";
+
+        return ['system' => $system, 'user' => $user];
+    }
+
+    /**
      * Build the system prompt.
      *
      * @param object $consignes

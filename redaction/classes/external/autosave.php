@@ -129,6 +129,11 @@ class autosave extends external_api {
             case 'redaction':
                 require_capability('mod/redaction:submit', $context);
 
+                // The assigned subjects mode saves its answers through its own service, for the group of the student.
+                if (!empty($redaction->sujets_enabled)) {
+                    return ['success' => false, 'message' => get_string('sujets_autosave_refuse', 'mod_redaction')];
+                }
+
                 $submission = redaction_get_or_create_submission($redaction, $params['groupid'], $USER->id);
 
                 if ($submission->status == 1) {

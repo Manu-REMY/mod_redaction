@@ -103,6 +103,12 @@ try {
             // Student writing page.
             require_capability('mod/redaction:submit', $context);
 
+            // The assigned subjects mode saves its answers through its own service.
+            if (!empty($redaction->sujets_enabled)) {
+                $result = ['success' => false, 'message' => get_string('sujets_autosave_refuse', 'redaction')];
+                break;
+            }
+
             // Get or create submission.
             $submission = redaction_get_or_create_submission($redaction, $groupid, $USER->id);
 

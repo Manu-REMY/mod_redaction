@@ -113,6 +113,9 @@ abstract class base_provider implements provider_interface {
      * @return array
      */
     protected function make_request(string $systemprompt, string $userprompt, string $model, int $maxtokens): array {
+        global $CFG;
+        require_once($CFG->libdir . '/filelib.php');
+
         $curl = new \curl();
         $curl->setopt([
             'CURLOPT_TIMEOUT' => $this->timeout,
@@ -157,6 +160,17 @@ abstract class base_provider implements provider_interface {
         }
 
         return $this->parse_response($data);
+    }
+
+    /**
+     * Shorten the wait when a student is in front of the screen.
+     *
+     * @param int $timeout Request timeout in seconds
+     * @param int $maxretries Maximum retries
+     */
+    public function limiter_attente(int $timeout, int $maxretries): void {
+        $this->timeout = $timeout;
+        $this->maxretries = $maxretries;
     }
 
     /**

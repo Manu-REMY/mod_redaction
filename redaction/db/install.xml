@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/redaction/db" VERSION="20260512" COMMENT="XMLDB file for Moodle mod_redaction"
+<XMLDB PATH="mod/redaction/db" VERSION="20261106" COMMENT="XMLDB file for Moodle mod_redaction"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -20,6 +20,9 @@
         <FIELD NAME="ai_auto_apply" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1=Auto-apply AI grades without teacher review"/>
         <FIELD NAME="training_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1=training mode enabled"/>
         <FIELD NAME="training_max_attempts" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="5" SEQUENCE="false" COMMENT="Maximum training attempts allowed, 0=unlimited"/>
+        <FIELD NAME="sujets_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1=assigned subjects mode"/>
+        <FIELD NAME="sujets_par_groupe" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="2" SEQUENCE="false" COMMENT="Subjects assigned to each group"/>
+        <FIELD NAME="sujets_seuil" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="16" SEQUENCE="false" DECIMALS="2" COMMENT="Validation threshold out of 20"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
@@ -66,6 +69,7 @@
         <FIELD NAME="contenuformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="status" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0=draft, 1=submitted"/>
         <FIELD NAME="grade" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="2" COMMENT="Grade out of 20"/>
+        <FIELD NAME="grade_enseignant" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="2" COMMENT="Teacher grade out of 20 (assigned subjects mode)"/>
         <FIELD NAME="feedback" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Teacher feedback"/>
         <FIELD NAME="feedbackformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="timesubmitted" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -143,6 +147,7 @@
         <FIELD NAME="parsed_grade" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="2"/>
         <FIELD NAME="parsed_feedback" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="criteria_json" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of criteria scores"/>
+        <FIELD NAME="sujets_json" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON per-subject results (assigned subjects mode)"/>
         <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending, processing, completed, failed, applied"/>
         <FIELD NAME="error_message" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="applied_by" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Teacher who applied the grade"/>
@@ -215,5 +220,76 @@
       </INDEXES>
     </TABLE>
 
+    <!-- Table: Sujets (mode sujets attribués) -->
+    <TABLE NAME="redaction_sujet" COMMENT="Subjects of the assigned subjects mode">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="redactionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Instance ID"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="titre" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="contenu" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Statement shown to students"/>
+        <FIELD NAME="contenuformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="corrige" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Expected answer, teacher only, never exported or shown to students"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="redactionid" TYPE="foreign" FIELDS="redactionid" REFTABLE="redaction" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+
+    <!-- Table: Attribution des sujets aux groupes -->
+    <TABLE NAME="redaction_sujet_groupe" COMMENT="Subjects assigned to each group">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="redactionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sujetid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="rang" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Position among the subjects of the group"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="redactionid" TYPE="foreign" FIELDS="redactionid" REFTABLE="redaction" REFFIELDS="id"/>
+        <KEY NAME="groupid" TYPE="foreign" FIELDS="groupid" REFTABLE="groups" REFFIELDS="id"/>
+        <KEY NAME="sujetid" TYPE="foreign" FIELDS="sujetid" REFTABLE="redaction_sujet" REFFIELDS="id"/>
+        <KEY NAME="redactionid_groupid_sujetid" TYPE="unique" FIELDS="redactionid, groupid, sujetid"/>
+      </KEYS>
+    </TABLE>
+
+    <!-- Table: Réponses par sujet -->
+    <TABLE NAME="redaction_sujet_reponse" COMMENT="Answer to one subject within a submission">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="submissionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="sujetid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="contenu" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="contenuformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Last user who saved this answer"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="submissionid" TYPE="foreign" FIELDS="submissionid" REFTABLE="redaction_submission" REFFIELDS="id"/>
+        <KEY NAME="sujetid" TYPE="foreign" FIELDS="sujetid" REFTABLE="redaction_sujet" REFFIELDS="id"/>
+        <KEY NAME="submissionid_sujetid" TYPE="unique" FIELDS="submissionid, sujetid"/>
+      </KEYS>
+    </TABLE>
+
+    <!-- Table: Membres du groupe au moment d'une évaluation -->
+    <TABLE NAME="redaction_sujet_membre" COMMENT="Group members credited by an evaluation">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="evaluationid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="evaluationid" TYPE="foreign" FIELDS="evaluationid" REFTABLE="redaction_ai_evaluations" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="evaluationid_userid" TYPE="unique" FIELDS="evaluationid, userid"/>
+      </KEYS>
+    </TABLE>
   </TABLES>
 </XMLDB>

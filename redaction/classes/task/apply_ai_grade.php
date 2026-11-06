@@ -65,5 +65,8 @@ class apply_ai_grade extends \core\task\scheduled_task {
         }
 
         mtrace("Applied {$applied} AI grades.");
+
+        $echecs = \mod_redaction\ai_evaluator::echouer_corrections_bloquees();
+        mtrace("Failed {$echecs} stuck evaluations.");
     }
 }

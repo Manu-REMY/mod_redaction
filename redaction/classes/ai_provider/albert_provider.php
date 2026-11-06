@@ -36,10 +36,10 @@ class albert_provider extends base_provider {
     const ENDPOINT = 'https://albert.api.etalab.gouv.fr/v1/chat/completions';
 
     /** @var array Available models */
-    const MODELS = ['albert-large', 'albert-base', 'guillaumetell-7b'];
+    const MODELS = ['deepseek-v4-flash', 'albert-large', 'albert-base', 'guillaumetell-7b'];
 
     /** @var string Default model */
-    const DEFAULT_MODEL = 'albert-large';
+    const DEFAULT_MODEL = 'deepseek-v4-flash';
 
     /**
      * Get the API key for Albert from admin settings.

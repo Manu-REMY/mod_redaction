@@ -20,7 +20,7 @@ php -l redaction/fichier.php
 grunt amd --root=/mod/redaction
 
 # Créer le ZIP de distribution
-cd /Users/remyemmanuel/Documents/Claude\ code/mod_redaction && zip -r redaction.zip redaction/ -x "redaction/.git/*"
+cd /Users/remyemmanuel/Documents/Claude\ code/mod_redaction && zip -r redaction.zip redaction/ -x "redaction/.git/*" "redaction/tests/cli/*" "redaction/tests/pure/*" "redaction/tests/js/*"
 ```
 
 ---

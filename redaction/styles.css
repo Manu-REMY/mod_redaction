@@ -2118,3 +2118,233 @@
 .mod_redaction-overrides-warning {
     margin-bottom: 1rem;
 }
+
+/* Assigned subjects editing page. */
+.mod_redaction.mod_redaction-sujets .mod_redaction-sujet-row {
+    border: 1px solid #ced4da;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mod_redaction.mod_redaction-sujets .mod_redaction-sujet-field {
+    margin-bottom: 0.75rem;
+}
+
+.mod_redaction.mod_redaction-sujets .mod_redaction-sujets-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Assigned subjects: student screen. Tender blue = validated, tender orange = not yet, always with a mark and a word. */
+.mod_redaction.mod_redaction-sujets-eleve {
+    max-width: 60rem;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid;
+    margin-bottom: 1rem;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-ok {
+    background: #dfe8f8;
+    color: #24407f;
+    border-color: #24407f;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-ko {
+    background: #fdeedd;
+    color: #a9500f;
+    border-color: #a9500f;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-mark {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-banner-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+    font-weight: 600;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-notice {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    background: #f1f3f5;
+    border: 1px solid #adb5bd;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-attente {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    border: 1px solid #1a5596;
+    border-radius: 0.5rem;
+    background: #e8f1fa;
+    color: #1a5596;
+    font-weight: 600;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-attente[hidden] {
+    display: none;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-spinner {
+    flex: none;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-sujet {
+    border: 1px solid #ced4da;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-contenu {
+    overflow-wrap: anywhere;
+    margin-bottom: 0.75rem;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-contenu img {
+    max-width: 100%;
+    height: auto;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-reponse {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-message:not(:empty),
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-reason {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #fdeedd;
+    color: #a9500f;
+    border: 1px solid #a9500f;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-comments {
+    margin-top: 1.5rem;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-comment {
+    border-left: 4px solid #6c757d;
+    padding-left: 0.75rem;
+    margin-bottom: 0.75rem;
+    overflow-wrap: anywhere;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-comment p {
+    margin: 0 0 0.25rem;
+}
+
+/* Assigned subjects: teacher screens. Blue = validated, orange = not yet, always with a mark and a word. */
+.mod_redaction.mod_redaction-sujets-ens {
+    max-width: 70rem;
+}
+
+.mod_redaction .mod_redaction-ens-etat {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.mod_redaction .mod_redaction-ens-ok {
+    color: #1b5e8c;
+}
+
+.mod_redaction .mod_redaction-ens-ko {
+    color: #a4550c;
+}
+
+.mod_redaction .mod_redaction-ens-tag {
+    font-size: 0.85em;
+    font-style: italic;
+}
+
+.mod_redaction .mod_redaction-ens-alerte {
+    background: #fdf0e0;
+    border-left: 0.3rem solid #a4550c;
+    border-radius: 0.25rem;
+    color: #5c3000;
+    margin: 0.5rem 0;
+    padding: 0.4rem 0.75rem;
+}
+
+.mod_redaction .mod_redaction-ens-systeme,
+.mod_redaction .mod_redaction-ens-eval {
+    border: 1px solid #c9d1d9;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+}
+
+.mod_redaction .mod_redaction-ens-eval-echec {
+    border-color: #a4550c;
+}
+
+.mod_redaction .mod_redaction-ens-texte {
+    background: #f6f8fa;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    white-space: pre-wrap;
+}
+
+.mod_redaction .mod_redaction-ens-label {
+    font-weight: 600;
+    margin: 0.5rem 0 0.25rem;
+}
+
+.mod_redaction .mod_redaction-ens-form label {
+    display: block;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.mod_redaction .mod_redaction-ens-form textarea {
+    max-width: 40rem;
+    width: 100%;
+}
+
+.mod_redaction .mod_redaction-ens-form .mod_redaction-ens-confirmer label {
+    display: inline;
+    font-weight: normal;
+}
+
+.mod_redaction .mod_redaction-ens-form button {
+    margin-top: 0.75rem;
+}

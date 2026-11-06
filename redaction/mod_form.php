@@ -149,6 +149,28 @@ class mod_redaction_mod_form extends moodleform_mod {
         $mform->addHelpButton('ai_auto_apply', 'ai_auto_apply', 'redaction');
         $mform->hideIf('ai_auto_apply', 'ai_enabled', 'eq', 0);
 
+        // Assigned subjects mode.
+        $mform->addElement('header', 'sujets_settings', get_string('sujets_settings', 'redaction'));
+        $mform->setExpanded('sujets_settings', false);
+
+        $mform->addElement('selectyesno', 'sujets_enabled', get_string('sujets_enabled', 'redaction'));
+        $mform->setDefault('sujets_enabled', 0);
+        $mform->addHelpButton('sujets_enabled', 'sujets_enabled', 'redaction');
+
+        $pergroup = [];
+        for ($i = 1; $i <= 8; $i++) {
+            $pergroup[$i] = (string) $i;
+        }
+        $mform->addElement('select', 'sujets_par_groupe', get_string('sujets_par_groupe', 'redaction'), $pergroup);
+        $mform->setDefault('sujets_par_groupe', 2);
+        $mform->hideIf('sujets_par_groupe', 'sujets_enabled', 'eq', 0);
+
+        $mform->addElement('text', 'sujets_seuil', get_string('sujets_seuil', 'redaction'), ['size' => 5]);
+        $mform->setType('sujets_seuil', PARAM_FLOAT);
+        $mform->setDefault('sujets_seuil', 16);
+        $mform->addHelpButton('sujets_seuil', 'sujets_seuil', 'redaction');
+        $mform->hideIf('sujets_seuil', 'sujets_enabled', 'eq', 0);
+
         // Add standard grading elements.
         $this->standard_grading_coursemodule_elements();
 
@@ -188,6 +210,16 @@ class mod_redaction_mod_form extends moodleform_mod {
         // Training mode requires AI to be enabled.
         if (!empty($data['training_enabled']) && empty($data['ai_enabled'])) {
             $errors['training_enabled'] = get_string('training_requires_ai', 'redaction');
+        }
+
+        // Assigned subjects mode relies on the AI evaluation and a sensible threshold.
+        if (!empty($data['sujets_enabled'])) {
+            if (empty($data['ai_enabled'])) {
+                $errors['sujets_enabled'] = get_string('sujets_requires_ai', 'redaction');
+            }
+            if (!isset($data['sujets_seuil']) || $data['sujets_seuil'] < 0 || $data['sujets_seuil'] > 20) {
+                $errors['sujets_seuil'] = get_string('sujets_seuil_invalid', 'redaction');
+            }
         }
 
         return $errors;

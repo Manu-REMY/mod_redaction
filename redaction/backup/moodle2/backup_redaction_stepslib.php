@@ -55,6 +55,9 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'ai_auto_apply',
             'training_enabled',
             'training_max_attempts',
+            'sujets_enabled',
+            'sujets_par_groupe',
+            'sujets_seuil',
             'timecreated',
             'timemodified',
         ]);
@@ -92,6 +95,7 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'contenuformat',
             'status',
             'grade',
+            'grade_enseignant',
             'feedback',
             'feedbackformat',
             'training_count',
@@ -126,6 +130,7 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'parsed_grade',
             'parsed_feedback',
             'criteria_json',
+            'sujets_json',
             'status',
             'error_message',
             'applied_by',
@@ -144,9 +149,47 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'timemodified',
         ]);
 
+        $sujets = new backup_nested_element('sujets');
+        $sujet = new backup_nested_element('sujet', ['id'], [
+            'sortorder',
+            'titre',
+            'contenu',
+            'contenuformat',
+            'corrige',
+            'timecreated',
+            'timemodified',
+        ]);
+
+        $sujetgroupes = new backup_nested_element('sujet_groupes');
+        $sujetgroupe = new backup_nested_element('sujet_groupe', ['id'], [
+            'groupid',
+            'sujetid',
+            'rang',
+            'timecreated',
+        ]);
+
+        $sujetreponses = new backup_nested_element('sujet_reponses');
+        $sujetreponse = new backup_nested_element('sujet_reponse', ['id'], [
+            'sujetid',
+            'contenu',
+            'contenuformat',
+            'userid',
+            'timemodified',
+        ]);
+
+        $sujetmembres = new backup_nested_element('sujet_membres');
+        $sujetmembre = new backup_nested_element('sujet_membre', ['id'], [
+            'userid',
+        ]);
+
         // Build the tree.
         $redaction->add_child($consignes);
         $redaction->add_child($correction);
+        // The subjects come before the submissions: the restore of an answer maps its subject.
+        $redaction->add_child($sujets);
+        $sujets->add_child($sujet);
+        $redaction->add_child($sujetgroupes);
+        $sujetgroupes->add_child($sujetgroupe);
         $redaction->add_child($submissions);
         $redaction->add_child($overrides);
         $overrides->add_child($override);
@@ -155,18 +198,26 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
         $histories->add_child($history);
         $submission->add_child($aievaluations);
         $aievaluations->add_child($aievaluation);
+        $submission->add_child($sujetreponses);
+        $sujetreponses->add_child($sujetreponse);
+        $aievaluation->add_child($sujetmembres);
+        $sujetmembres->add_child($sujetmembre);
 
         // Define sources.
         $redaction->set_source_table('redaction', ['id' => backup::VAR_ACTIVITYID]);
         $consignes->set_source_table('redaction_consignes', ['redactionid' => backup::VAR_PARENTID]);
         $correction->set_source_table('redaction_correction', ['redactionid' => backup::VAR_PARENTID]);
         $override->set_source_table('redaction_overrides', ['redactionid' => backup::VAR_PARENTID]);
+        $sujet->set_source_table('redaction_sujet', ['redactionid' => backup::VAR_PARENTID]);
+        $sujetgroupe->set_source_table('redaction_sujet_groupe', ['redactionid' => backup::VAR_PARENTID]);
 
         // Only include user data if requested.
         if ($userinfo) {
             $submission->set_source_table('redaction_submission', ['redactionid' => backup::VAR_PARENTID]);
             $history->set_source_table('redaction_history', ['submissionid' => backup::VAR_PARENTID]);
             $aievaluation->set_source_table('redaction_ai_evaluations', ['submissionid' => backup::VAR_PARENTID]);
+            $sujetreponse->set_source_table('redaction_sujet_reponse', ['submissionid' => backup::VAR_PARENTID]);
+            $sujetmembre->set_source_table('redaction_sujet_membre', ['evaluationid' => backup::VAR_PARENTID]);
         }
 
         // Define ID annotations.
@@ -178,6 +229,9 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
         $aievaluation->annotate_ids('user', 'userid');
         $aievaluation->annotate_ids('user', 'applied_by');
         $aievaluation->annotate_ids('group', 'groupid');
+        $sujetgroupe->annotate_ids('group', 'groupid');
+        $sujetreponse->annotate_ids('user', 'userid');
+        $sujetmembre->annotate_ids('user', 'userid');
         $override->annotate_ids('user', 'userid');
         $override->annotate_ids('group', 'groupid');
 

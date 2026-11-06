@@ -151,4 +151,28 @@ $functions = [
         'capabilities' => 'mod/redaction:grade',
         'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
+    'mod_redaction_save_sujet_reponse' => [
+        'classname' => 'mod_redaction\external\save_sujet_reponse',
+        'methodname' => 'execute',
+        'description' => 'Save the answer of the group to one assigned subject',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/redaction:submit',
+    ],
+    'mod_redaction_get_sujets_etat' => [
+        'classname' => 'mod_redaction\external\get_sujets_etat',
+        'methodname' => 'execute',
+        'description' => 'Get the saved answers and the correction state of the group on the assigned subjects screen',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'mod/redaction:submit',
+    ],
+    'mod_redaction_submit_sujets' => [
+        'classname' => 'mod_redaction\external\submit_sujets',
+        'methodname' => 'execute',
+        'description' => 'Submit the answers of the group to the AI correction',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/redaction:submit',
+    ],
 ];

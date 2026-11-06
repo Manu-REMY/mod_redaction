@@ -1,0 +1,71 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+{{!
+    @template mod_redaction/grading_sujets_overview
+
+    Teacher overview of the assigned subjects mode: one row per group.
+
+    Context variables required for this template:
+    * seuil - Validation threshold
+    * hasgroupes, groupes - Rows: nom, url, hassystemes, systemes, used, max, hasnote, note, prof, valide,
+      pasvalide, aucunenote, hasalerte, alerte
+
+    Example context (json):
+    {
+        "seuil": "16", "hasgroupes": true,
+        "groupes": [{"nom": "4A-GRP01", "url": "#", "hassystemes": true, "systemes": "Train / Barque", "used": 2, "max": 5,
+            "hasnote": true, "note": "12", "prof": false, "valide": false, "pasvalide": true, "aucunenote": false,
+            "hasalerte": true, "alerte": "The last correction failed."}]
+    }
+}}
+<div class="mod_redaction mod_redaction-sujets-ens" id="mod_redaction-sujets-ens">
+    {{^hasgroupes}}
+    <p class="mod_redaction-ens-vide">{{#str}}sujets_ens_aucun_groupe, mod_redaction{{/str}}</p>
+    {{/hasgroupes}}
+    {{#hasgroupes}}
+    <table class="mod_redaction-ens-table table table-sm">
+        <thead>
+            <tr>
+                <th scope="col">{{#str}}group_label, mod_redaction{{/str}}</th>
+                <th scope="col">{{#str}}sujets_ens_systemes, mod_redaction{{/str}}</th>
+                <th scope="col">{{#str}}sujets_ens_essais, mod_redaction{{/str}}</th>
+                <th scope="col">{{#str}}sujets_ens_meilleure, mod_redaction{{/str}}</th>
+                <th scope="col">{{#str}}sujets_ens_etat, mod_redaction{{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#groupes}}
+            <tr>
+                <th scope="row"><a href="{{url}}">{{nom}}</a></th>
+                <td>{{#hassystemes}}{{systemes}}{{/hassystemes}}{{^hassystemes}}<em>{{#str}}sujets_ens_pas_ouvert, mod_redaction{{/str}}</em>{{/hassystemes}}</td>
+                <td>{{used}} / {{max}}</td>
+                <td>
+                    {{#hasnote}}{{note}}/20{{#prof}} <span class="mod_redaction-ens-tag">{{#str}}sujets_ens_note_prof, mod_redaction{{/str}}</span>{{/prof}}{{/hasnote}}
+                    {{^hasnote}}&ndash;{{/hasnote}}
+                </td>
+                <td>
+                    {{#valide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ok"><span aria-hidden="true">&#10003;</span> {{#str}}sujets_valide, mod_redaction{{/str}}</span>{{/valide}}
+                    {{#pasvalide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_pas_valide, mod_redaction{{/str}}</span>{{/pasvalide}}
+                    {{#aucunenote}}<span class="mod_redaction-ens-etat">{{#str}}sujets_pas_de_note, mod_redaction{{/str}}</span>{{/aucunenote}}
+                    {{#hasalerte}}<div class="mod_redaction-ens-alerte" role="alert"><span aria-hidden="true">&#9888;</span> {{alerte}}</div>{{/hasalerte}}
+                </td>
+            </tr>
+            {{/groupes}}
+        </tbody>
+    </table>
+    <p class="mod_redaction-ens-note">{{#str}}sujets_seuil_rappel, mod_redaction, {{seuil}}{{/str}}</p>
+    {{/hasgroupes}}
+</div>

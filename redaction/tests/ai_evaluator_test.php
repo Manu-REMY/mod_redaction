@@ -316,7 +316,7 @@ class ai_evaluator_test extends \advanced_testcase {
         $this->assertEquals('gpt-4o-mini', ai_evaluator::get_model_for_provider('openai'));
         $this->assertEquals('claude-3-5-sonnet-20241022', ai_evaluator::get_model_for_provider('anthropic'));
         $this->assertEquals('mistral-medium-latest', ai_evaluator::get_model_for_provider('mistral'));
-        $this->assertEquals('albert-large', ai_evaluator::get_model_for_provider('albert'));
+        $this->assertEquals('deepseek-v4-flash', ai_evaluator::get_model_for_provider('albert'));
     }
 
     /**

@@ -81,6 +81,15 @@ class evaluate_submission extends external_api {
             ];
         }
 
+        // A correction launched here would count as handed in without the group having submitted.
+        if (!empty($redaction->sujets_enabled)) {
+            return [
+                'success' => false,
+                'evaluationid' => 0,
+                'message' => get_string('sujets_evaluation_refusee', 'mod_redaction'),
+            ];
+        }
+
         $submission = $DB->get_record('redaction_submission', ['id' => $params['submissionid']], '*', MUST_EXIST);
 
         if ($submission->redactionid != $redaction->id) {

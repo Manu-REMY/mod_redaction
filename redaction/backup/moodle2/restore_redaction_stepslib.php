@@ -46,11 +46,15 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
         $paths[] = new restore_path_element('redaction_consignes', '/activity/redaction/consignes');
         $paths[] = new restore_path_element('redaction_correction', '/activity/redaction/correction');
         $paths[] = new restore_path_element('redaction_override', '/activity/redaction/overrides/override');
+        $paths[] = new restore_path_element('redaction_sujet', '/activity/redaction/sujets/sujet');
+        $paths[] = new restore_path_element('redaction_sujet_groupe', '/activity/redaction/sujet_groupes/sujet_groupe');
 
         if ($userinfo) {
             $paths[] = new restore_path_element('redaction_submission', '/activity/redaction/submissions/submission');
             $paths[] = new restore_path_element('redaction_history', '/activity/redaction/submissions/submission/histories/history');
             $paths[] = new restore_path_element('redaction_ai_evaluation', '/activity/redaction/submissions/submission/ai_evaluations/ai_evaluation');
+            $paths[] = new restore_path_element('redaction_sujet_reponse', '/activity/redaction/submissions/submission/sujet_reponses/sujet_reponse');
+            $paths[] = new restore_path_element('redaction_sujet_membre', '/activity/redaction/submissions/submission/ai_evaluations/ai_evaluation/sujet_membres/sujet_membre');
         }
 
         return $this->prepare_activity_structure($paths);
@@ -211,6 +215,85 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
 
         unset($data->id);
         $DB->insert_record('redaction_overrides', $data);
+    }
+
+    /**
+     * Process a subject element.
+     *
+     * @param array $data
+     */
+    protected function process_redaction_sujet($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $oldid = $data->id;
+        $data->redactionid = $this->get_new_parentid('redaction');
+        $data->timecreated = $this->apply_date_offset($data->timecreated);
+        $data->timemodified = $this->apply_date_offset($data->timemodified);
+
+        $newitemid = $DB->insert_record('redaction_sujet', $data);
+        $this->set_mapping('redaction_sujet', $oldid, $newitemid);
+    }
+
+    /**
+     * Process a subject-to-group assignment.
+     *
+     * @param array $data
+     */
+    protected function process_redaction_sujet_groupe($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $data->redactionid = $this->get_new_parentid('redaction');
+        $data->groupid = $this->get_mappingid('group', $data->groupid);
+        $data->sujetid = $this->get_mappingid('redaction_sujet', $data->sujetid);
+        if (!$data->groupid || !$data->sujetid) {
+            return;
+        }
+        $data->timecreated = $this->apply_date_offset($data->timecreated);
+
+        unset($data->id);
+        $DB->insert_record('redaction_sujet_groupe', $data);
+    }
+
+    /**
+     * Process the answer to one subject.
+     *
+     * @param array $data
+     */
+    protected function process_redaction_sujet_reponse($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $data->submissionid = $this->get_new_parentid('redaction_submission');
+        $data->sujetid = $this->get_mappingid('redaction_sujet', $data->sujetid);
+        if (!$data->sujetid) {
+            return;
+        }
+        $data->userid = (int) $this->get_mappingid('user', $data->userid);
+        $data->timemodified = $this->apply_date_offset($data->timemodified);
+
+        unset($data->id);
+        $DB->insert_record('redaction_sujet_reponse', $data);
+    }
+
+    /**
+     * Process a group member credited by an evaluation.
+     *
+     * @param array $data
+     */
+    protected function process_redaction_sujet_membre($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $data->evaluationid = $this->get_new_parentid('redaction_ai_evaluation');
+        $data->userid = $this->get_mappingid('user', $data->userid);
+        if (!$data->userid) {
+            return;
+        }
+
+        unset($data->id);
+        $DB->insert_record('redaction_sujet_membre', $data);
     }
 
     /**

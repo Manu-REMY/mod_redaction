@@ -83,6 +83,8 @@ function redaction_add_instance($data, $mform = null) {
         $data->ai_api_key = \mod_redaction\ai_config::encrypt_api_key($data->ai_api_key);
     }
 
+    redaction_force_sujets_settings($data);
+
     $data->id = $DB->insert_record('redaction', $data);
 
     // Create empty consignes page.
@@ -119,6 +121,8 @@ function redaction_update_instance($data, $mform = null) {
         }
     }
 
+    redaction_force_sujets_settings($data);
+
     $result = $DB->update_record('redaction', $data);
 
     // Update gradebook.
@@ -135,11 +139,20 @@ function redaction_update_instance($data, $mform = null) {
  * @return bool true
  */
 function redaction_delete_instance($id) {
-    global $DB;
+    global $CFG, $DB;
+    require_once($CFG->libdir . '/gradelib.php');
 
     if (!$redaction = $DB->get_record('redaction', ['id' => $id])) {
         return false;
     }
+
+    // Assigned subjects data hangs off submissions and AI evaluations: clear it first.
+    $DB->delete_records_select('redaction_sujet_membre',
+        'evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE redactionid = :rid)', ['rid' => $id]);
+    $DB->delete_records_select('redaction_sujet_reponse',
+        'submissionid IN (SELECT id FROM {redaction_submission} WHERE redactionid = :rid)', ['rid' => $id]);
+    $DB->delete_records('redaction_sujet_groupe', ['redactionid' => $id]);
+    $DB->delete_records('redaction_sujet', ['redactionid' => $id]);
 
     // Delete all related data.
     $DB->delete_records('redaction_consignes', ['redactionid' => $id]);
@@ -157,6 +170,55 @@ function redaction_delete_instance($id) {
     grade_update('mod/redaction', $redaction->course, 'mod', 'redaction', $id, 0, null, ['deleted' => 1]);
 
     return true;
+}
+
+/**
+ * Delete a subject of an activity, unless it is still in use.
+ *
+ * A subject that is assigned to a group or has an answer is kept, so that no
+ * student work can be erased by deleting a subject. A subject that belongs to
+ * another activity is never touched.
+ *
+ * @param int $redactionid Activity the subject must belong to.
+ * @param int $sujetid Subject to delete.
+ * @return bool True if the subject was deleted, false if it is missing, foreign or in use.
+ */
+function redaction_delete_sujet(int $redactionid, int $sujetid): bool {
+    global $DB;
+
+    if (!$DB->record_exists('redaction_sujet', ['id' => $sujetid, 'redactionid' => $redactionid])) {
+        return false;
+    }
+    if (
+        $DB->record_exists('redaction_sujet_groupe', ['sujetid' => $sujetid])
+        || $DB->record_exists('redaction_sujet_reponse', ['sujetid' => $sujetid])
+    ) {
+        return false;
+    }
+    $DB->delete_records('redaction_sujet', ['id' => $sujetid, 'redactionid' => $redactionid]);
+    return true;
+}
+
+/**
+ * Apply the settings the assigned subjects mode imposes.
+ *
+ * Subjects are answered by the whole group, with training attempts and an
+ * AI grade applied automatically, so those options cannot be turned off.
+ *
+ * @param stdClass $data Instance data coming from the settings form.
+ */
+function redaction_force_sujets_settings($data) {
+    // An update that does not mention the option leaves it alone.
+    if (!isset($data->sujets_enabled)) {
+        return;
+    }
+    if (empty($data->sujets_enabled)) {
+        $data->sujets_enabled = 0;
+        return;
+    }
+    $data->training_enabled = 1;
+    $data->ai_auto_apply = 1;
+    $data->group_submission = 1;
 }
 
 /**
@@ -242,18 +304,38 @@ function redaction_get_or_create_submission($redaction, $groupid, $userid) {
 
     $record = $DB->get_record('redaction_submission', $params);
 
-    if (!$record) {
-        $record = new stdClass();
-        $record->redactionid = $redaction->id;
-        $record->groupid = $params['groupid'];
-        $record->userid = $params['userid'];
-        $record->status = 0; // Draft.
-        $record->contenuformat = FORMAT_HTML;
-        $record->feedbackformat = FORMAT_HTML;
-        $record->timecreated = time();
-        $record->timemodified = time();
+    // In the assigned subjects mode two first openings at once must not create two rows.
+    $lock = null;
+    if (!$record && !empty($redaction->sujets_enabled)) {
+        $factory = \core\lock\lock_config::get_lock_factory('mod_redaction');
+        $lock = $factory->get_lock('redaction_submission_' . $redaction->id . '_' . $params['groupid'] . '_' . $params['userid'], 5);
+        if (!$lock) {
+            throw new \moodle_exception('sujets_verrou', 'mod_redaction');
+        }
+    }
 
-        $record->id = $DB->insert_record('redaction_submission', $record);
+    try {
+        if ($lock) {
+            $record = $DB->get_record('redaction_submission', $params);
+        }
+
+        if (!$record) {
+            $record = new stdClass();
+            $record->redactionid = $redaction->id;
+            $record->groupid = $params['groupid'];
+            $record->userid = $params['userid'];
+            $record->status = 0; // Draft.
+            $record->contenuformat = FORMAT_HTML;
+            $record->feedbackformat = FORMAT_HTML;
+            $record->timecreated = time();
+            $record->timemodified = time();
+
+            $record->id = $DB->insert_record('redaction_submission', $record);
+        }
+    } finally {
+        if ($lock) {
+            $lock->release();
+        }
     }
 
     return $record;
@@ -445,13 +527,14 @@ function redaction_get_submissions_for_grading($redactionid, $courseid) {
  * @param stdClass $redaction The activity instance
  * @param int $userid Optional user ID (0 for all users)
  * @param bool $nullifnone If true, return null grade for users with no submission
+ * @return int Result of grade_update(), one of the GRADE_UPDATE_* codes
  */
 function redaction_update_grades($redaction, $userid = 0, $nullifnone = true) {
     global $CFG;
     require_once($CFG->libdir . '/gradelib.php');
 
     $grades = redaction_get_user_grades($redaction, $userid);
-    redaction_grade_item_update($redaction, $grades);
+    return redaction_grade_item_update($redaction, $grades);
 }
 
 /**
@@ -479,7 +562,7 @@ function redaction_grade_item_update($redaction, $grades = null) {
         $grades = null;
     }
 
-    return grade_update(
+    $result = grade_update(
         'mod/redaction',
         $redaction->course,
         'mod',
@@ -489,6 +572,35 @@ function redaction_grade_item_update($redaction, $grades = null) {
         $grades,
         $params
     );
+
+    // With two grade items, grade_item::fetch() would throw instead of letting the caller read the code.
+    if (!empty($redaction->sujets_enabled) && $result !== GRADE_UPDATE_MULTIPLE) {
+        redaction_set_gradepass($redaction);
+    }
+
+    return $result;
+}
+
+/**
+ * Set the pass grade of the grade item from the threshold of the assigned subjects mode.
+ *
+ * grade_update() ignores gradepass, so the grade item is written directly.
+ *
+ * @param stdClass $redaction The activity instance
+ */
+function redaction_set_gradepass($redaction) {
+    $item = grade_item::fetch([
+        'courseid' => $redaction->course,
+        'itemtype' => 'mod',
+        'itemmodule' => 'redaction',
+        'iteminstance' => $redaction->id,
+        'itemnumber' => 0,
+    ]);
+    $seuil = (float) ($redaction->sujets_seuil ?? 16);
+    if ($item && (float) $item->gradepass !== $seuil) {
+        $item->gradepass = $seuil;
+        $item->update('mod/redaction');
+    }
 }
 
 /**
@@ -503,6 +615,10 @@ function redaction_grade_item_update($redaction, $grades = null) {
  */
 function redaction_get_user_grades($redaction, $userid = 0) {
     global $DB;
+
+    if (!empty($redaction->sujets_enabled)) {
+        return redaction_get_user_grades_sujets($redaction, $userid, true);
+    }
 
     $grades = [];
     $groups = groups_get_all_groups($redaction->course);
@@ -604,6 +720,76 @@ function redaction_get_user_grades($redaction, $userid = 0) {
         }
     }
 
+    return $grades;
+}
+
+/**
+ * Get user grades in the assigned subjects mode.
+ *
+ * Each evaluation credits the members recorded when it was queued. A teacher grade counts for the
+ * current members of the group and for anyone an evaluation of that submission credited. Someone who
+ * worked in two groups keeps the higher of the two results, except that a teacher grade on the group
+ * they belong to now wins, even when lower. A current member without a grade gets a null one, so that
+ * a teacher grade once removed leaves the gradebook. For the gradebook, a grade the teacher locked there is
+ * left out: grade_update() refuses it and answers GRADE_UPDATE_FAILED for the whole activity. For display
+ * nothing is left out.
+ *
+ * @param stdClass $redaction
+ * @param int $userid Optional user ID (0 for all users)
+ * @param bool $pourcarnet True when the grades are about to be written to the gradebook: the locked ones are left out.
+ * @return array
+ */
+function redaction_get_user_grades_sujets($redaction, $userid = 0, $pourcarnet = false) {
+    global $DB;
+
+    $meilleures = [];
+    $imposees = [];
+    foreach ($DB->get_records('redaction_submission', ['redactionid' => $redaction->id]) as $submission) {
+        $evaluations = $DB->get_records_select_menu(
+            'redaction_ai_evaluations',
+            "submissionid = ? AND status IN ('completed', 'applied')",
+            [$submission->id],
+            '',
+            'id, parsed_grade'
+        );
+
+        $membres = [];
+        if ($evaluations) {
+            [$insql, $params] = $DB->get_in_or_equal(array_keys($evaluations));
+            foreach ($DB->get_records_select('redaction_sujet_membre', "evaluationid $insql", $params) as $ligne) {
+                $membres[$ligne->evaluationid][] = (int) $ligne->userid;
+            }
+        }
+
+        $courants = array_keys(groups_get_members($submission->groupid, 'u.id'));
+        $enseignant = [];
+        if ($submission->grade_enseignant !== null) {
+            $enseignant = array_fill_keys(array_merge($courants, ...array_values($membres)), (float) $submission->grade_enseignant);
+            $imposees += array_fill_keys($courants, (float) $submission->grade_enseignant);
+        }
+
+        foreach (\mod_redaction\notes_sujets::pour_membres($evaluations, $membres, $enseignant) as $membre => $note) {
+            $meilleures[$membre] = max($meilleures[$membre] ?? $note, $note);
+        }
+        $meilleures += array_fill_keys($courants, null);
+    }
+    $meilleures = $imposees + $meilleures;
+
+    $verrouilles = !$pourcarnet ? [] : $DB->get_fieldset_sql(
+        "SELECT gg.userid
+           FROM {grade_grades} gg
+           JOIN {grade_items} gi ON gi.id = gg.itemid
+          WHERE gi.itemtype = 'mod' AND gi.itemmodule = 'redaction' AND gi.iteminstance = ? AND gi.itemnumber = 0
+            AND (gg.locked > 0 OR (gg.locktime > 0 AND gg.locktime < ?))",
+        [$redaction->id, time()]
+    );
+
+    $grades = [];
+    foreach (array_diff_key($meilleures, array_flip($verrouilles)) as $membre => $note) {
+        if ($userid == 0 || $userid == $membre) {
+            $grades[$membre] = (object) ['userid' => $membre, 'rawgrade' => $note];
+        }
+    }
     return $grades;
 }
 
@@ -759,17 +945,22 @@ function redaction_can_submit_attempt($redaction, $submission, $correction = nul
         return ['allowed' => false, 'reason' => 'training_not_enabled'];
     }
 
-    if ((int) $submission->status === 1) {
+    // In the assigned subjects mode there is no final version and the date only informs.
+    $sujetsenabled = !empty($redaction->sujets_enabled);
+
+    if (!$sujetsenabled && (int) $submission->status === 1) {
         return ['allowed' => false, 'reason' => 'already_submitted'];
     }
 
-    $effectivedeadline = redaction_get_effective_deadline(
-        $redaction,
-        (int) ($submission->userid ?? 0),
-        (int) ($submission->groupid ?? 0)
-    );
-    if (!empty($effectivedeadline) && time() > $effectivedeadline) {
-        return ['allowed' => false, 'reason' => 'deadline_passed'];
+    if (!$sujetsenabled) {
+        $effectivedeadline = redaction_get_effective_deadline(
+            $redaction,
+            (int) ($submission->userid ?? 0),
+            (int) ($submission->groupid ?? 0)
+        );
+        if (!empty($effectivedeadline) && time() > $effectivedeadline) {
+            return ['allowed' => false, 'reason' => 'deadline_passed'];
+        }
     }
 
     $maxeffective = redaction_effective_max_attempts($redaction);
@@ -787,7 +978,35 @@ function redaction_can_submit_attempt($redaction, $submission, $correction = nul
         return ['allowed' => false, 'reason' => 'evaluation_pending'];
     }
 
+    if ($sujetsenabled && !redaction_sujets_answered($redaction, $submission)) {
+        return ['allowed' => false, 'reason' => 'empty_answer'];
+    }
+
     return ['allowed' => true, 'reason' => ''];
+}
+
+/**
+ * Whether a submission holds a non-empty answer to every subject of its group.
+ *
+ * @param stdClass $redaction
+ * @param stdClass $submission
+ * @return bool
+ */
+function redaction_sujets_answered($redaction, $submission) {
+    global $DB;
+
+    if (empty($submission->groupid)) {
+        return false;
+    }
+
+    $reponses = $DB->get_records('redaction_sujet_reponse', ['submissionid' => $submission->id], '', 'sujetid, contenu, contenuformat');
+    foreach (\mod_redaction\sujets::du_groupe($redaction, (int) $submission->groupid) as $sujet) {
+        $reponse = $reponses[$sujet->id] ?? null;
+        if (!$reponse || \mod_redaction\notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat) === '') {
+            return false;
+        }
+    }
+    return true;
 }
 
 /**

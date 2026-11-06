@@ -243,5 +243,102 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026051200, 'redaction');
     }
 
+    if ($oldversion < 2026110600) {
+        // Assigned subjects mode: option fields on the activity.
+        $table = new xmldb_table('redaction');
+        $field = new xmldb_field('sujets_enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'training_max_attempts');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('sujets_par_groupe', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '2', 'sujets_enabled');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('sujets_seuil', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '16', 'sujets_par_groupe');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Teacher grade on a submission.
+        $table = new xmldb_table('redaction_submission');
+        $field = new xmldb_field('grade_enseignant', XMLDB_TYPE_NUMBER, '10, 2', null, null, null, null, 'grade');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Per-subject results of an AI evaluation.
+        $table = new xmldb_table('redaction_ai_evaluations');
+        $field = new xmldb_field('sujets_json', XMLDB_TYPE_TEXT, null, null, null, null, null, 'criteria_json');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Subjects.
+        $table = new xmldb_table('redaction_sujet');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('redactionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('titre', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('contenu', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('contenuformat', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('corrige', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('redactionid', XMLDB_KEY_FOREIGN, ['redactionid'], 'redaction', ['id']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Subjects assigned to groups.
+        $table = new xmldb_table('redaction_sujet_groupe');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('redactionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('groupid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sujetid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('rang', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('redactionid', XMLDB_KEY_FOREIGN, ['redactionid'], 'redaction', ['id']);
+        $table->add_key('groupid', XMLDB_KEY_FOREIGN, ['groupid'], 'groups', ['id']);
+        $table->add_key('sujetid', XMLDB_KEY_FOREIGN, ['sujetid'], 'redaction_sujet', ['id']);
+        $table->add_key('redactionid_groupid_sujetid', XMLDB_KEY_UNIQUE, ['redactionid', 'groupid', 'sujetid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Answers per subject.
+        $table = new xmldb_table('redaction_sujet_reponse');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('submissionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sujetid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('contenu', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('contenuformat', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('submissionid', XMLDB_KEY_FOREIGN, ['submissionid'], 'redaction_submission', ['id']);
+        $table->add_key('sujetid', XMLDB_KEY_FOREIGN, ['sujetid'], 'redaction_sujet', ['id']);
+        $table->add_key('submissionid_sujetid', XMLDB_KEY_UNIQUE, ['submissionid', 'sujetid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Group members credited by an evaluation.
+        $table = new xmldb_table('redaction_sujet_membre');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('evaluationid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('evaluationid', XMLDB_KEY_FOREIGN, ['evaluationid'], 'redaction_ai_evaluations', ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_key('evaluationid_userid', XMLDB_KEY_UNIQUE, ['evaluationid', 'userid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_mod_savepoint(true, 2026110600, 'redaction');
+    }
+
     return true;
 }

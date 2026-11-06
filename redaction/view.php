@@ -124,6 +124,12 @@ if ($page !== '') {
             require_once(__DIR__ . '/pages/correction_model.php');
             exit;
 
+        case 'sujets':
+            // Subjects of the assigned subjects mode.
+            require_capability('mod/redaction:editconsignes', $context);
+            require_once(__DIR__ . '/pages/sujets.php');
+            exit;
+
         case 'grading':
             // Grading interface.
             require_capability('mod/redaction:grade', $context);
@@ -133,6 +139,13 @@ if ($page !== '') {
         default:
             throw new \moodle_exception('invalidpage', 'redaction');
     }
+}
+
+// Assigned subjects mode: a student goes straight to the subjects, the home page would add a click.
+if (!empty($redaction->sujets_enabled) && !$caneditconsignes && $cansubmit
+        && $DB->record_exists('redaction_sujet', ['redactionid' => $redaction->id])) {
+    require_once(__DIR__ . '/pages/redaction.php');
+    exit;
 }
 
 // Show home page.

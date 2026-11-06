@@ -1,0 +1,111 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_redaction/sujets_eleve
+
+    Student screen of the assigned subjects mode: the subjects of the group, one answer box each,
+    the submit button, the attempts left, the best grade and the last comments.
+
+    Context variables required for this template:
+    * cmid, submissionid - Identifiers used by the script
+    * groupname - Name of the group
+    * items - Subjects: id, number, titre, contenu (HTML), reponse, readonly
+    * valide, seuil, hasnote, note - Validation banner and best grade
+    * restants - Attempts left
+    * pending, echec, disabled, raison - State of the correction and of the button
+    * hascommentaireprof, commentaireprof - Comment of the teacher, while the teacher grade stands
+    * hascommentaires, commentaires - Comments of the last correction: titre, note, commentaire
+
+    Example context (json):
+    {
+        "cmid": 1, "submissionid": 2, "groupname": "4A-GRP01",
+        "items": [{"id": 5, "number": 1, "titre": "Pont", "contenu": "<p>Explique</p>", "reponse": "", "readonly": false}],
+        "valide": false, "seuil": "16", "hasnote": true, "note": "12",
+        "restants": 3, "pending": false, "echec": false, "disabled": false, "raison": "",
+        "hascommentaireprof": true, "commentaireprof": "Bien vu.",
+        "hascommentaires": true,
+        "commentaires": [{"titre": "Pont", "hasnote": true, "note": "12", "commentaire": "Il manque une idee."}]
+    }
+}}
+<div class="mod_redaction mod_redaction-sujets-eleve" id="mod_redaction-sujets-eleve">
+    {{#groupname}}
+    <p class="mod_redaction-se-group">{{#str}}group_label, mod_redaction{{/str}} <strong>{{groupname}}</strong></p>
+    {{/groupname}}
+
+    <div class="mod_redaction-se-banner {{#valide}}mod_redaction-se-ok{{/valide}}{{^valide}}mod_redaction-se-ko{{/valide}}" role="status">
+        <span class="mod_redaction-se-mark" aria-hidden="true">{{#valide}}&#10003;{{/valide}}{{^valide}}&#10007;{{/valide}}</span>
+        <span class="mod_redaction-se-banner-text">
+            <strong>{{#valide}}{{#str}}sujets_valide, mod_redaction{{/str}}{{/valide}}{{^valide}}{{#str}}sujets_pas_valide, mod_redaction{{/str}}{{/valide}}</strong>
+            <span class="mod_redaction-se-seuil">{{#str}}sujets_seuil_rappel, mod_redaction, {{seuil}}{{/str}}</span>
+        </span>
+    </div>
+
+    <ul class="mod_redaction-se-facts">
+        <li class="mod_redaction-se-grade">
+            {{#hasnote}}{{#str}}sujets_meilleure_note, mod_redaction, {{note}}{{/str}}{{/hasnote}}
+            {{^hasnote}}{{#str}}sujets_pas_de_note, mod_redaction{{/str}}{{/hasnote}}
+        </li>
+        <li class="mod_redaction-se-attempts">{{#str}}sujets_essais_restants, mod_redaction, {{restants}}{{/str}}</li>
+    </ul>
+
+    {{#echec}}
+    <div class="mod_redaction-se-notice mod_redaction-se-failed" role="status">{{#str}}sujets_correction_attente, mod_redaction{{/str}}</div>
+    {{/echec}}
+
+    {{#items}}
+    <section class="mod_redaction-se-sujet" aria-labelledby="mod_redaction-se-titre-{{id}}">
+        <h3 class="mod_redaction-se-titre" id="mod_redaction-se-titre-{{id}}">{{#str}}sujet_number, mod_redaction, {{number}}{{/str}} : {{titre}}</h3>
+        <div class="mod_redaction-se-contenu">{{{contenu}}}</div>
+        <label class="mod_redaction-se-label" for="mod_redaction-se-reponse-{{id}}">{{#str}}sujets_reponse_label, mod_redaction{{/str}}</label>
+        <textarea class="form-control mod_redaction-se-reponse" id="mod_redaction-se-reponse-{{id}}" rows="6"
+            data-sujetid="{{id}}" {{#readonly}}readonly{{/readonly}}>{{reponse}}</textarea>
+    </section>
+    {{/items}}
+
+    <div class="mod_redaction-se-actions">
+        <button type="button" class="btn btn-primary mod_redaction-se-submit" id="mod_redaction-se-submit"
+            {{#disabled}}disabled{{/disabled}}>{{#pending}}{{#str}}sujets_correction_en_cours, mod_redaction{{/str}}{{/pending}}{{^pending}}{{#str}}sujets_soumettre, mod_redaction{{/str}}{{/pending}}</button>
+        <span class="mod_redaction-se-savestate" id="mod_redaction-se-savestate" role="status" aria-live="polite"></span>
+    </div>
+    <div class="mod_redaction-se-attente{{#pending}} mod_redaction-se-pending{{/pending}}" id="mod_redaction-se-attente" role="status"{{^pending}} hidden{{/pending}}>
+        <span class="spinner-border mod_redaction-se-spinner" aria-hidden="true"></span>
+        <span>{{#str}}sujets_correction_patience, mod_redaction{{/str}}</span>
+    </div>
+    {{#raison}}
+    <p class="mod_redaction-se-reason">{{raison}}</p>
+    {{/raison}}
+    <div class="mod_redaction-se-message" id="mod_redaction-se-message" role="alert"></div>
+
+    {{#hascommentaireprof}}
+    <section class="mod_redaction-se-comments mod_redaction-se-teacher">
+        <h3>{{#str}}sujets_commentaire_prof, mod_redaction{{/str}}</h3>
+        <p class="mod_redaction-se-comment">{{commentaireprof}}</p>
+    </section>
+    {{/hascommentaireprof}}
+
+    {{#hascommentaires}}
+    <section class="mod_redaction-se-comments">
+        <h3>{{#str}}sujets_derniers_commentaires, mod_redaction{{/str}}</h3>
+        {{#commentaires}}
+        <div class="mod_redaction-se-comment">
+            <p class="mod_redaction-se-comment-title"><strong>{{titre}}</strong>{{#hasnote}} <span class="mod_redaction-se-comment-grade">{{note}}/20</span>{{/hasnote}}</p>
+            <p>{{commentaire}}</p>
+        </div>
+        {{/commentaires}}
+    </section>
+    {{/hascommentaires}}
+</div>

@@ -81,6 +81,11 @@ class submit_work extends external_api {
         self::validate_context($context);
         require_capability('mod/redaction:submit', $context);
 
+        // The status of a submission of this mode follows the corrections: it is not set by hand.
+        if (!empty($redaction->sujets_enabled)) {
+            throw new \moodle_exception('sujets_statut_refuse', 'mod_redaction');
+        }
+
         // Check consignes are locked.
         if (!redaction_consignes_locked($redaction->id)) {
             throw new \moodle_exception('consignes_not_ready', 'redaction');

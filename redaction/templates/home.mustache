@@ -21,6 +21,8 @@
     * submittedcountstr - Formatted submission count string
     * consignesurl - URL to consignes page
     * correctionurl - URL to correction model page
+    * sujetsenabled - Boolean, true if the assigned subjects mode is on
+    * sujetsurl - URL to the subjects editing page
     * gradingurl - URL to grading page
     * redactionurl - URL to redaction page
     * consignestitle - Title from consignes (or default)
@@ -61,7 +63,8 @@
         </div>
 
         <div class="mod_redaction-cards">
-            {{! Consignes card }}
+            {{! Consignes card: in the assigned subjects mode the subjects hold the instructions and the model }}
+            {{^sujetsenabled}}
             <div class="mod_redaction-card mod_redaction-card-teacher">
                 <div class="mod_redaction-card-icon">&#x1F4CB;</div>
                 <h3 class="mod_redaction-card-title">{{#str}}consignes, mod_redaction{{/str}}</h3>
@@ -104,6 +107,20 @@
                     {{#str}}correction_model, mod_redaction{{/str}}
                 </a>
             </div>
+
+            {{/sujetsenabled}}
+
+            {{! Assigned subjects card }}
+            {{#sujetsenabled}}
+            <div class="mod_redaction-card mod_redaction-card-teacher">
+                <div class="mod_redaction-card-icon">&#x1F4CB;</div>
+                <h3 class="mod_redaction-card-title">{{#str}}sujets_title, mod_redaction{{/str}}</h3>
+                <p class="mod_redaction-card-description">{{#str}}sujets_card_desc, mod_redaction{{/str}}</p>
+                <a href="{{sujetsurl}}" class="mod_redaction-card-button">
+                    {{#str}}sujets_title, mod_redaction{{/str}}
+                </a>
+            </div>
+            {{/sujetsenabled}}
         </div>
 
         {{! Grading section }}
@@ -150,6 +167,7 @@
             {{/hasgroupinfo}}
 
             <div class="mod_redaction-cards">
+                {{^sujetsenabled}}
                 {{! Consignes card (read only) }}
                 <div class="mod_redaction-card mod_redaction-card-teacher" style="opacity: 0.9;">
                     <div class="mod_redaction-card-icon">&#x1F4CB;</div>
@@ -171,6 +189,7 @@
                         {{#str}}view_consignes, mod_redaction{{/str}}
                     </a>
                 </div>
+                {{/sujetsenabled}}
 
                 {{! My redaction card }}
                 <div class="mod_redaction-card mod_redaction-card-student">

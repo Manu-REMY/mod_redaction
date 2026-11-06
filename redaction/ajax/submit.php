@@ -49,6 +49,11 @@ $context = context_module::instance($cm->id);
 $result = ['success' => false, 'message' => ''];
 
 try {
+    // The status of a submission of this mode follows the corrections: it is not set by hand.
+    if (!empty($redaction->sujets_enabled)) {
+        throw new moodle_exception('sujets_statut_refuse', 'redaction');
+    }
+
     switch ($action) {
         case 'submit':
             // Submit the redaction.

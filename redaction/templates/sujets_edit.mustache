@@ -1,0 +1,72 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_redaction/sujets_edit
+
+    Teacher form to edit the subjects of the assigned subjects mode.
+
+    Context variables required for this template:
+    * actionurl - Form target
+    * sesskey - Session key
+    * backurl - Back to the activity
+    * rows - List of subject rows: index, number, id, titre, contenu, corrige, isexisting
+
+    Example context (json):
+    {
+        "actionurl": "/mod/redaction/view.php?id=1&page=sujets",
+        "sesskey": "abc",
+        "backurl": "/mod/redaction/view.php?id=1",
+        "rows": [
+            {"index": 0, "number": 1, "id": 5, "titre": "Pont", "contenu": "Expliquer", "corrige": "Attendu", "isexisting": true}
+        ]
+    }
+}}
+<div class="mod_redaction mod_redaction-sujets">
+    <p class="mod_redaction-sujets-help">{{#str}}sujets_help, mod_redaction{{/str}}</p>
+    <form method="post" action="{{actionurl}}">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        {{#rows}}
+        <fieldset class="mod_redaction-sujet-row">
+            <legend>{{#str}}sujet_number, mod_redaction, {{number}}{{/str}}</legend>
+            <input type="hidden" name="sujetid[{{index}}]" value="{{id}}">
+            <div class="mod_redaction-sujet-field">
+                <label for="sujet-titre-{{index}}">{{#str}}sujet_titre, mod_redaction{{/str}}</label>
+                <input type="text" id="sujet-titre-{{index}}" name="titre[{{index}}]" value="{{titre}}" maxlength="255" class="form-control">
+            </div>
+            <div class="mod_redaction-sujet-field">
+                <label for="sujet-contenu-{{index}}">{{#str}}sujet_contenu, mod_redaction{{/str}}</label>
+                <textarea id="sujet-contenu-{{index}}" name="contenu[{{index}}]" rows="4" class="form-control">{{contenu}}</textarea>
+            </div>
+            <div class="mod_redaction-sujet-field">
+                <label for="sujet-corrige-{{index}}">{{#str}}sujet_corrige, mod_redaction{{/str}}</label>
+                <textarea id="sujet-corrige-{{index}}" name="corrige[{{index}}]" rows="4" class="form-control">{{corrige}}</textarea>
+                <small class="form-text text-muted">{{#str}}sujet_corrige_help, mod_redaction{{/str}}</small>
+            </div>
+            {{#isexisting}}
+            <div class="mod_redaction-sujet-field">
+                <input type="checkbox" id="sujet-delete-{{index}}" name="delete[{{index}}]" value="1">
+                <label for="sujet-delete-{{index}}">{{#str}}sujet_delete, mod_redaction{{/str}}</label>
+            </div>
+            {{/isexisting}}
+        </fieldset>
+        {{/rows}}
+        <div class="mod_redaction-sujets-actions">
+            <button type="submit" class="btn btn-primary">{{#str}}savechanges, moodle{{/str}}</button>
+            <a href="{{backurl}}" class="btn btn-secondary">{{#str}}cancel, moodle{{/str}}</a>
+        </div>
+    </form>
+</div>
