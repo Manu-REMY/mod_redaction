@@ -64,24 +64,24 @@ test('le professeur prime pour chaque membre désigné', function () {
 test('une évaluation sans membre ne crédite personne', fn() => notes_sujets::pour_membres([1 => 15.0], [], []) === []);
 
 test('réponse IA : JSON simple', function () {
-    $lu = notes_sujets::lire_reponse_ia('{"note": 15.5, "commentaire": "Bien vu."}');
+    $lu = notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2"], "note": 15.5, "commentaire": "Bien vu."}');
     return $lu['note'] === 15.5 && $lu['commentaire'] === 'Bien vu.';
 });
 test('réponse IA : note entière rendue en décimal', fn() =>
-    notes_sujets::lire_reponse_ia('{"note": 20, "commentaire": "Oui."}')['note'] === 20.0);
+    notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2"], "note": 20, "commentaire": "Oui."}')['note'] === 20.0);
 test('réponse IA : JSON entre clôtures accepté', function () {
-    $lu = notes_sujets::lire_reponse_ia("Voici :\n```json\n{\"note\": 0, \"commentaire\": \"Hors sujet.\"}\n```\n");
+    $lu = notes_sujets::lire_reponse_ia("Voici :\n```json\n{\"attendus\": [\"E1\", \"E2\"], \"note\": 0, \"commentaire\": \"Hors sujet.\"}\n```\n");
     return $lu['note'] === 0.0 && $lu['commentaire'] === 'Hors sujet.';
 });
 test('réponse IA : texte quelconque refusé', fn() => refuse('Très bon travail, 15/20'));
 test('réponse IA : vide refusée', fn() => refuse(''));
 test('réponse IA : note absente refusée', fn() => refuse('{"commentaire": "Oui."}'));
-test('réponse IA : commentaire absent refusé', fn() => refuse('{"note": 12}'));
-test('réponse IA : commentaire vide refusé', fn() => refuse('{"note": 12, "commentaire": "  "}'));
-test('réponse IA : note non numérique refusée', fn() => refuse('{"note": "bien", "commentaire": "Oui."}'));
-test('réponse IA : note booléenne refusée', fn() => refuse('{"note": true, "commentaire": "Oui."}'));
-test('réponse IA : 25 refusé', fn() => refuse('{"note": 25, "commentaire": "Oui."}'));
-test('réponse IA : note négative refusée', fn() => refuse('{"note": -1, "commentaire": "Oui."}'));
+test('réponse IA : commentaire absent refusé', fn() => refuse('{"attendus": ["E1", "E2"], "note": 12}'));
+test('réponse IA : commentaire vide refusé', fn() => refuse('{"attendus": ["E1", "E2"], "note": 12, "commentaire": "  "}'));
+test('réponse IA : note non numérique refusée', fn() => refuse('{"attendus": ["E1", "E2"], "note": "bien", "commentaire": "Oui."}'));
+test('réponse IA : note booléenne refusée', fn() => refuse('{"attendus": ["E1", "E2"], "note": true, "commentaire": "Oui."}'));
+test('réponse IA : 25 refusé', fn() => refuse('{"attendus": ["E1", "E2"], "note": 25, "commentaire": "Oui."}'));
+test('réponse IA : note négative refusée', fn() => refuse('{"attendus": ["E1", "E2"], "note": -1, "commentaire": "Oui."}'));
 test('réponse IA : liste JSON refusée', fn() => refuse('[1, 2]'));
 
 const HTML = 1;
@@ -110,21 +110,24 @@ function final_ia(float $note, string $commentaire, ?array $attendus, array $err
 }
 
 test('« Si absent : » retiré à la lecture', function() {
-    $lu = notes_sujets::lire_reponse_ia('{"note": 12, "commentaire": "Tu as raison. Si absent : il manque ceci."}');
+    $lu = notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2"], "note": 12, "commentaire": "Tu as raison. Si absent : il manque ceci."}');
     return $lu['commentaire'] === 'Tu as raison. il manque ceci.';
 });
 test('« si absent: » retiré quelle que soit la casse', fn() =>
-    notes_sujets::lire_reponse_ia('{"note": 12, "commentaire": "Oui. si absent: non."}')['commentaire'] === 'Oui. non.');
-test('un commentaire réduit à « Si absent : » est refusé', fn() => refuse('{"note": 12, "commentaire": " Si absent : "}'));
+    notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2"], "note": 12, "commentaire": "Oui. si absent: non."}')['commentaire'] === 'Oui. non.');
+test('un commentaire réduit à « Si absent : » est refusé', fn() => refuse('{"attendus": ["E1", "E2"], "note": 12, "commentaire": " Si absent : "}'));
 test('attendus et erreurs lus', function() {
     $lu = notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2 : le fonctionnement"], "erreurs": ["X1"], "note": 12, "commentaire": "Oui."}');
     return $lu['attendus'] === ['E1', 'E2'] && $lu['erreurs'] === ['X1'];
 });
 test('attendus vides : liste vide, pas null', fn() =>
     notes_sujets::lire_reponse_ia('{"attendus": [], "note": 2, "commentaire": "Non."}')['attendus'] === []);
-test('sans attendus : null', function() {
-    $lu = notes_sujets::lire_reponse_ia('{"note": 12, "commentaire": "Oui."}');
-    return $lu['attendus'] === null && $lu['erreurs'] === [];
+test('sans attendus : refusé, l\'essai est rendu au groupe', fn() => refuse('{"note": 18, "commentaire": "Oui."}'));
+test('attendus qui ne sont pas une liste : refusé', fn() => refuse('{"attendus": "E1 E2", "note": 18, "commentaire": "Oui."}'));
+test('sans erreurs : liste vide', fn() => notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2"], "note": 12, "commentaire": "Oui."}')['erreurs'] === []);
+test('« n\'a pas cité » et « tu n\'as pas donné » sont retirés', function() {
+    $f = final_ia(12.0, 'Bien vu. Elle n\'a pas cité la voie. Tu n\'as pas donné le rôle du rail.', ['E1', 'E2']);
+    return strpos($f, 'la voie') === false && strpos($f, 'rôle du rail') === false && strpos($f, 'Bien vu') !== false;
 });
 
 test('pièce citée, fonctionnement absent : ne dit jamais que la pièce manque', function() {
@@ -178,14 +181,12 @@ test('plafond : E1 et E2 dans un même élément, note gardée', fn() =>
     notes_sujets::lire_reponse_ia('{"attendus": ["E1 et E2"], "note": 18, "commentaire": "Oui."}')['note'] === 18.0);
 test('plafond : une note déjà basse ne change pas', fn() =>
     notes_sujets::lire_reponse_ia('{"attendus": ["E1"], "note": 12, "commentaire": "Oui."}')['note'] === 12.0);
-test('plafond : sans attendus, note gardée', fn() =>
-    notes_sujets::lire_reponse_ia('{"note": 18, "commentaire": "Oui."}')['note'] === 18.0);
+test('plafond : E1 et E2 présents, note gardée', fn() =>
+    notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2"], "note": 18, "commentaire": "Oui."}')['note'] === 18.0);
 test('plafond : 18 sans E2 ne valide pas et dit ce qui manque', function() {
     $lu = notes_sujets::lire_reponse_ia('{"attendus": ["E1"], "note": 18, "commentaire": "Tu cites les pattes."}');
     return notes_sujets::commentaire_final($lu, 16.0, PHRASES) === 'Tu cites les pattes. PHRASE-FONCTIONNEMENT';
 });
-test('sans attendus : commentaire intact, les autres réponses ne changent pas', fn() =>
-    final_ia(12, 'Il manque la pièce.', null) === 'Il manque la pièce.');
 
 echo $failures ? "\n{$failures} échec(s)\n" : "\nTout est vert\n";
 exit($failures ? 1 : 0);

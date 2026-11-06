@@ -92,10 +92,9 @@ class notes_sujets {
      * Reads the AI answer for one subject.
      *
      * @param string $brut Raw text returned by the provider, JSON possibly inside a code fence.
-     * @return array ['note' => float, 'note_ia' => float, 'commentaire' => string, 'attendus' => string[]|null, 'erreurs' => string[]]
-     *               attendus is null when the AI did not give the list: the grade and the comment then stay as they are.
+     * @return array ['note' => float, 'note_ia' => float, 'commentaire' => string, 'attendus' => string[], 'erreurs' => string[]]
      *               note is note_ia, capped when the AI's own list says E1 or E2 is missing.
-     * @throws \UnexpectedValueException On invalid JSON, a missing key or a grade outside 0-20.
+     * @throws \UnexpectedValueException On invalid JSON, a missing key, a missing list of expected points or a grade outside 0-20.
      */
     public static function lire_reponse_ia(string $brut): array {
         $json = trim($brut);
@@ -125,8 +124,12 @@ class notes_sujets {
             throw new \UnexpectedValueException('AI answer has no comment');
         }
 
+        // The cap and the "il manque" sentence depend on this list: without it, the correction fails and the attempt goes back.
         $attendus = self::reperes($data['attendus'] ?? null, 'E');
-        $complet = $attendus === null || !array_diff(['E1', 'E2'], $attendus);
+        if ($attendus === null) {
+            throw new \UnexpectedValueException('AI answer has no list of expected points');
+        }
+        $complet = !array_diff(['E1', 'E2'], $attendus);
 
         return [
             'note' => $complet ? $note : min($note, self::NOTE_INCOMPLETE),
@@ -162,7 +165,8 @@ class notes_sujets {
     /**
      * Comment shown to the student: what the AI wrote, without anything about what is missing, then the plugin's own sentence.
      *
-     * The AI never tells what is missing, so its wording cannot give the answer or contradict the student's text.
+     * The AI is told not to say what is missing and sans_manque removes what it says all the same. This lowers the risk
+     * that a comment gives the answer or contradicts the student's text, it does not rule it out: the filter is a list of wordings.
      * E1 is the part that steers and E2 how it works: an answer key is written that way in this mode.
      *
      * @param array $lu An answer read by lire_reponse_ia.
@@ -171,10 +175,6 @@ class notes_sujets {
      * @return string
      */
     public static function commentaire_final(array $lu, float $seuil, array $phrases): string {
-        if ($lu['attendus'] === null) {
-            return $lu['commentaire'];
-        }
-
         $texte = self::sans_manque($lu['commentaire']);
         $ajout = '';
         if ($lu['note'] < $seuil) {
@@ -207,8 +207,8 @@ class notes_sujets {
      */
     protected static function sans_manque(string $commentaire): string {
         $manque = '(?:(?:il\s+)?(?:te\s+|t[\'’])?manqu'
-            . '|(?:(?:tu|il|elle|ta\s+\S+|ton\s+\S+)\s+)?n(?:e\s+|[\'’])(?:as\s+pas\s+)?'
-            . '(?:dis|dit|parles?|mentionnes?|cites?|expliqu|décri|précises?|donnes?|indiques?|nommes?|montres?))';
+            . '|(?:(?:tu|il|elle|ta\s+\S+|ton\s+\S+)\s+)?n(?:e\s+|[\'’])(?:as?\s+pas\s+)?'
+            . '(?:dis|dit|parl|mentionn|cit|expliqu|décri|précis|donn|indiqu|nomm|montr))';
         $gardees = [];
         foreach (preg_split('/(?<=[.!?…])\s+/u', $commentaire) as $phrase) {
             if (!preg_match('/(?<!\w)' . $manque . '/iu', $phrase)) {

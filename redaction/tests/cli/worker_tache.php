@@ -68,7 +68,7 @@ if ($argv[1] === 'reseau') {
         }
 
         public function evaluate(string $systemprompt, string $userprompt, string $model, int $maxtokens): array {
-            return ['content' => json_encode(['note' => 15, 'commentaire' => 'Bien.']), 'prompt_tokens' => 1, 'completion_tokens' => 1];
+            return ['content' => json_encode(['attendus' => ['E1', 'E2'], 'note' => 15, 'commentaire' => 'Bien.']), 'prompt_tokens' => 1, 'completion_tokens' => 1];
         }
 
         public function estimate_tokens(string $text): int {

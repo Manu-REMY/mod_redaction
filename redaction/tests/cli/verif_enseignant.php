@@ -96,7 +96,7 @@ $check = function (string $label, bool $ok) use (&$failures): void {
 
 /** JSON answer of the simulated AI for one subject. */
 function ia(float $note): string {
-    return json_encode(['note' => $note, 'commentaire' => 'Tu as vu juste.']);
+    return json_encode(['attendus' => ['E1', 'E2'], 'note' => $note, 'commentaire' => 'Tu as vu juste.']);
 }
 
 /** Grade in the gradebook, null when there is none. */

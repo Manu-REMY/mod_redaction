@@ -103,7 +103,7 @@ $check = function (string $label, bool $ok) use (&$failures): void {
 
 /** JSON answer of the simulated AI for one subject. */
 function ia(float $note, string $commentaire): string {
-    return json_encode(['note' => $note, 'commentaire' => $commentaire]);
+    return json_encode(['attendus' => ['E1', 'E2'], 'note' => $note, 'commentaire' => $commentaire]);
 }
 
 /** Calls a student service as a user and returns the result, or the exception. */
