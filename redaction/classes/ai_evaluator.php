@@ -364,6 +364,7 @@ class ai_evaluator {
                 $completiontokens += $response['completion_tokens'];
 
                 $lu = notes_sujets::lire_reponse_ia($response['content']);
+                $lu['commentaire'] = notes_sujets::commentaire_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire());
                 $notes[] = $lu['note'];
                 $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . $lu['commentaire'];
                 $details[] = [
@@ -668,6 +669,19 @@ class ai_evaluator {
         \core\task\manager::queue_adhoc_task($task);
 
         return $evaluationid;
+    }
+
+    /**
+     * Sentences the plugin adds to a comment in the assigned subjects mode.
+     *
+     * @return array
+     */
+    public static function phrases_commentaire(): array {
+        $phrases = [];
+        foreach (['piece', 'fonctionnement', 'les_deux', 'precision', 'juste'] as $cle) {
+            $phrases[$cle] = get_string('sujets_commentaire_' . $cle, 'mod_redaction');
+        }
+        return $phrases;
     }
 
     /**

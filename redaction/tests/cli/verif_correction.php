@@ -752,6 +752,31 @@ try {
     $check("GRADE_UPDATE_FAILED: failed (found {$eval->status}, {$eval->error_message})", $eval->status === 'failed' && $eval->error_message === $messagecarnet);
     $check('GRADE_UPDATE_FAILED: no grade, attempt back', $eval->parsed_grade === null && $sub5->grade === null && (int) $sub5->training_count === 0);
 
+    // The plugin writes what is missing from the list given by the AI, and the AI's own wording about it goes.
+    $phrases = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 1, 'training_max_attempts' => 5,
+        'sujets_enabled' => 1, 'sujets_par_groupe' => 1, 'sujets_seuil' => 16]);
+    $DB->insert_record('redaction_sujet', (object) [
+        'redactionid' => $phrases->id, 'sortorder' => 1, 'titre' => 'Seul', 'contenu' => 'E', 'contenuformat' => FORMAT_HTML,
+        'corrige' => 'Corrige', 'timecreated' => $now, 'timemodified' => $now,
+    ]);
+    $g6 = groups_create_group((object) ['courseid' => $course->id, 'name' => '9Z-GRP06']);
+    $s6 = redaction_get_or_create_submission($phrases, $g6, $a);
+    repondre($s6, \mod_redaction\sujets::du_groupe($phrases, $g6), 'Une reponse', FORMAT_PLAIN);
+    foreach ([
+        ['note' => 12, 'attendus' => ['E1'], 'commentaire' => 'Tu as cité les rails. Si absent : il manque la pièce qui dirige.',
+            'attendu' => 'Tu as cité les rails. ' . get_string('sujets_commentaire_fonctionnement', 'mod_redaction'), 'label' => 'part named, sentence from the plugin'],
+        ['note' => 18, 'attendus' => ['E1', 'E2'], 'commentaire' => 'Bien vu. Il manque un détail.',
+            'attendu' => 'Bien vu.', 'label' => 'validated, nothing missing'],
+    ] as $cas) {
+        $DB->set_field('redaction_submission', 'training_count', 1, ['id' => $s6->id]);
+        $id6 = ai_evaluator::queue_evaluation($phrases->id, $s6->id, $g6, $a, true);
+        retirer_tache($id6);
+        $sim->reponses = [json_encode(['attendus' => $cas['attendus'], 'erreurs' => [], 'note' => $cas['note'], 'commentaire' => $cas['commentaire']])];
+        ai_evaluator::process_evaluation($id6);
+        $details6 = json_decode($DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $id6]), true);
+        $check('comment: ' . $cas['label'], $details6[0]['commentaire'] === $cas['attendu']);
+    }
+
     // Locks set by the teacher in the gradebook are not failures.
     $itemnote = grade_item::fetch(['courseid' => $course->id, 'itemtype' => 'mod', 'itemmodule' => 'redaction',
         'iteminstance' => $redaction->id, 'itemnumber' => 0]);

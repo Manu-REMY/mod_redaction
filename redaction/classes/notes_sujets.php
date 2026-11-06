@@ -29,6 +29,9 @@ class notes_sujets {
     /** @var float Highest grade an answer can get. */
     const NOTE_MAX = 20.0;
 
+    /** @var float Highest grade of an answer without both the part that steers (E1) and how it works (E2). */
+    const NOTE_INCOMPLETE = 14.0;
+
     /** @var int Value of Moodle's FORMAT_PLAIN: this class does not load Moodle. */
     const FORMAT_TEXTE = 2;
 
@@ -89,7 +92,9 @@ class notes_sujets {
      * Reads the AI answer for one subject.
      *
      * @param string $brut Raw text returned by the provider, JSON possibly inside a code fence.
-     * @return array ['note' => float, 'commentaire' => string]
+     * @return array ['note' => float, 'note_ia' => float, 'commentaire' => string, 'attendus' => string[]|null, 'erreurs' => string[]]
+     *               attendus is null when the AI did not give the list: the grade and the comment then stay as they are.
+     *               note is note_ia, capped when the AI's own list says E1 or E2 is missing.
      * @throws \UnexpectedValueException On invalid JSON, a missing key or a grade outside 0-20.
      */
     public static function lire_reponse_ia(string $brut): array {
@@ -112,11 +117,109 @@ class notes_sujets {
         }
 
         $commentaire = $data['commentaire'] ?? null;
-        if (!is_string($commentaire) || trim($commentaire) === '') {
+        if (is_string($commentaire)) {
+            // The label of the answer key must never reach a student.
+            $commentaire = trim(preg_replace('/\bsi absent\s*:\s*/iu', '', $commentaire));
+        }
+        if (!is_string($commentaire) || $commentaire === '') {
             throw new \UnexpectedValueException('AI answer has no comment');
         }
 
-        return ['note' => $note, 'commentaire' => trim($commentaire)];
+        $attendus = self::reperes($data['attendus'] ?? null, 'E');
+        $complet = $attendus === null || !array_diff(['E1', 'E2'], $attendus);
+
+        return [
+            'note' => $complet ? $note : min($note, self::NOTE_INCOMPLETE),
+            'note_ia' => $note,
+            'commentaire' => $commentaire,
+            'attendus' => $attendus,
+            'erreurs' => self::reperes($data['erreurs'] ?? null, 'X') ?? [],
+        ];
+    }
+
+    /**
+     * Marks such as E1 or X2 found in a list given by the AI.
+     *
+     * @param mixed $liste The list, as decoded from the AI answer.
+     * @param string $lettre Letter of the marks.
+     * @return string[]|null The marks, null when there is no list.
+     */
+    protected static function reperes($liste, string $lettre): ?array {
+        if (!is_array($liste)) {
+            return null;
+        }
+        $reperes = [];
+        foreach ($liste as $element) {
+            if (is_string($element) && preg_match_all('/\b' . $lettre . '\s*(\d+)\b/i', $element, $m)) {
+                foreach ($m[1] as $numero) {
+                    $reperes[] = $lettre . $numero;
+                }
+            }
+        }
+        return array_values(array_unique($reperes));
+    }
+
+    /**
+     * Comment shown to the student: what the AI wrote, without anything about what is missing, then the plugin's own sentence.
+     *
+     * The AI never tells what is missing, so its wording cannot give the answer or contradict the student's text.
+     * E1 is the part that steers and E2 how it works: an answer key is written that way in this mode.
+     *
+     * @param array $lu An answer read by lire_reponse_ia.
+     * @param float $seuil Grade from which the work is validated: nothing is missing from there.
+     * @param array $phrases Sentences for the keys piece, fonctionnement, les_deux, precision, juste.
+     * @return string
+     */
+    public static function commentaire_final(array $lu, float $seuil, array $phrases): string {
+        if ($lu['attendus'] === null) {
+            return $lu['commentaire'];
+        }
+
+        $texte = self::sans_manque($lu['commentaire']);
+        $ajout = '';
+        if ($lu['note'] < $seuil) {
+            $piece = in_array('E1', $lu['attendus'], true);
+            $fonctionnement = in_array('E2', $lu['attendus'], true);
+            if ($piece && $fonctionnement) {
+                $ajout = $lu['erreurs'] && $texte !== '' ? '' : $phrases['precision'];
+            } else if ($piece) {
+                $ajout = $phrases['fonctionnement'];
+            } else if ($fonctionnement) {
+                $ajout = $phrases['piece'];
+            } else {
+                // Not "the part is missing": the AI may have refused an answer that does name it.
+                $ajout = $phrases['les_deux'];
+            }
+        } else if ($texte === '') {
+            $ajout = $phrases['juste'];
+        }
+
+        return trim($texte . ' ' . $ajout);
+    }
+
+    /**
+     * Removes what a comment says is missing: the end of a sentence after a separator, or else the whole sentence.
+     *
+     * "Tu ne dis pas que la machine se plie" is how an AI told not to say what is missing gives the answer all the same.
+     *
+     * @param string $commentaire
+     * @return string
+     */
+    protected static function sans_manque(string $commentaire): string {
+        $manque = '(?:(?:il\s+)?(?:te\s+|t[\'’])?manqu'
+            . '|(?:(?:tu|il|elle|ta\s+\S+|ton\s+\S+)\s+)?n(?:e\s+|[\'’])(?:as\s+pas\s+)?'
+            . '(?:dis|dit|parles?|mentionnes?|cites?|expliqu|décri|précises?|donnes?|indiques?|nommes?|montres?))';
+        $gardees = [];
+        foreach (preg_split('/(?<=[.!?…])\s+/u', $commentaire) as $phrase) {
+            if (!preg_match('/(?<!\w)' . $manque . '/iu', $phrase)) {
+                $gardees[] = $phrase;
+            } else if (preg_match(
+                '/^(.+?)(?:\s*[,;:]\s*(?:mais\s+|et\s+|cependant\s+|pourtant\s+)?|\s+(?:mais|et|cependant|pourtant)\s+)' . $manque . '/iu',
+                $phrase, $m)) {
+                $gardees[] = $m[1] . '.';
+            }
+        }
+        return trim(implode(' ', $gardees));
     }
 
     /**

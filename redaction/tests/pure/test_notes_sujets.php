@@ -65,13 +65,13 @@ test('une évaluation sans membre ne crédite personne', fn() => notes_sujets::p
 
 test('réponse IA : JSON simple', function () {
     $lu = notes_sujets::lire_reponse_ia('{"note": 15.5, "commentaire": "Bien vu."}');
-    return $lu === ['note' => 15.5, 'commentaire' => 'Bien vu.'];
+    return $lu['note'] === 15.5 && $lu['commentaire'] === 'Bien vu.';
 });
 test('réponse IA : note entière rendue en décimal', fn() =>
     notes_sujets::lire_reponse_ia('{"note": 20, "commentaire": "Oui."}')['note'] === 20.0);
 test('réponse IA : JSON entre clôtures accepté', function () {
     $lu = notes_sujets::lire_reponse_ia("Voici :\n```json\n{\"note\": 0, \"commentaire\": \"Hors sujet.\"}\n```\n");
-    return $lu === ['note' => 0.0, 'commentaire' => 'Hors sujet.'];
+    return $lu['note'] === 0.0 && $lu['commentaire'] === 'Hors sujet.';
 });
 test('réponse IA : texte quelconque refusé', fn() => refuse('Très bon travail, 15/20'));
 test('réponse IA : vide refusée', fn() => refuse(''));
@@ -97,6 +97,95 @@ test('texte brut : rien n\'est décodé ni retiré', fn() =>
     notes_sujets::texte_reponse('  a &lt; b <b>gras</b> ', BRUT) === 'a &lt; b <b>gras</b>');
 test('texte brut : blancs seulement, vide', fn() => notes_sujets::texte_reponse(" \n\u{00A0} ", BRUT) === '');
 test('texte : null accepté', fn() => notes_sujets::texte_reponse(null, BRUT) === '' && notes_sujets::texte_reponse(null, HTML) === '');
+
+// Le commentaire de l'IA et la phrase écrite par le plugin.
+const PHRASES = [
+    'piece' => 'PHRASE-PIECE', 'fonctionnement' => 'PHRASE-FONCTIONNEMENT', 'les_deux' => 'PHRASE-LES-DEUX',
+    'precision' => 'PHRASE-PRECISION', 'juste' => 'PHRASE-JUSTE',
+];
+/** Comment shown to the student, from the fields of the AI answer. */
+function final_ia(float $note, string $commentaire, ?array $attendus, array $erreurs = [], float $seuil = 16.0): string {
+    return notes_sujets::commentaire_final(
+        ['note' => $note, 'commentaire' => $commentaire, 'attendus' => $attendus, 'erreurs' => $erreurs], $seuil, PHRASES);
+}
+
+test('« Si absent : » retiré à la lecture', function() {
+    $lu = notes_sujets::lire_reponse_ia('{"note": 12, "commentaire": "Tu as raison. Si absent : il manque ceci."}');
+    return $lu['commentaire'] === 'Tu as raison. il manque ceci.';
+});
+test('« si absent: » retiré quelle que soit la casse', fn() =>
+    notes_sujets::lire_reponse_ia('{"note": 12, "commentaire": "Oui. si absent: non."}')['commentaire'] === 'Oui. non.');
+test('un commentaire réduit à « Si absent : » est refusé', fn() => refuse('{"note": 12, "commentaire": " Si absent : "}'));
+test('attendus et erreurs lus', function() {
+    $lu = notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2 : le fonctionnement"], "erreurs": ["X1"], "note": 12, "commentaire": "Oui."}');
+    return $lu['attendus'] === ['E1', 'E2'] && $lu['erreurs'] === ['X1'];
+});
+test('attendus vides : liste vide, pas null', fn() =>
+    notes_sujets::lire_reponse_ia('{"attendus": [], "note": 2, "commentaire": "Non."}')['attendus'] === []);
+test('sans attendus : null', function() {
+    $lu = notes_sujets::lire_reponse_ia('{"note": 12, "commentaire": "Oui."}');
+    return $lu['attendus'] === null && $lu['erreurs'] === [];
+});
+
+test('pièce citée, fonctionnement absent : ne dit jamais que la pièce manque', function() {
+    $texte = final_ia(12, 'Tu as cité les rails. Il manque la pièce qui dirige.', ['E1']);
+    return $texte === 'Tu as cité les rails. PHRASE-FONCTIONNEMENT';
+});
+test('pièce citée, même avec « mais il manque la pièce » dans la phrase', fn() =>
+    final_ia(12, 'Tu cites les rails, mais il manque la pièce qui dirige.', ['E1']) === 'Tu cites les rails. PHRASE-FONCTIONNEMENT');
+test('fonctionnement présent, pièce absente', fn() => final_ia(12, 'Bien.', ['E2']) === 'Bien. PHRASE-PIECE');
+test('rien de présent : une phrase qui n\'affirme pas que la pièce manque', fn() =>
+    final_ia(4, 'Cette idée est fausse. Il manque la pièce.', []) === 'Cette idée est fausse. PHRASE-LES-DEUX');
+test('à 16 : rien ne manque', fn() => final_ia(16, 'Bien vu. Il manque juste un détail.', ['E1', 'E2']) === 'Bien vu.');
+test('à 20 : rien ne manque', fn() => final_ia(20, 'Bravo, il manque un mot.', ['E1', 'E2']) === 'Bravo.');
+test('à 18 : rien ne manque, même si l\'IA a oublié un attendu', fn() => final_ia(18, 'Bien vu.', ['E1']) === 'Bien vu.');
+test('seuil réglé : au-dessus, rien ne manque', fn() => final_ia(15, 'Bien vu.', ['E1'], [], 14.0) === 'Bien vu.');
+test('tout présent mais une erreur : rien à ajouter', fn() =>
+    final_ia(12, 'Cette idée est fausse.', ['E1', 'E2'], ['X1']) === 'Cette idée est fausse.');
+test('tout présent, sans erreur, sous le seuil : demander de préciser', fn() =>
+    final_ia(14, 'Bien vu.', ['E1', 'E2']) === 'Bien vu. PHRASE-PRECISION');
+test('seul « il manque » de l\'IA, à 18 : phrase neutre', fn() => final_ia(18, 'Il manque un mot.', ['E1', 'E2']) === 'PHRASE-JUSTE');
+test('seul « il manque » de l\'IA, à 12 : la phrase du plugin seule', fn() =>
+    final_ia(12, 'Il manque la pièce.', ['E1']) === 'PHRASE-FONCTIONNEMENT');
+test('une phrase sans « manque » reste entière', fn() =>
+    final_ia(12, 'Tu dis que le volant dirige, et cette idée est fausse.', ['E1']) === 'Tu dis que le volant dirige, et cette idée est fausse. PHRASE-FONCTIONNEMENT');
+test('« mais tu ne dis pas que… » : la suite part avec l\'explication', fn() =>
+    final_ia(12, 'Tu cites les chenilles, mais tu ne dis pas comment : c\'est la différence de vitesse qui compte.', ['E1'])
+        === 'Tu cites les chenilles. PHRASE-FONCTIONNEMENT');
+test('« Mais tu ne dis pas que… » en début de phrase : phrase retirée', fn() =>
+    final_ia(12, 'Tu cites l\'articulation. Mais tu ne dis pas que la machine se plie.', ['E1']) === 'Tu cites l\'articulation. PHRASE-FONCTIONNEMENT');
+test('« Tu ne mentionnes pas… » : phrase retirée', fn() =>
+    final_ia(6, 'Cette idée est fausse. Tu ne mentionnes pas l\'articulation au milieu.', []) === 'Cette idée est fausse. PHRASE-LES-DEUX');
+test('« Il ne cite aucun rotor » : phrase retirée', fn() =>
+    final_ia(2, 'Tu parles de l\'hélicoptère. Il ne cite aucun rotor ni leur rôle.', []) === 'Tu parles de l\'hélicoptère. PHRASE-LES-DEUX');
+test('« Ta réponse ne décrit pas… » : phrase retirée', fn() =>
+    final_ia(2, 'Tu parles de patins. Ta réponse ne décrit pas le rôle des rotors.', []) === 'Tu parles de patins. PHRASE-LES-DEUX');
+test('« mais n\'explique pas… » sans sujet : la suite part', fn() =>
+    final_ia(0, 'Ton texte parle du train, mais n\'explique pas comment il se dirige.', []) === 'Ton texte parle du train. PHRASE-LES-DEUX');
+test('une erreur nommée reste', fn() =>
+    final_ia(4, 'Tu dis que les pédales dirigent : cette idée est fausse.', []) === 'Tu dis que les pédales dirigent : cette idée est fausse. PHRASE-LES-DEUX');
+test('plafond : E2 absent, 18 ramené à 14', function() {
+    $lu = notes_sujets::lire_reponse_ia('{"attendus": ["E1"], "erreurs": [], "note": 18, "commentaire": "Oui."}');
+    return $lu['note'] === 14.0 && $lu['note_ia'] === 18.0;
+});
+test('plafond : E1 absent, 18 ramené à 14', fn() =>
+    notes_sujets::lire_reponse_ia('{"attendus": ["E2"], "note": 18, "commentaire": "Oui."}')['note'] === 14.0);
+test('plafond : aucun E, 18 ramené à 14', fn() =>
+    notes_sujets::lire_reponse_ia('{"attendus": [], "note": 18, "commentaire": "Oui."}')['note'] === 14.0);
+test('plafond : E1 et E2 présents, note gardée', fn() =>
+    notes_sujets::lire_reponse_ia('{"attendus": ["E1", "E2"], "note": 18, "commentaire": "Oui."}')['note'] === 18.0);
+test('plafond : E1 et E2 dans un même élément, note gardée', fn() =>
+    notes_sujets::lire_reponse_ia('{"attendus": ["E1 et E2"], "note": 18, "commentaire": "Oui."}')['note'] === 18.0);
+test('plafond : une note déjà basse ne change pas', fn() =>
+    notes_sujets::lire_reponse_ia('{"attendus": ["E1"], "note": 12, "commentaire": "Oui."}')['note'] === 12.0);
+test('plafond : sans attendus, note gardée', fn() =>
+    notes_sujets::lire_reponse_ia('{"note": 18, "commentaire": "Oui."}')['note'] === 18.0);
+test('plafond : 18 sans E2 ne valide pas et dit ce qui manque', function() {
+    $lu = notes_sujets::lire_reponse_ia('{"attendus": ["E1"], "note": 18, "commentaire": "Tu cites les pattes."}');
+    return notes_sujets::commentaire_final($lu, 16.0, PHRASES) === 'Tu cites les pattes. PHRASE-FONCTIONNEMENT';
+});
+test('sans attendus : commentaire intact, les autres réponses ne changent pas', fn() =>
+    final_ia(12, 'Il manque la pièce.', null) === 'Il manque la pièce.');
 
 echo $failures ? "\n{$failures} échec(s)\n" : "\nTout est vert\n";
 exit($failures ? 1 : 0);
