@@ -326,7 +326,7 @@ try {
     [$db, $hb] = $rendre($b);
     $check('after correction: same grade and state for both members', $ha === $hb && $da['hasnote'] && !$da['valide'] && $da['restants'] === 4);
     $check('after correction: orange banner, grade out of 20, comments with the subject title', strpos($ha, 'mod_redaction-se-ko') !== false
-        && strpos($ha, '/20') !== false && strpos($ha, 'Il manque le role du moteur.') !== false && strpos($ha, 'Systeme') !== false);
+        && strpos($ha, '/20') !== false && strpos($ha, 'Tu as vu la roue.') !== false && strpos($ha, 'Il manque le role du moteur.') === false && strpos($ha, 'Systeme') !== false);
     $check('after correction: still editable, button usable', !$da['pending'] && !$da['disabled'] && strpos($ha, 'readonly') === false);
     $enregistrer('3-note-sous-le-seuil', $ha);
 
