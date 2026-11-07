@@ -32,6 +32,11 @@ class notes_sujets {
     /** @var float Highest grade of an answer without both the part that steers (E1) and how it works (E2). */
     const NOTE_INCOMPLETE = 14.0;
 
+    /** @var string[] Words of an answer key that give nothing away: the vocabulary of the question and of the grading. */
+    const RACINES_COMMUNES = ['acces', 'accep', 'absen', 'alors', 'aussi', 'avec', 'avion', 'engin', 'machi', 'bonus', 'cela', 'comme', 'dans', 'dire', 'dirig', 'direc',
+        'erreu', 'expli', 'faire', 'fait', 'faux', 'fauss', 'idee', 'juste', 'mais', 'meme', 'manqu', 'note', 'notes', 'partie', 'parti', 'piece',
+        'peut', 'plus', 'pour', 'quand', 'rien', 'role', 'sans', 'seul', 'seule', 'sont', 'syste', 'tourn', 'tout', 'vaut'];
+
     /** @var int Value of Moodle's FORMAT_PLAIN: this class does not load Moodle. */
     const FORMAT_TEXTE = 2;
 
@@ -172,12 +177,17 @@ class notes_sujets {
      * @param array $lu An answer read by lire_reponse_ia.
      * @param float $seuil Grade from which the work is validated: nothing is missing from there.
      * @param array $phrases Sentences for the keys fonctionnement, les_deux, precision, juste.
+     * @param string $corrige Answer key of the subject: under the threshold, its words the student did not write cannot be shown.
+     * @param string $reponse Answer of the student.
+     * @param string $titre Title of the subject: naming the system gives nothing away.
      * @return string
      */
-    public static function commentaire_final(array $lu, float $seuil, array $phrases): string {
+    public static function commentaire_final(array $lu, float $seuil, array $phrases, string $corrige = '', string $reponse = '',
+            string $titre = ''): string {
         $texte = self::sans_manque($lu['commentaire']);
         $ajout = '';
         if ($lu['note'] < $seuil) {
+            $texte = self::sans_mots_du_corrige($texte, $corrige, $reponse . ' ' . $titre);
             $piece = in_array('E1', $lu['attendus'], true);
             $fonctionnement = in_array('E2', $lu['attendus'], true);
             if ($piece && $fonctionnement) {
@@ -196,6 +206,42 @@ class notes_sujets {
     }
 
     /**
+     * Removes each sentence holding a word of the answer key that the student did not write, whatever its wording.
+     *
+     * A harmless sentence may go too: the plugin's own sentence is still there, a sentence giving the answer is what must not stay.
+     *
+     * @param string $commentaire
+     * @param string $corrige Answer key.
+     * @param string $permis Text whose words can be shown.
+     * @return string
+     */
+    protected static function sans_mots_du_corrige(string $commentaire, string $corrige, string $permis): string {
+        // What comes from "X :" on lists wrong ideas and grading remarks: a comment may name the error the student made.
+        $attendu = preg_split('/\bX\s*:/u', $corrige, 2)[0];
+        $interdits = array_diff(self::racines($attendu), self::racines($permis), self::RACINES_COMMUNES);
+        $gardees = [];
+        foreach (preg_split('/(?<=[.!?…])\s+/u', $commentaire) as $phrase) {
+            if (!array_intersect(self::racines($phrase), $interdits)) {
+                $gardees[] = $phrase;
+            }
+        }
+        return trim(implode(' ', $gardees));
+    }
+
+    /**
+     * First five letters of each word of at least four letters, without case or accent: "Rotors" and "rotor" are the same word.
+     *
+     * @param string $texte
+     * @return string[]
+     */
+    protected static function racines(string $texte): array {
+        $simple = strtr(mb_strtolower($texte), ['à' => 'a', 'â' => 'a', 'ä' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'î' => 'i', 'ï' => 'i', 'ô' => 'o', 'ö' => 'o', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'œ' => 'oe']);
+        preg_match_all('/[a-z]{4,}/', $simple, $mots);
+        return array_values(array_unique(array_map(fn($mot) => substr($mot, 0, 5), $mots[0])));
+    }
+
+    /**
      * Removes what a comment says is missing: the end of a sentence after a separator, or else the whole sentence.
      *
      * "Tu ne dis pas que la machine se plie" is how an AI told not to say what is missing gives the answer all the same.
@@ -206,7 +252,7 @@ class notes_sujets {
      */
     protected static function sans_manque(string $commentaire): string {
         $manque = '(?:(?:il\s+)?(?:te\s+|t[\'’])?manqu'
-            . '|(?:(?:tu|il|elle|ta\s+\S+|ton\s+\S+)\s+)?n(?:e\s+|[\'’])(?:as?\s+pas\s+)?'
+            . '|(?:(?:tu|il|elle|ta\s+\S+|ton\s+\S+)\s+)?n(?:e\s+|[\'’])(?:as?\s+(?:pas\s+)?)?'
             . '(?:dis|dit|parl|mentionn|cit|expliqu|décri|précis|donn|indiqu|nomm|montr))';
         $liaison = '(?:mais|par\s+contre|en\s+revanche|cependant|toutefois|néanmoins|pourtant)';
         $gardees = [];

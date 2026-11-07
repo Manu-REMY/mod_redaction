@@ -172,6 +172,12 @@ test('deux manques dans une phrase : rien de l\'explication ne reste', fn() =>
     final_ia(12, 'Tu cites le rotor de queue. Mais tu ne dis rien du grand rotor qui penche, il manque son rôle.', ['E1']) === 'Tu cites le rotor de queue. PHRASE-FONCTIONNEMENT');
 test('deux manques après un début juste : le début reste', fn() =>
     final_ia(12, 'Tu cites les rails, mais tu ne dis rien du guidage, il manque son rôle.', ['E1']) === 'Tu cites les rails. PHRASE-FONCTIONNEMENT');
+test('« Tu n\'as cité ni… » : phrase retirée', fn() =>
+    final_ia(4, 'Cette idée est fausse. Tu n\'as cité ni le guidon ni la roue avant.', []) === 'Cette idée est fausse. PHRASE-LES-DEUX');
+test('« …, mais tu n\'as parlé que… » : la suite part', fn() =>
+    final_ia(12, 'Tu cites les rails, mais tu n\'as parlé que de la voie.', ['E1']) === 'Tu cites les rails. PHRASE-FONCTIONNEMENT');
+test('« Tu n\'as pas cité… » reste retiré', fn() =>
+    final_ia(4, 'Cette idée est fausse. Tu n\'as pas cité la roue.', []) === 'Cette idée est fausse. PHRASE-LES-DEUX');
 test('« Tu ne mentionnes pas… » : phrase retirée', fn() =>
     final_ia(6, 'Cette idée est fausse. Tu ne mentionnes pas l\'articulation au milieu.', []) === 'Cette idée est fausse. PHRASE-LES-DEUX');
 test('« Il ne cite aucun rotor » : phrase retirée', fn() =>
@@ -182,6 +188,30 @@ test('« mais n\'explique pas… » sans sujet : la suite part', fn() =>
     final_ia(0, 'Ton texte parle du train, mais n\'explique pas comment il se dirige.', []) === 'Ton texte parle du train. PHRASE-LES-DEUX');
 test('une erreur nommée reste', fn() =>
     final_ia(4, 'Tu dis que les pédales dirigent : cette idée est fausse.', []) === 'Tu dis que les pédales dirigent : cette idée est fausse. PHRASE-LES-DEUX');
+// Une phrase qui contient un mot du corrigé absent de la réponse sort, quelle que soit sa tournure.
+const CORRIGE_BMX = 'E1 : le guidon ou la roue avant. E2 : le guidon oriente la roue avant, et le vélo part du côté où elle est tournée. X : pédales.';
+/** Comment under the threshold, with the answer key and the answer of the student. */
+function final_mots(string $commentaire, string $reponse, string $titre = 'BMX', float $note = 4.0): string {
+    return notes_sujets::commentaire_final(['note' => $note, 'commentaire' => $commentaire, 'attendus' => [], 'erreurs' => []], 16.0, PHRASES,
+        CORRIGE_BMX, $reponse, $titre);
+}
+test('mot du corrigé que l\'élève n\'a pas écrit : phrase retirée, quelle que soit la tournure', fn() =>
+    final_mots('Ton idée est fausse. Regarde plutôt le guidon.', 'Ce sont les pédales.') === 'Ton idée est fausse. PHRASE-LES-DEUX');
+test('mot du corrigé que l\'élève a écrit : phrase gardée', fn() =>
+    final_mots('Tu cites le guidon, c\'est juste.', 'C\'est le guidon.') === 'Tu cites le guidon, c\'est juste. PHRASE-LES-DEUX');
+test('majuscule, accent, pluriel et article collé ne trompent pas', fn() =>
+    final_mots('Tu parles bien de l\'orientation.', 'Les ORIENTATIONS comptent.') === 'Tu parles bien de l\'orientation. PHRASE-LES-DEUX');
+test('le nom du système reste permis', fn() =>
+    final_mots('Tu parles du vélo.', 'Il roule.', 'BMX (vélo)') === 'Tu parles du vélo. PHRASE-LES-DEUX');
+test('une phrase sans mot du corrigé reste', fn() =>
+    final_mots('Cette idée est fausse.', 'Le moteur.') === 'Cette idée est fausse. PHRASE-LES-DEUX');
+test('au seuil, rien n\'est retiré : la réponse est validée', fn() =>
+    final_mots('Le guidon oriente la roue.', 'Il tourne.', 'BMX', 16.0) === 'Le guidon oriente la roue.');
+test('les idées fausses du corrigé (après « X : ») ne font pas sortir une phrase', fn() =>
+    final_mots('Regarde tes pédales.', 'Il roule.') === 'Regarde tes pédales. PHRASE-LES-DEUX');
+test('sans corrigé transmis, le commentaire reste', fn() =>
+    final_ia(4, 'Regarde plutôt le guidon.', []) === 'Regarde plutôt le guidon. PHRASE-LES-DEUX');
+
 test('plafond : E2 absent, 18 ramené à 14', function() {
     $lu = notes_sujets::lire_reponse_ia('{"attendus": ["E1"], "erreurs": [], "note": 18, "commentaire": "Oui."}');
     return $lu['note'] === 14.0 && $lu['note_ia'] === 18.0;

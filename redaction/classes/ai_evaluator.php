@@ -364,7 +364,9 @@ class ai_evaluator {
                 $completiontokens += $response['completion_tokens'];
 
                 $lu = notes_sujets::lire_reponse_ia($response['content']);
-                $lu['commentaire'] = notes_sujets::commentaire_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire());
+                $lu['commentaire'] = notes_sujets::commentaire_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire(),
+                    notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE),
+                    notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat), $sujet->titre);
                 $notes[] = $lu['note'];
                 $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . $lu['commentaire'];
                 $details[] = [
