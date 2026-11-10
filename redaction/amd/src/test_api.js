@@ -9,7 +9,7 @@
  * Stub for the Test API button on the activity settings form.
  *
  * The button is wired but its handler is not implemented yet. This stub
- * exists so that the AMD loader has a valid define() target and does not
+ * exists so that the AMD loader has a valid module definition and does not
  * throw "No define call for mod_redaction/test_api", which previously
  * cascaded into other modules failing on the same page (notably the
  * autocomplete used for the standard groupings dropdown).
