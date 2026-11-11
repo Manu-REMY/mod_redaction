@@ -72,6 +72,13 @@ test('identique refusée', fn() => !langue::correction_proche('roue', 'Roue'));
 test('autre mot refusé', fn() => !langue::correction_proche('truc', 'gouvernail'));
 test('correction vide refusée', fn() => !langue::correction_proche('roue', ''));
 test('accord sur plusieurs mots accepté', fn() => langue::correction_proche('les roue tourne', 'les roues tournent'));
+test('un mot remplacé dans un groupe refusé', fn() => !langue::correction_proche('le moteur entraine la courroie', 'le moteur entraîne la poulie'));
+test('un nom de pièce glissé refusé', fn() => !langue::correction_proche('les roue tourne grace au moteur', 'les roues tournent grâce au vérin'));
+test('mot changé avec apostrophe refusé', fn() => !langue::correction_proche('sa permet de tourner la roue', 'ça permet de tourner l\'arbre'));
+test('mot court allongé en un autre refusé', fn() => !langue::correction_proche('a', 'axe'));
+test('apostrophe ajoutée acceptée', fn() => langue::correction_proche('cest', 'c\'est'));
+test('participe corrigé accepté', fn() => langue::correction_proche('fait tourné', 'fait tourner'));
+test('homophone dans un groupe accepté', fn() => langue::correction_proche('sa fait pivoté', 'ça fait pivoter'));
 
 // Checking against the text.
 test('faute inventée écartée et plancher S', function() {

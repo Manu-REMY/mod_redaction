@@ -124,9 +124,20 @@ class langue {
         if (self::normaliser($correction) === '' || self::normaliser($correction) === self::normaliser($cite)) {
             return false;
         }
-        $a = self::plier($cite);
-        $b = self::plier($correction);
-        return levenshtein($a, $b) <= max(2, (int) floor(0.4 * strlen($a)));
+        // Word by word: a whole word of the quote cannot be swapped for another one, whatever the length of the quote.
+        $mots = fn(string $texte): array => preg_split("/[\s']+/u", self::plier($texte), -1, PREG_SPLIT_NO_EMPTY);
+        $a = $mots($cite);
+        $b = $mots($correction);
+        if (count($a) !== count($b)) {
+            // Only a joined or split word ("cest" for "c'est"): the letters stay the same.
+            return abs(count($a) - count($b)) === 1 && levenshtein(implode('', $a), implode('', $b)) <= 1;
+        }
+        foreach ($a as $i => $mot) {
+            if (levenshtein($mot, $b[$i]) > max(1, (int) floor(0.4 * strlen($mot)))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
