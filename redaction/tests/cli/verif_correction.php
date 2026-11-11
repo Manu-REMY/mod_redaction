@@ -187,6 +187,13 @@ function ia(float $note, string $commentaire = 'Tu as vu juste.'): string {
     return json_encode(['attendus' => ['E1', 'E2'], 'note' => $note, 'commentaire' => $commentaire]);
 }
 
+/** JSON answer of the simulated AI about the language. */
+function langue_ia(array $paliers, array $fautes = [], array $remarques = []): string {
+    [$o, $s, $l, $g] = $paliers;
+    return json_encode(['orthographe' => ['palier' => $o, 'fautes' => $fautes], 'syntaxe' => ['palier' => $s, 'remarques' => $remarques],
+        'lexique' => ['palier' => $l], 'organisation' => ['palier' => $g]], JSON_UNESCAPED_UNICODE);
+}
+
 /** Grade in the gradebook, null when there is none. */
 function carnet(stdClass $redaction, int $userid): ?float {
     $info = grade_get_grades($redaction->course, 'mod', 'redaction', $redaction->id, $userid);
@@ -251,7 +258,7 @@ try {
     $creeractivite = function (array $options) use ($course, $moduleid, &$rids, $DB): stdClass {
         $id = redaction_add_instance((object) ($options + [
             'course' => $course->id, 'name' => 'verif_correction temporaire', 'intro' => '', 'introformat' => FORMAT_HTML,
-            'ai_enabled' => 1, 'ai_provider' => 'simule',
+            'ai_enabled' => 1, 'ai_provider' => 'simule', 'langue_enabled' => 0,
         ]));
         $rids[] = $id;
         $cmid = add_course_module((object) ['course' => $course->id, 'module' => $moduleid, 'instance' => $id, 'section' => 0]);
@@ -386,6 +393,8 @@ try {
     $check('attempt stays spent', (int) $sub->training_count === 1);
     $check('submission grade: 17', (float) $sub->grade === 17.0);
     $check('both members at 17', carnet($redaction, $a) === 17.0 && carnet($redaction, $b) === 17.0);
+    $check('language off: setting 0 recorded, no language assessment', $eval->langue_points !== null && (float) $eval->langue_points === 0.0
+        && $eval->langue_json === null);
 
     // What goes to the provider.
     $check('one AI call per subject', count($sim->appels) === 2);
@@ -849,6 +858,93 @@ try {
         $check('deadline task: ordinary draft still submitted', (int) $DB->get_field('redaction_submission', 'status', ['id' => $sord->id]) === 1);
     }
 
+    // Language part (2.4.0): a separate call on every answer, quotes checked, points computed by the server.
+    $el = user_create_user((object) [
+        'username' => 'verifcorrlangue' . $now, 'firstname' => 'PrenomsecretL', 'lastname' => 'NomsecretL',
+        'email' => "verifcorrlangue{$now}@example.invalid", 'auth' => 'manual', 'confirmed' => 1, 'mnethostid' => $CFG->mnet_localhost_id,
+    ], false, false);
+    $users['langue'] = $el;
+    enrol_try_internal_enrol($course->id, $el, $studentrole);
+    $g5 = groups_create_group((object) ['courseid' => $course->id, 'name' => '9Z-GRP05']);
+    groups_add_member($g5, $el);
+    $lang = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 1, 'training_max_attempts' => 5,
+        'sujets_enabled' => 1, 'sujets_par_groupe' => 2, 'sujets_seuil' => 16, 'langue_enabled' => 1, 'langue_points' => 2]);
+    for ($i = 1; $i <= 2; $i++) {
+        $DB->insert_record('redaction_sujet', (object) [
+            'redactionid' => $lang->id, 'sortorder' => $i, 'titre' => 'Velo' . $i, 'contenu' => 'Enonce' . $i, 'contenuformat' => FORMAT_HTML,
+            'corrige' => 'Corrigesecret' . $i . ' : le guidon pivote.', 'timecreated' => $now, 'timemodified' => $now,
+        ]);
+    }
+    $sujetslang = \mod_redaction\sujets::du_groupe($lang, $g5);
+    $sublang = redaction_get_or_create_submission($lang, $g5, $el);
+    repondre($sublang, $sujetslang, '<p>Le fonctionnemant est simple, sa permet de tourner le guidon.</p>');
+
+    // An old evaluation, graded before the language part, with a better grade: it no longer counts.
+    $ancienne = $DB->insert_record('redaction_ai_evaluations', (object) [
+        'redactionid' => $lang->id, 'submissionid' => $sublang->id, 'groupid' => $g5, 'userid' => $el, 'provider' => 'simule',
+        'model' => 'simule', 'parsed_grade' => 19, 'status' => 'applied', 'timecreated' => $now - 3600, 'timemodified' => $now - 3600,
+    ]);
+    $DB->insert_record('redaction_sujet_membre', (object) ['evaluationid' => $ancienne, 'userid' => $el]);
+
+    $sim->appels = [];
+    $sim->reponses = [ia(18), ia(18), langue_ia(['S', 'S', 'S', 'S'], [
+        ['cite' => 'fonctionnemant', 'correction' => 'fonctionnement', 'type' => 'lexicale', 'fois' => 2],
+        ['cite' => 'resisté', 'correction' => 'résisté', 'type' => 'lexicale', 'fois' => 1],
+    ])];
+    $idl = corriger($lang, $sublang, $el);
+    $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $idl]);
+    $lj = json_decode((string) $eval->langue_json, true);
+    $check("language: 2 subjects + 1 language call (found " . count($sim->appels) . ")", count($sim->appels) === 3);
+    $check("language: 18 and 18 on 18 + 1.33 = 17.53 (found {$eval->parsed_grade})", (float) $eval->parsed_grade === 17.53);
+    $check('language: setting recorded', (float) $eval->langue_points === 2.0);
+    $check('language: points and scale stored', is_array($lj) && (float) $lj['points'] === 1.33 && (float) $lj['sur'] === 2.0);
+    $check('language: the real mistake is kept with its correct form', is_array($lj) && count($lj['fautes']) === 1
+        && $lj['fautes'][0]['correction'] === 'fonctionnement' && (int) $lj['fautes'][0]['fois'] === 2);
+    $check('language: the invented mistake is dropped and counted', is_array($lj) && (int) $lj['ecartees'] === 1);
+    $check('language: its raw answer is kept', count(json_decode($eval->raw_response, true)) === 3);
+    $appellangue = $sim->appels[2];
+    $check('language call: the grid of the note de service', strpos($appellangue['system'],
+        get_string('ai_prompt_langue_orthographe_i', 'mod_redaction')) !== false);
+    $check('language call: every answer, numbered', strpos($appellangue['user'], '<reponse_eleve numero="2">') !== false
+        && strpos($appellangue['user'], 'fonctionnemant') !== false);
+    $check('language call: never the answer key', stripos($appellangue['system'] . $appellangue['user'], 'Corrigesecret') === false);
+    $check('language call: titles as context', strpos($appellangue['system'], 'Velo1') !== false);
+    $check('content call: spelling no longer said free', strpos($sim->appels[0]['system'],
+        get_string('ai_prompt_sujet_tolerance', 'mod_redaction')) !== false);
+    $check("old evaluation at 19 no longer counts: grade 17.53 (found " . var_export(carnet($lang, $el), true) . ")",
+        carnet($lang, $el) === 17.53);
+    $check('submission grade: 17.53', (float) $DB->get_field('redaction_submission', 'grade', ['id' => $sublang->id]) === 17.53);
+
+    // Unreadable language answer: failed, nothing changes, attempt given back.
+    $sim->reponses = [ia(20), ia(20), 'Le texte est plutôt bien écrit.'];
+    $idf = corriger($lang, $sublang, $el);
+    $evalf = $DB->get_record('redaction_ai_evaluations', ['id' => $idf]);
+    $check('unreadable language answer: failed, no grade', $evalf->status === 'failed' && $evalf->parsed_grade === null
+        && $evalf->langue_json === null);
+    $check('unreadable language answer: attempt given back, grade unchanged',
+        (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sublang->id]) === 1 && carnet($lang, $el) === 17.53);
+
+    // A copy that asks for its points: the server computes them from the levels only.
+    $sim->reponses = [ia(10), ia(10), substr(langue_ia(['TI', 'TI', 'TI', 'TI']), 0, -1) . ',"points":2,"note":20}'];
+    $idp = corriger($lang, $sublang, $el);
+    $evalp = $DB->get_record('redaction_ai_evaluations', ['id' => $idp]);
+    // Spelling and syntax at TI without any quote go up to S: 9 + 2 x (2/3 + 2/3 + 0 + 0) / 4 = 9.67.
+    $check("points claimed by the AI are ignored, levels without proof go up to S: 9.67 (found {$evalp->parsed_grade})",
+        (float) $evalp->parsed_grade === 9.67);
+
+    // The teacher changes the language points: the attempts start again, no grade until a new one.
+    $data = clone $lang;
+    $data->instance = $lang->id;
+    $data->langue_points = 5;
+    unset($data->id);
+    redaction_update_instance($data);
+    $lang = $DB->get_record('redaction', ['id' => $lang->id], '*', MUST_EXIST);
+    $check('setting changed: attempts start again', (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sublang->id]) === 0);
+    $check('setting changed: no grade until a new attempt', carnet($lang, $el) === null
+        && $DB->get_field('redaction_submission', 'grade', ['id' => $sublang->id]) === null);
+    \mod_redaction\sujets::noter($lang, $DB->get_record('redaction_submission', ['id' => $sublang->id]), 12.0);
+    $check('a teacher grade stands whatever the setting', carnet($lang, $el) === 12.0);
+
     // Outside the hook, the temporary activities cannot reach a real provider.
     ai_evaluator::$fournisseurtest = null;
     $refuse = false;
@@ -858,6 +954,10 @@ try {
         $refuse = true;
     }
     $check('without the hook the provider name of this check is refused', $refuse);
+} catch (\Throwable $ex) {
+    // Say what failed: the default handler hides the details of a database error.
+    echo get_class($ex) . ': ' . $ex->getMessage() . "\n" . ($ex->debuginfo ?? '') . "\n" . $ex->getTraceAsString() . "\n";
+    throw $ex;
 } finally {
     ai_evaluator::$fournisseurtest = null;
     if ($olddelay === false) {

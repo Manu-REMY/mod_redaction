@@ -115,26 +115,49 @@ class sujets_eleve implements renderable, templatable {
 
         $groupe = $DB->get_field('groups', 'name', ['id' => $this->groupid]);
 
-        // Comments of the last counted correction, one per subject.
+        // Comments of the last counted correction, one per subject, on the scale left to the content.
         $commentaires = [];
+        $langue = null;
+        $detailtentative = '';
+        $empeche = false;
         $derniere = $DB->get_records_select(
             'redaction_ai_evaluations',
             'submissionid = ? AND status = ?',
             [$submission->id, 'applied'],
             'timecreated DESC, id DESC',
-            'id, sujets_json, parsed_grade',
+            'id, sujets_json, parsed_grade, langue_json, langue_points',
             0,
             1
         );
         if ($derniere) {
-            $details = json_decode((string) reset($derniere)->sujets_json, true);
-            foreach ((array) $details as $detail) {
+            $derniere = reset($derniere);
+            $p = (float) ($derniere->langue_points ?? 0);
+            $notes = [];
+            foreach ((array) json_decode((string) $derniere->sujets_json, true) as $detail) {
+                if (isset($detail['note'])) {
+                    $notes[] = (float) $detail['note'];
+                }
                 $commentaires[] = [
                     'titre' => format_string($detail['titre'] ?? ''),
                     'hasnote' => isset($detail['note']),
-                    'note' => isset($detail['note']) ? format_float((float) $detail['note'], 1, true, true) : '',
+                    'note' => isset($detail['note'])
+                        ? format_float(\mod_redaction\notes_sujets::sur_echelle((float) $detail['note'], $p), 1, true, true) : '',
+                    'sur' => format_float(\mod_redaction\notes_sujets::NOTE_MAX - $p, 1, true, true),
                     'commentaire' => (string) ($detail['commentaire'] ?? ''),
                 ];
+            }
+            $langue = langue_bloc::donnees($derniere->langue_json, false);
+            if ($langue !== null && $derniere->parsed_grade !== null) {
+                $points = (float) (json_decode($derniere->langue_json, true)['points'] ?? 0);
+                $total = (float) $derniere->parsed_grade;
+                $detailtentative = get_string('sujets_tentative_detail', 'mod_redaction', (object) [
+                    'fond' => format_float($total - $points, 1, true, true),
+                    'surfond' => format_float(\mod_redaction\notes_sujets::NOTE_MAX - $p, 1, true, true),
+                    'langue' => format_float($points, 1, true, true),
+                    'surlangue' => format_float($p, 1, true, true),
+                    'total' => format_float($total, 1, true, true),
+                ]);
+                $empeche = \mod_redaction\notes_sujets::juste_sauf_langue($notes, $total, $seuil);
             }
         }
 
@@ -163,6 +186,11 @@ class sujets_eleve implements renderable, templatable {
             'commentaireprof' => $commentaireprof,
             'hascommentaires' => !empty($commentaires),
             'commentaires' => $commentaires,
+            'haslangue' => $langue !== null,
+            'langue' => $langue,
+            'hasdetailtentative' => $detailtentative !== '',
+            'detailtentative' => $detailtentative,
+            'empeche' => $empeche,
         ];
     }
 }

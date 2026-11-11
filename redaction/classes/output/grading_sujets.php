@@ -259,8 +259,12 @@ class grading_sujets implements renderable, templatable {
         }
 
         $evaluations = $submission ? $this->evaluations($submission->id) : [];
-        // Only the attempts that counted get a number: a failed correction gave its attempt back.
-        $numero = count(array_filter($evaluations, fn($e) => $e->status !== 'failed'));
+        // Only the attempts that count get a number: a failed correction gave its attempt back, and a correction
+        // graded with another language setting no longer counts.
+        $reglage = notes_sujets::reglage_langue($redaction);
+        $compte = fn($e) => $e->status !== 'failed' && (in_array($e->status, ['pending', 'processing'], true)
+            || notes_sujets::compte($e->langue_points ?? null, $reglage));
+        $numero = count(array_filter($evaluations, $compte));
         // The text each correction was given: the last saved version at the time it was queued.
         $versions = $submission
             ? array_values($DB->get_records('redaction_history', ['submissionid' => $submission->id], 'timecreated, id', 'id, contenu, timecreated'))
@@ -269,15 +273,19 @@ class grading_sujets implements renderable, templatable {
         foreach ($evaluations as $evaluation) {
             $enattente = in_array($evaluation->status, ['pending', 'processing'], true);
             $age = time() - $evaluation->timecreated;
+            // Subjects on the scale left to the content when the language was assessed.
+            $p = (float) ($evaluation->langue_points ?? 0);
             $details = [];
             foreach ((array) json_decode((string) $evaluation->sujets_json, true) as $detail) {
                 $details[] = [
                     'titre' => format_string($detail['titre'] ?? ''),
                     'hasnote' => isset($detail['note']),
-                    'note' => isset($detail['note']) ? $this->note($detail['note']) : '',
+                    'note' => isset($detail['note']) ? $this->note(notes_sujets::sur_echelle((float) $detail['note'], $p)) : '',
+                    'sur' => $this->note(notes_sujets::NOTE_MAX - $p),
                     'commentaire' => (string) ($detail['commentaire'] ?? ''),
                 ];
             }
+            $langue = langue_bloc::donnees($evaluation->langue_json ?? null, true);
             $texte = '';
             foreach ($versions as $version) {
                 if ((int) $version->timecreated <= (int) $evaluation->timecreated) {
@@ -288,8 +296,9 @@ class grading_sujets implements renderable, templatable {
                 'hastexte' => trim($texte) !== '',
                 'texte' => $texte,
                 'id' => (int) $evaluation->id,
-                'hasnumero' => $evaluation->status !== 'failed',
-                'numero' => $evaluation->status !== 'failed' ? $numero-- : 0,
+                'hasnumero' => $compte($evaluation),
+                'numero' => $compte($evaluation) ? $numero-- : 0,
+                'necompteplus' => $evaluation->status !== 'failed' && !$compte($evaluation),
                 'date' => userdate($evaluation->timecreated),
                 'statut' => get_string('sujets_ens_statut_' . ($evaluation->status === 'failed' ? 'failed'
                     : ($enattente ? 'pending' : 'done')), 'mod_redaction'),
@@ -303,6 +312,8 @@ class grading_sujets implements renderable, templatable {
                 'haserror' => !empty($evaluation->error_message),
                 'hasdetails' => !empty($details),
                 'details' => $details,
+                'haslangue' => $langue !== null,
+                'langue' => $langue,
             ];
         }
 

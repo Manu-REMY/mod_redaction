@@ -171,6 +171,19 @@ class mod_redaction_mod_form extends moodleform_mod {
         $mform->addHelpButton('sujets_seuil', 'sujets_seuil', 'redaction');
         $mform->hideIf('sujets_seuil', 'sujets_enabled', 'eq', 0);
 
+        // Language mastery: only the assigned subjects mode assesses it for now.
+        $mform->addElement('selectyesno', 'langue_enabled', get_string('langue_enabled', 'redaction'));
+        $mform->setDefault('langue_enabled', 1);
+        $mform->addHelpButton('langue_enabled', 'langue_enabled', 'redaction');
+        $mform->hideIf('langue_enabled', 'sujets_enabled', 'eq', 0);
+
+        $mform->addElement('text', 'langue_points', get_string('langue_points', 'redaction'), ['size' => 5]);
+        $mform->setType('langue_points', PARAM_FLOAT);
+        $mform->setDefault('langue_points', 2);
+        $mform->addHelpButton('langue_points', 'langue_points', 'redaction');
+        $mform->hideIf('langue_points', 'sujets_enabled', 'eq', 0);
+        $mform->hideIf('langue_points', 'langue_enabled', 'eq', 0);
+
         // Add standard grading elements.
         $this->standard_grading_coursemodule_elements();
 
@@ -219,6 +232,11 @@ class mod_redaction_mod_form extends moodleform_mod {
             }
             if (!isset($data['sujets_seuil']) || $data['sujets_seuil'] < 0 || $data['sujets_seuil'] > 20) {
                 $errors['sujets_seuil'] = get_string('sujets_seuil_invalid', 'redaction');
+            }
+            // At least the 2 points of the note de service; 10 leaves half of the grade to the content.
+            if (!empty($data['langue_enabled']) && (!isset($data['langue_points']) || $data['langue_points'] < 2
+                    || $data['langue_points'] > 10)) {
+                $errors['langue_points'] = get_string('langue_points_invalid', 'redaction');
             }
         }
 

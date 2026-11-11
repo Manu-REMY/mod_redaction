@@ -106,6 +106,13 @@ function ia(float $note, string $commentaire): string {
     return json_encode(['attendus' => ['E1', 'E2'], 'note' => $note, 'commentaire' => $commentaire]);
 }
 
+/** JSON answer of the simulated AI about the language. */
+function langue_ia(array $paliers, array $fautes = [], array $remarques = []): string {
+    [$o, $s, $l, $g] = $paliers;
+    return json_encode(['orthographe' => ['palier' => $o, 'fautes' => $fautes], 'syntaxe' => ['palier' => $s, 'remarques' => $remarques],
+        'lexique' => ['palier' => $l], 'organisation' => ['palier' => $g]], JSON_UNESCAPED_UNICODE);
+}
+
 /** Calls a student service as a user and returns the result, or the exception. */
 function appeler(int $userid, callable $f) {
     \core\session\manager::set_user(core_user::get_user($userid));
@@ -160,7 +167,7 @@ try {
     $id = redaction_add_instance((object) [
         'course' => $course->id, 'name' => 'verif_ecran temporaire', 'intro' => '', 'introformat' => FORMAT_HTML,
         'ai_enabled' => 1, 'ai_provider' => 'simule', 'training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 1,
-        'training_max_attempts' => 5, 'sujets_enabled' => 1, 'sujets_par_groupe' => 2, 'sujets_seuil' => 16,
+        'training_max_attempts' => 5, 'sujets_enabled' => 1, 'sujets_par_groupe' => 2, 'sujets_seuil' => 16, 'langue_enabled' => 0,
     ]);
     $rids[] = $id;
     $cmid = add_course_module((object) [
@@ -328,6 +335,7 @@ try {
     $check('after correction: orange banner, grade out of 20, comments with the subject title', strpos($ha, 'mod_redaction-se-ko') !== false
         && strpos($ha, '/20') !== false && strpos($ha, 'Tu as vu la roue.') !== false && strpos($ha, 'Il manque le role du moteur.') === false && strpos($ha, 'Systeme') !== false);
     $check('after correction: still editable, button usable', !$da['pending'] && !$da['disabled'] && strpos($ha, 'readonly') === false);
+    $check('language off: no language block, subjects on 20', strpos($ha, 'mod_redaction-langue') === false && strpos($ha, '12/20') !== false);
     $enregistrer('3-note-sous-le-seuil', $ha);
 
     // Failure: correction pending, attempt given back.
@@ -378,12 +386,58 @@ try {
     $r = $submit($a);
     $check('no attempt left: submit refused', is_array($r) && !$r['success']);
 
+    // Language part: the teacher turns it on, the attempts start again.
+    $data = clone $DB->get_record('redaction', ['id' => $redaction->id], '*', MUST_EXIST);
+    $data->instance = $data->id;
+    unset($data->id);
+    $data->langue_enabled = 1;
+    $data->langue_points = 2;
+    \core\session\manager::set_user(get_admin());
+    redaction_update_instance($data);
+    $save($a, $s1[0]->id, 'Le fonctionnemant est simple, sa permet de tourner.');
+    $save($a, $s1[1]->id, 'Le moteur et la roue tourne pour aller.');
+    $r = $submit($a);
+    retirer_taches($sub->id);
+    $fautes = [['cite' => 'fonctionnemant', 'correction' => 'fonctionnement', 'type' => 'lexicale', 'fois' => 1],
+        ['cite' => 'sa permet', 'correction' => 'ça permet', 'type' => 'homophone', 'fois' => 1],
+        ['cite' => 'resisté', 'correction' => 'résisté', 'type' => 'lexicale', 'fois' => 1]];
+    $remarques = [['cite' => 'le moteur et la roue tourne', 'type' => 'phrase_mal_construite']];
+    $sim->reponses = [ia(17, 'Bien vu.'), ia(18, 'Juste.'), langue_ia(['I', 'S', 'S', 'TS'], $fautes, $remarques)];
+    ai_evaluator::process_evaluation((int) $r['evaluationid']);
+    [$da, $ha] = $rendre($a);
+    $enregistrer('8-langue', $ha);
+    $check('language: the levels in words and letters', strpos($ha, 'Insuffisant (I)') !== false && strpos($ha, 'Très satisfaisant (TS)') !== false);
+    $check('language: each spelling mistake with its exact form', strpos($ha, 'fonctionnemant') !== false
+        && strpos($ha, 'fonctionnement') !== false && strpos($ha, 'ça permet') !== false);
+    $check('language: the badly built sentence, quoted, with its kind', strpos($ha, 'le moteur et la roue tourne') !== false
+        && strpos($ha, get_string('langue_type_phrase_mal_construite', 'mod_redaction')) !== false);
+    $check('language: the invented mistake never reaches the student', strpos($ha, 'resisté') === false
+        && strpos($ha, 'introuvable') === false);
+    $check('language: points of the attempt', strpos($ha, '1,3/2') !== false);
+    $check('language: subjects on 18', strpos($ha, '15,3/18') !== false && strpos($ha, '16,2/18') !== false);
+    $check('language: this attempt in detail', strpos($ha, 'Cette tentative') !== false && strpos($ha, '17,1/20') !== false);
+    $check('language: validated, no "correct your language" sentence', $da['valide']
+        && strpos($ha, get_string('sujets_langue_empeche', 'mod_redaction')) === false);
+    $check('language: no inline style', stripos($ha, 'style=') === false);
+
+    // Right explanations, but the language keeps the total under the threshold: the student is told.
+    $save($a, $s1[1]->id, 'Le moteur et la roue tourne pour aller vite.');
+    $r = $submit($a);
+    retirer_taches($sub->id);
+    $sim->reponses = [ia(17, 'Bien vu.'), ia(17, 'Juste.'), langue_ia(['I', 'I', 'TI', 'TI'], $fautes, $remarques)];
+    ai_evaluator::process_evaluation((int) $r['evaluationid']);
+    [$da, $ha] = $rendre($a);
+    $enregistrer('9-langue-empeche', $ha);
+    $check('language keeps it under the threshold: the sentence is shown', strpos($ha, get_string('sujets_langue_empeche', 'mod_redaction')) !== false);
+    $check('language keeps it under the threshold: the best attempt still counts', $da['valide']);
+
     // Registration and strings.
     foreach (['mod_redaction_save_sujet_reponse', 'mod_redaction_submit_sujets'] as $nom) {
         $check("service {$nom} is registered", $DB->record_exists('external_functions', ['name' => $nom]));
     }
-    $sources = file_get_contents($CFG->dirroot . '/mod/redaction/templates/sujets_eleve.mustache') . file_get_contents($CFG->dirroot . '/mod/redaction/amd/src/sujets.js');
-    preg_match_all('/(sujets?_[a-z_]+)(?:,\s*mod_redaction|\',\s*component)/', $sources, $m1);
+    $sources = file_get_contents($CFG->dirroot . '/mod/redaction/templates/sujets_eleve.mustache') . file_get_contents($CFG->dirroot . '/mod/redaction/amd/src/sujets.js')
+        . file_get_contents($CFG->dirroot . '/mod/redaction/templates/langue_bloc.mustache');
+    preg_match_all('/((?:sujets?|langue)_[a-z_]+)(?:,\s*mod_redaction|\',\s*component)/', $sources, $m1);
     preg_match_all("/key: '([a-z_]+)'/", $sources, $m2);
     $manquantes = [];
     foreach (array_unique(array_merge($m1[1], $m2[1])) as $cle) {

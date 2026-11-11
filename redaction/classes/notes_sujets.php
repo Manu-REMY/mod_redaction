@@ -54,6 +54,78 @@ class notes_sujets {
     }
 
     /**
+     * Grade of a submission with its language part: the subjects on 20 - P, plus the language points.
+     *
+     * @param array $notes Grade of each answer out of 20, null when an answer has none.
+     * @param float|null $pointslangue Points of the language part, null when the language is not assessed.
+     * @param float $p Points of the language part in the grade out of 20.
+     * @return float|null Rounded to two decimals, null when a grade is missing or there is none.
+     */
+    public static function note_totale(array $notes, ?float $pointslangue, float $p): ?float {
+        if ($pointslangue === null) {
+            return self::note_soumission($notes);
+        }
+        if (!$notes || in_array(null, $notes, true)) {
+            return null;
+        }
+        return round(array_sum($notes) / count($notes) * (self::NOTE_MAX - $p) / self::NOTE_MAX + $pointslangue, 2);
+    }
+
+    /**
+     * Grade of a subject on the scale left to the content: out of 20 - P.
+     *
+     * @param float $note Grade out of 20.
+     * @param float $p Points of the language part, 0 when it is not assessed.
+     * @return float
+     */
+    public static function sur_echelle(float $note, float $p): float {
+        return round($note * (self::NOTE_MAX - $p) / self::NOTE_MAX, 2);
+    }
+
+    /**
+     * Whether every explanation reaches the threshold but the total, with the language, does not.
+     *
+     * @param array $notes Grade of each answer out of 20.
+     * @param float $total Grade of the attempt.
+     * @param float $seuil Grade from which the work is validated.
+     * @return bool
+     */
+    public static function juste_sauf_langue(array $notes, float $total, float $seuil): bool {
+        if (!$notes || $total >= $seuil) {
+            return false;
+        }
+        foreach ($notes as $note) {
+            if ($note === null || (float) $note < $seuil) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Language setting of an activity: its points, 0 when the language is not assessed.
+     *
+     * @param \stdClass $redaction Activity record.
+     * @return float
+     */
+    public static function reglage_langue(\stdClass $redaction): float {
+        return empty($redaction->langue_enabled) ? 0.0 : (float) $redaction->langue_points;
+    }
+
+    /**
+     * Whether an evaluation counts: it was graded with the current language setting.
+     *
+     * An evaluation from before the language part (null) never counts.
+     *
+     * @param mixed $languepoints Setting recorded on the evaluation, as read from the database.
+     * @param float $reglage Current setting of the activity, from reglage_langue().
+     * @return bool
+     */
+    public static function compte($languepoints, float $reglage): bool {
+        return $languepoints !== null && abs((float) $languepoints - $reglage) < 0.005;
+    }
+
+    /**
      * Grade that counts for a submission: the teacher's when set, otherwise the best evaluation.
      *
      * @param array $evaluations Grade of each evaluation (numbers or database strings, null ignored).

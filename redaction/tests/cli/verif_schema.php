@@ -57,9 +57,9 @@ $dbman = $DB->get_manager();
 
 // Expected schema.
 $expectedfields = [
-    'redaction' => ['sujets_enabled', 'sujets_par_groupe', 'sujets_seuil'],
+    'redaction' => ['sujets_enabled', 'sujets_par_groupe', 'sujets_seuil', 'langue_enabled', 'langue_points'],
     'redaction_submission' => ['grade_enseignant'],
-    'redaction_ai_evaluations' => ['sujets_json'],
+    'redaction_ai_evaluations' => ['sujets_json', 'langue_json', 'langue_points'],
     'redaction_sujet' => ['id', 'redactionid', 'sortorder', 'titre', 'contenu', 'contenuformat', 'corrige',
         'timecreated', 'timemodified'],
     'redaction_sujet_groupe' => ['id', 'redactionid', 'groupid', 'sujetid', 'rang', 'timecreated'],
@@ -76,6 +76,14 @@ foreach ($expectedfields as $tablename => $fields) {
     foreach ($fields as $fieldname) {
         $check("field {$tablename}.{$fieldname} exists", $dbman->field_exists($table, new xmldb_field($fieldname)));
     }
+}
+
+// Language part (2.4.0): every activity has it, with a setting between 2 and 10 points.
+if ($dbman->field_exists(new xmldb_table('redaction'), new xmldb_field('langue_enabled'))) {
+    $off = $DB->count_records_select('redaction', 'langue_enabled = 0');
+    $check('right after the upgrade, every activity has the language part on (' . $off . ' off)', $off == 0);
+    $horsbornes = $DB->count_records_select('redaction', 'langue_enabled = 1 AND (langue_points < 2 OR langue_points > 10)');
+    $check('every language setting is between 2 and 10 points (' . $horsbornes . ' outside)', $horsbornes == 0);
 }
 
 // Existing activities are untouched: option off.
@@ -100,6 +108,8 @@ if ($allthere && $dbman->field_exists(new xmldb_table('redaction'), new xmldb_fi
         $check('default sujets_enabled = 0', (int) $rec->sujets_enabled === 0);
         $check('default sujets_par_groupe = 2', (int) $rec->sujets_par_groupe === 2);
         $check('default sujets_seuil = 16', (float) $rec->sujets_seuil == 16.0);
+        $check('default langue_enabled = 1', (int) $rec->langue_enabled === 1);
+        $check('default langue_points = 2', (float) $rec->langue_points == 2.0);
 
         $sid = $DB->insert_record('redaction_sujet', (object) [
             'redactionid' => $rid, 'sortorder' => 1, 'titre' => 'S1', 'contenu' => 'c', 'contenuformat' => 1,
@@ -122,6 +132,8 @@ if ($allthere && $dbman->field_exists(new xmldb_table('redaction'), new xmldb_fi
             'provider' => 'x', 'model' => 'x', 'sujets_json' => '[]', 'timecreated' => $now, 'timemodified' => $now,
         ]);
         $DB->insert_record('redaction_sujet_membre', (object) ['evaluationid' => $evalid, 'userid' => 0]);
+        $ev = $DB->get_record('redaction_ai_evaluations', ['id' => $evalid]);
+        $check('a new evaluation has no language part by default', $ev->langue_json === null && $ev->langue_points === null);
 
         // Unique keys must refuse duplicates.
         $uniques = [
