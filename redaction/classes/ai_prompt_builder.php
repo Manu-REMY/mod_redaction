@@ -78,6 +78,46 @@ class ai_prompt_builder {
     }
 
     /**
+     * Build the prompts that assess the language of every answer of an attempt (assigned subjects mode).
+     *
+     * The grid is the one of the note de service of 11/09/2026. Neither the answer key nor any name is sent:
+     * the titles of the subjects are only there so that technical words are not taken for mistakes.
+     *
+     * @param string[] $titres Titles of the subjects.
+     * @param string[] $reponses Plain text of each answer, in the same order.
+     * @return array ['system' => string, 'user' => string]
+     */
+    public static function build_langue_prompt(array $titres, array $reponses): array {
+        $system = get_string('ai_prompt_langue_intro', 'mod_redaction') . "\n\n";
+        $system .= '## ' . get_string('ai_prompt_langue_grille', 'mod_redaction') . "\n";
+        foreach (langue::DIMENSIONS as $dimension) {
+            $system .= '### ' . get_string('ai_prompt_langue_dim_' . $dimension, 'mod_redaction') . "\n";
+            foreach (array_keys(langue::PALIERS) as $palier) {
+                $system .= '- ' . $palier . ' : ' . get_string('ai_prompt_langue_' . $dimension . '_' . strtolower($palier), 'mod_redaction')
+                    . "\n";
+            }
+        }
+        $system .= "\n## " . get_string('ai_prompt_important_instructions', 'mod_redaction') . "\n";
+        foreach (['citer', 'orthographe', 'syntaxe', 'doute', 'donnees'] as $regle) {
+            $system .= '- ' . get_string('ai_prompt_langue_' . $regle, 'mod_redaction') . "\n";
+        }
+        $system .= "\n## " . get_string('ai_prompt_response_format', 'mod_redaction') . "\n";
+        $system .= get_string('ai_prompt_langue_format', 'mod_redaction') . "\n";
+        $system .= "\n## " . get_string('ai_prompt_langue_contexte', 'mod_redaction') . "\n";
+        foreach ($titres as $titre) {
+            $system .= '- ' . notes_sujets::texte_reponse($titre, notes_sujets::FORMAT_TEXTE) . "\n";
+        }
+
+        $user = get_string('ai_prompt_langue_reponses', 'mod_redaction') . "\n";
+        foreach (array_values($reponses) as $i => $reponse) {
+            // The student cannot close the block that holds the answer.
+            $user .= '<reponse_eleve numero="' . ($i + 1) . '">' . "\n" . strtr($reponse, ['<' => '‹', '>' => '›']) . "\n</reponse_eleve>\n";
+        }
+
+        return ['system' => $system, 'user' => trim($user)];
+    }
+
+    /**
      * Build the system prompt.
      *
      * @param object $consignes
