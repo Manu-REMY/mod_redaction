@@ -233,5 +233,26 @@ test('plafond : 18 sans E2 ne valide pas et dit ce qui manque', function() {
     return notes_sujets::commentaire_final($lu, 16.0, PHRASES) === 'Tu cites les pattes. PHRASE-FONCTIONNEMENT';
 });
 
+// Language part: total grade, scale of a subject, validation, attempts that count.
+test('total ROB4 fond 18 sans langue', fn() => notes_sujets::note_totale([18.0, 18.0], 0.0, 2.0) === 16.2);
+test('total fond 17 + 0,67', fn() => notes_sujets::note_totale([17.0, 17.0], 0.67, 2.0) === 15.97);
+test('total fond incomplet + 2', fn() => notes_sujets::note_totale([14.0, 14.0], 2.0, 2.0) === 14.6);
+test('total sans langue = moyenne', fn() => notes_sujets::note_totale([14.0, 18.0], null, 2.0) === 16.0);
+test('total note manquante', fn() => notes_sujets::note_totale([14.0, null], 1.0, 2.0) === null);
+test('total sans sujet', fn() => notes_sujets::note_totale([], 1.0, 2.0) === null);
+test('total moyenne non arrondie avant', fn() => notes_sujets::note_totale([10.0, 10.0, 11.0], 1.0, 2.0) === 10.3);
+test('échelle 17 sur 18', fn() => notes_sujets::sur_echelle(17.0, 2.0) === 15.3);
+test('échelle sans langue', fn() => notes_sujets::sur_echelle(17.0, 0.0) === 17.0);
+test('juste sauf langue', fn() => notes_sujets::juste_sauf_langue([17.0, 18.0], 15.97, 16.0));
+test('pas juste : un sujet sous le seuil', fn() => !notes_sujets::juste_sauf_langue([14.0, 18.0], 14.9, 16.0));
+test('pas « sauf langue » si validé', fn() => !notes_sujets::juste_sauf_langue([18.0, 18.0], 16.2, 16.0));
+test('pas « sauf langue » sans sujet', fn() => !notes_sujets::juste_sauf_langue([], 10.0, 16.0));
+test('ancienne tentative ne compte pas', fn() => !notes_sujets::compte(null, 2.0));
+test('même réglage compte', fn() => notes_sujets::compte('2.00', 2.0));
+test('réglage changé ne compte pas', fn() => !notes_sujets::compte('2.00', 5.0));
+test('langue désactivée compte avec 0', fn() => notes_sujets::compte('0.00', 0.0));
+test('réglage : langue désactivée', fn() => notes_sujets::reglage_langue((object) ['langue_enabled' => 0, 'langue_points' => 2]) === 0.0);
+test('réglage : 2 points', fn() => notes_sujets::reglage_langue((object) ['langue_enabled' => 1, 'langue_points' => '2.00']) === 2.0);
+
 echo $failures ? "\n{$failures} échec(s)\n" : "\nTout est vert\n";
 exit($failures ? 1 : 0);
