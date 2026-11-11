@@ -28,7 +28,10 @@
     * restants - Attempts left
     * pending, echec, disabled, raison - State of the correction and of the button
     * hascommentaireprof, commentaireprof - Comment of the teacher, while the teacher grade stands
-    * hascommentaires, commentaires - Comments of the last correction: titre, note, commentaire
+    * hascommentaires, commentaires - Comments of the last correction: titre, note, sur, commentaire
+    * empeche - The explanations are right but the language keeps the total under the threshold
+    * haslangue, langue - Language assessment of the last correction (template langue_bloc)
+    * hasdetailtentative, detailtentative - Content, language and total of the last correction
 
     Example context (json):
     {
@@ -38,7 +41,8 @@
         "restants": 3, "pending": false, "echec": false, "disabled": false, "raison": "",
         "hascommentaireprof": true, "commentaireprof": "Bien vu.",
         "hascommentaires": true,
-        "commentaires": [{"titre": "Pont", "hasnote": true, "note": "12", "commentaire": "Il manque une idee."}]
+        "commentaires": [{"titre": "Pont", "hasnote": true, "note": "12", "sur": "20", "commentaire": "Il manque une idee."}],
+        "empeche": false, "haslangue": false, "hasdetailtentative": false, "detailtentative": ""
     }
 }}
 <div class="mod_redaction mod_redaction-sujets-eleve" id="mod_redaction-sujets-eleve">
@@ -102,10 +106,20 @@
         <h3>{{#str}}sujets_derniers_commentaires, mod_redaction{{/str}}</h3>
         {{#commentaires}}
         <div class="mod_redaction-se-comment">
-            <p class="mod_redaction-se-comment-title"><strong>{{titre}}</strong>{{#hasnote}} <span class="mod_redaction-se-comment-grade">{{note}}/20</span>{{/hasnote}}</p>
+            <p class="mod_redaction-se-comment-title"><strong>{{titre}}</strong>{{#hasnote}} <span class="mod_redaction-se-comment-grade">{{note}}/{{sur}}</span>{{/hasnote}}</p>
             <p>{{commentaire}}</p>
         </div>
         {{/commentaires}}
+        {{#empeche}}
+        <p class="mod_redaction-se-notice mod_redaction-langue-empeche" role="status">{{#str}}sujets_langue_empeche, mod_redaction{{/str}}</p>
+        {{/empeche}}
     </section>
     {{/hascommentaires}}
+
+    {{#haslangue}}
+    {{#langue}}{{> mod_redaction/langue_bloc}}{{/langue}}
+    {{/haslangue}}
+    {{#hasdetailtentative}}
+    <p class="mod_redaction-langue-detail">{{detailtentative}}</p>
+    {{/hasdetailtentative}}
 </div>
