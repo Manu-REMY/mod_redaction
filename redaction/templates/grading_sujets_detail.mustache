@@ -24,7 +24,8 @@
     * systemes - numero, titre, contenu (HTML), corrige, hasreponse, reponse (plain text)
     * used, max, hasnote, note, seuil, valide, pasvalide, aucunenote, prof, noteprof, commentaireprof (current teacher comment, prefilled)
     * hasalerte, alerte - Warning about failed or late corrections
-    * evaluations - id, hasnumero, numero (failed ones have none), date, statut, ispending, isfailed, age, longue, hasnote, note, haserror, error, hastexte, texte (text given to that correction), details
+    * evaluations - id, hasnumero, numero (failed ones have none), date, statut, ispending, isfailed, age, longue, hasnote, note, haserror, error, hastexte, texte (text given to that correction), details (titre, note, sur, commentaire),
+      haslangue, langue (template langue_bloc)
     * choix - rang, options (id, titre, selected)
     * confirmer - The group has already written: the change must be confirmed
 
@@ -39,7 +40,7 @@
         "hasevaluations": true,
         "evaluations": [{"id": 1, "hasnumero": true, "numero": 1, "date": "6 Nov", "statut": "Done", "ispending": false, "isfailed": false, "age": "",
             "longue": false, "hasnote": true, "note": "12", "haserror": false, "error": "", "hastexte": true, "texte": "Train\nAnswer", "hasdetails": true,
-            "details": [{"titre": "Train", "hasnote": true, "note": "12", "commentaire": "Good."}]}],
+            "details": [{"titre": "Train", "hasnote": true, "note": "12", "sur": "20", "commentaire": "Good."}], "haslangue": false}],
         "choix": [{"rang": 1, "options": [{"id": 1, "titre": "Train", "selected": true}]}],
         "confirmer": true
     }
@@ -109,10 +110,13 @@
         {{#hasdetails}}
         <ul class="mod_redaction-ens-details">
             {{#details}}
-            <li><strong>{{titre}}</strong>{{#hasnote}} &ndash; {{note}}/20{{/hasnote}}<br>{{commentaire}}</li>
+            <li><strong>{{titre}}</strong>{{#hasnote}} &ndash; {{note}}/{{sur}}{{/hasnote}}<br>{{commentaire}}</li>
             {{/details}}
         </ul>
         {{/hasdetails}}
+        {{#haslangue}}
+        {{#langue}}{{> mod_redaction/langue_bloc}}{{/langue}}
+        {{/haslangue}}
     </div>
     {{/evaluations}}
 

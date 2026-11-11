@@ -333,6 +333,8 @@ try {
     $check('detail: key shown to the teacher', strpos($html, 'Corrige') !== false);
     $check('detail: one block per evaluation, the failed one flagged', count($detail['evaluations']) === 3 && $detail['alerte'] !== '');
     $check('detail: per-subject detail of a completed evaluation', strpos($html, 'Tu as vu juste.') !== false);
+    $check('detail, language off: subjects on 20, no language block', strpos($html, '/20') !== false
+        && strpos($html, 'mod_redaction-langue') === false);
 
     // A pending evaluation shows its age.
     $DB->set_field('redaction_ai_evaluations', 'status', 'pending', ['id' => $e2]);
@@ -402,6 +404,40 @@ try {
     $check('screen: unknown action refused', $type === $ko);
     [, $type] = sujets::traiter_action($redaction, $ctx, $g2, 'note', ['grade' => 10.0]);
     $check('screen: grade on a group without work refused', $type === $ko);
+
+    // --- Language part: the teacher sees the levels, the exact forms and what the server dropped.
+    [$lang, $cml] = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 1, 'training_max_attempts' => 5,
+        'sujets_enabled' => 1, 'sujets_par_groupe' => 2, 'sujets_seuil' => 16, 'langue_enabled' => 1, 'langue_points' => 2]);
+    $sujet($lang, 1);
+    $sujet($lang, 2);
+    $sublang = redaction_get_or_create_submission($lang, $g1, $a);
+    foreach ($ids(sujets::du_groupe($lang, $g1)) as $sid) {
+        $DB->insert_record('redaction_sujet_reponse', (object) [
+            'submissionid' => $sublang->id, 'sujetid' => $sid, 'contenu' => 'Le fonctionnemant du systeme', 'contenuformat' => FORMAT_PLAIN,
+            'userid' => $a, 'timemodified' => $now,
+        ]);
+    }
+    $langueia = json_encode(['orthographe' => ['palier' => 'I', 'fautes' => [
+            ['cite' => 'fonctionnemant', 'correction' => 'fonctionnement', 'type' => 'lexicale', 'fois' => 2],
+            ['cite' => 'resisté', 'correction' => 'résisté', 'type' => 'lexicale', 'fois' => 1]]],
+        'syntaxe' => ['palier' => 'S', 'remarques' => []], 'lexique' => ['palier' => 'S'], 'organisation' => ['palier' => 'TS']],
+        JSON_UNESCAPED_UNICODE);
+    $sim->reponses = [ia(18), ia(17), $langueia];
+    $idl = ai_evaluator::queue_evaluation($lang->id, $sublang->id, (int) $g1, $a, true);
+    retirer_tache($idl);
+    ai_evaluator::process_evaluation($idl);
+    $detail = (new \mod_redaction\output\grading_sujets($lang, $cml, context_module::instance($cml->id), $g1))->export_for_template($sortie);
+    $html = $sortie->render_from_template('mod_redaction/grading_sujets_detail', $detail);
+    $check('teacher, language: the levels in words and letters',
+        strpos($html, get_string('langue_palier_i', 'mod_redaction') . ' (I)') !== false
+        && strpos($html, get_string('langue_palier_ts', 'mod_redaction') . ' (TS)') !== false);
+    $check('teacher, language: the mistake with its exact form', strpos($html, 'fonctionnemant') !== false
+        && strpos($html, 'fonctionnement') !== false);
+    $check('teacher, language: the dropped quotes are counted', strpos($html, 'mod_redaction-langue-ecartees') !== false
+        && strpos($html, htmlspecialchars(get_string('langue_ecartees', 'mod_redaction', 1), ENT_QUOTES)) !== false
+        && strpos($html, 'resisté') === false);
+    $check('teacher, language: subjects on 18', strpos($html, format_float(16.2, 1, true, true) . '/18') !== false
+        && strpos($html, format_float(15.3, 1, true, true) . '/18') !== false);
 
     // --- Ordinary activity: nothing changes.
     [$ordinaire, $cmo] = $creeractivite(['training_enabled' => 1, 'ai_enabled' => 1, 'group_submission' => 0]);

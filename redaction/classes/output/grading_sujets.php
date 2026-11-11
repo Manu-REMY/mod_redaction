@@ -269,15 +269,19 @@ class grading_sujets implements renderable, templatable {
         foreach ($evaluations as $evaluation) {
             $enattente = in_array($evaluation->status, ['pending', 'processing'], true);
             $age = time() - $evaluation->timecreated;
+            // Subjects on the scale left to the content when the language was assessed.
+            $p = (float) ($evaluation->langue_points ?? 0);
             $details = [];
             foreach ((array) json_decode((string) $evaluation->sujets_json, true) as $detail) {
                 $details[] = [
                     'titre' => format_string($detail['titre'] ?? ''),
                     'hasnote' => isset($detail['note']),
-                    'note' => isset($detail['note']) ? $this->note($detail['note']) : '',
+                    'note' => isset($detail['note']) ? $this->note(notes_sujets::sur_echelle((float) $detail['note'], $p)) : '',
+                    'sur' => $this->note(notes_sujets::NOTE_MAX - $p),
                     'commentaire' => (string) ($detail['commentaire'] ?? ''),
                 ];
             }
+            $langue = langue_bloc::donnees($evaluation->langue_json ?? null, true);
             $texte = '';
             foreach ($versions as $version) {
                 if ((int) $version->timecreated <= (int) $evaluation->timecreated) {
@@ -303,6 +307,8 @@ class grading_sujets implements renderable, templatable {
                 'haserror' => !empty($evaluation->error_message),
                 'hasdetails' => !empty($details),
                 'details' => $details,
+                'haslangue' => $langue !== null,
+                'langue' => $langue,
             ];
         }
 
