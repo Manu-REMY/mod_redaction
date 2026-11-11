@@ -100,6 +100,7 @@ class provider implements
                 'parsed_grade' => 'privacy:metadata:redaction_ai_evaluations:parsed_grade',
                 'parsed_feedback' => 'privacy:metadata:redaction_ai_evaluations:parsed_feedback',
                 'criteria_json' => 'privacy:metadata:redaction_ai_evaluations:criteria_json',
+                'langue_json' => 'privacy:metadata:redaction_ai_evaluations:langue_json',
                 'status' => 'privacy:metadata:redaction_ai_evaluations:status',
                 'applied_by' => 'privacy:metadata:redaction_ai_evaluations:applied_by',
                 'timecreated' => 'privacy:metadata:redaction_ai_evaluations:timecreated',
@@ -444,6 +445,7 @@ class provider implements
                        rae.parsed_grade,
                        rae.parsed_feedback,
                        rae.criteria_json,
+                       rae.langue_json,
                        rae.status,
                        rae.timecreated
                   FROM {context} c
@@ -465,6 +467,7 @@ class provider implements
                 'grade' => $evaluation->parsed_grade,
                 'feedback' => $evaluation->parsed_feedback,
                 'criteria' => $evaluation->criteria_json,
+                'language' => $evaluation->langue_json,
                 'status' => $evaluation->status,
                 'timecreated' => transform::datetime($evaluation->timecreated),
             ];
@@ -552,6 +555,7 @@ class provider implements
                        cm.id AS cmid,
                        rae.parsed_grade,
                        rae.parsed_feedback,
+                       rae.langue_json,
                        rae.status,
                        rae.timecreated
                   FROM {context} c
@@ -569,6 +573,7 @@ class provider implements
             $creditedbycontext[$evaluation->cmid][] = [
                 'grade' => $evaluation->parsed_grade,
                 'feedback' => $evaluation->parsed_feedback,
+                'language' => $evaluation->langue_json,
                 'status' => $evaluation->status,
                 'timecreated' => transform::datetime($evaluation->timecreated),
             ];

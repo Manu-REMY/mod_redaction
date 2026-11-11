@@ -340,5 +340,41 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026110600, 'redaction');
     }
 
+    if ($oldversion < 2026111100) {
+        // Language mastery (note de service of 11/09/2026): on in every activity, 2 points out of 20.
+        $table = new xmldb_table('redaction');
+        $field = new xmldb_field('langue_enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'sujets_seuil');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('langue_points', XMLDB_TYPE_NUMBER, '5, 2', null, XMLDB_NOTNULL, null, '2', 'langue_enabled');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $DB->execute('UPDATE {redaction} SET langue_enabled = 1, langue_points = 2');
+
+        // Setting each evaluation was graded with: null for the ones graded before, which no longer count.
+        $table = new xmldb_table('redaction_ai_evaluations');
+        $field = new xmldb_field('langue_json', XMLDB_TYPE_TEXT, null, null, null, null, null, 'sujets_json');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('langue_points', XMLDB_TYPE_NUMBER, '5, 2', null, null, null, null, 'langue_json');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Assigned subjects mode: the old attempts no longer count, nor use up the maximum. The teacher grade stays.
+        foreach ($DB->get_fieldset_select('redaction', 'id', 'sujets_enabled = 1') as $redactionid) {
+            $DB->execute('UPDATE {redaction_submission} SET training_count = 0, grade = grade_enseignant WHERE redactionid = ?',
+                [$redactionid]);
+            $tache = new \mod_redaction\task\mettre_a_jour_carnet();
+            $tache->set_custom_data(['redactionid' => (int) $redactionid]);
+            \core\task\manager::queue_adhoc_task($tache);
+        }
+
+        upgrade_mod_savepoint(true, 2026111100, 'redaction');
+    }
+
     return true;
 }

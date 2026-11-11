@@ -58,6 +58,8 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'sujets_enabled',
             'sujets_par_groupe',
             'sujets_seuil',
+            'langue_enabled',
+            'langue_points',
             'timecreated',
             'timemodified',
         ]);
@@ -131,6 +133,8 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'parsed_feedback',
             'criteria_json',
             'sujets_json',
+            'langue_json',
+            'langue_points',
             'status',
             'error_message',
             'applied_by',

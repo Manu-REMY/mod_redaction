@@ -123,13 +123,51 @@ function redaction_update_instance($data, $mform = null) {
 
     redaction_force_sujets_settings($data);
 
+    $avant = $DB->get_record('redaction', ['id' => $data->id], '*', MUST_EXIST);
+
     $result = $DB->update_record('redaction', $data);
 
     // Update gradebook.
     $redaction = $DB->get_record('redaction', ['id' => $data->id]);
-    redaction_update_grades($redaction);
+    $reglagechange = abs(\mod_redaction\notes_sujets::reglage_langue($avant) - \mod_redaction\notes_sujets::reglage_langue($redaction))
+        >= 0.005;
+    if (!empty($redaction->sujets_enabled) && $reglagechange) {
+        // Only the attempts graded with the new language setting count from now on.
+        redaction_sujets_recompter($redaction);
+    } else {
+        redaction_update_grades($redaction);
+    }
 
     return $result;
+}
+
+/**
+ * Assigned subjects mode: start the attempts again after a change of the language setting.
+ *
+ * The attempts graded with another setting no longer count, nor use up the maximum. The teacher grade stays.
+ *
+ * @param stdClass $redaction Activity record, with its current setting.
+ */
+function redaction_sujets_recompter($redaction) {
+    global $DB;
+
+    $reglage = \mod_redaction\notes_sujets::reglage_langue($redaction);
+    foreach ($DB->get_records('redaction_submission', ['redactionid' => $redaction->id]) as $submission) {
+        $notes = $DB->get_fieldset_select(
+            'redaction_ai_evaluations',
+            'parsed_grade',
+            "submissionid = ? AND status IN ('completed', 'applied') AND langue_points = ?",
+            [$submission->id, $reglage]
+        );
+        $enseignant = $submission->grade_enseignant !== null ? (float) $submission->grade_enseignant : null;
+        $DB->update_record('redaction_submission', (object) [
+            'id' => $submission->id,
+            'training_count' => 0,
+            'grade' => \mod_redaction\notes_sujets::meilleure($notes, $enseignant),
+            'timemodified' => time(),
+        ]);
+    }
+    redaction_update_grades($redaction);
 }
 
 /**

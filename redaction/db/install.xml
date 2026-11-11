@@ -23,6 +23,8 @@
         <FIELD NAME="sujets_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1=assigned subjects mode"/>
         <FIELD NAME="sujets_par_groupe" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="2" SEQUENCE="false" COMMENT="Subjects assigned to each group"/>
         <FIELD NAME="sujets_seuil" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="16" SEQUENCE="false" DECIMALS="2" COMMENT="Validation threshold out of 20"/>
+        <FIELD NAME="langue_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1=language mastery assessed (assigned subjects mode)"/>
+        <FIELD NAME="langue_points" TYPE="number" LENGTH="5" NOTNULL="true" DEFAULT="2" SEQUENCE="false" DECIMALS="2" COMMENT="Points of the language part out of 20"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
@@ -148,6 +150,8 @@
         <FIELD NAME="parsed_feedback" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="criteria_json" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of criteria scores"/>
         <FIELD NAME="sujets_json" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON per-subject results (assigned subjects mode)"/>
+        <FIELD NAME="langue_json" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON language assessment, after the server check"/>
+        <FIELD NAME="langue_points" TYPE="number" LENGTH="5" NOTNULL="false" SEQUENCE="false" DECIMALS="2" COMMENT="Language setting used for this grade, 0 when off, null before 2.4.0"/>
         <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" SEQUENCE="false" COMMENT="pending, processing, completed, failed, applied"/>
         <FIELD NAME="error_message" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="applied_by" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Teacher who applied the grade"/>
