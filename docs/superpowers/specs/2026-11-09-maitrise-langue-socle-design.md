@@ -2,7 +2,7 @@
 
 **Date** : 2026-11-09
 **Auteur** : Emmanuel REMY (avec assistance Claude, session mod-redaction-f4)
-**Statut** : relu par un constructeur indépendant, questions tranchées par Emmanuel ; à valider
+**Statut** : validé par Emmanuel le 11/11/2026 (y compris les choix de l'agent), prêt pour writing-plans
 **Sources** : vault `wiki/entities/mod-redaction-demandes.md` (demandes 1, 2, 4, 5, 6), `wiki/concepts/registre-des-decisions.md` (D-024, D-025), note de service du 11/09/2026 (NOR MENE2623195N, BO spécial n° 4 du 17/09/2026, https://www.education.gouv.fr/bo/2026/Special4/MENE2623195N).
 
 ## Pourquoi
