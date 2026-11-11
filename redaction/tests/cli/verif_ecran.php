@@ -160,7 +160,7 @@ try {
     $id = redaction_add_instance((object) [
         'course' => $course->id, 'name' => 'verif_ecran temporaire', 'intro' => '', 'introformat' => FORMAT_HTML,
         'ai_enabled' => 1, 'ai_provider' => 'simule', 'training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 1,
-        'training_max_attempts' => 5, 'sujets_enabled' => 1, 'sujets_par_groupe' => 2, 'sujets_seuil' => 16,
+        'training_max_attempts' => 5, 'sujets_enabled' => 1, 'sujets_par_groupe' => 2, 'sujets_seuil' => 16, 'langue_enabled' => 0,
     ]);
     $rids[] = $id;
     $cmid = add_course_module((object) [

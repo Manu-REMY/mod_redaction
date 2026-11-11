@@ -161,7 +161,7 @@ try {
     $creeractivite = function (array $options) use ($course, $moduleid, &$rids, $DB): array {
         $id = redaction_add_instance((object) ($options + [
             'course' => $course->id, 'name' => 'verif_enseignant temporaire', 'intro' => '', 'introformat' => FORMAT_HTML,
-            'ai_enabled' => 1, 'ai_provider' => 'simule',
+            'ai_enabled' => 1, 'ai_provider' => 'simule', 'langue_enabled' => 0,
         ]));
         $rids[] = $id;
         $cmid = add_course_module((object) ['course' => $course->id, 'module' => $moduleid, 'instance' => $id, 'section' => 0]);

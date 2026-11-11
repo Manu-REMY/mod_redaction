@@ -253,11 +253,12 @@ class sujets {
             throw new \moodle_exception('grade_invalid', 'mod_redaction');
         }
 
+        // Only the evaluations graded with the current language setting count.
         $evaluations = $DB->get_fieldset_select(
             'redaction_ai_evaluations',
             'parsed_grade',
-            "submissionid = ? AND status IN ('completed', 'applied')",
-            [$submission->id]
+            "submissionid = ? AND status IN ('completed', 'applied') AND langue_points = ?",
+            [$submission->id, notes_sujets::reglage_langue($redaction)]
         );
 
         $submission->grade_enseignant = $note;

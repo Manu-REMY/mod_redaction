@@ -50,6 +50,9 @@ class ai_evaluator {
     /** @var int Maximum tokens for response */
     const MAX_TOKENS = 2000;
 
+    /** @var int Maximum tokens of the language assessment: every mistake of every answer is listed. */
+    const LANGUE_MAX_TOKENS = 4000;
+
     /** @var int Timeout of one call in the assigned subjects mode, in seconds. */
     const SUJET_DELAI_APPEL = 30;
 
@@ -347,6 +350,8 @@ class ai_evaluator {
             $details = [];
             $notes = [];
             $commentaires = [];
+            $titres = [];
+            $textes = [];
             $prompttokens = 0;
             $completiontokens = 0;
             foreach (sujets::du_groupe($redaction, (int) $submission->groupid) as $sujet) {
@@ -368,6 +373,8 @@ class ai_evaluator {
                     notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE),
                     notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat), $sujet->titre);
                 $notes[] = $lu['note'];
+                $titres[] = $sujet->titre;
+                $textes[] = notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat);
                 $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . $lu['commentaire'];
                 $details[] = [
                     'sujetid' => (int) $sujet->id,
@@ -377,10 +384,28 @@ class ai_evaluator {
                 ];
             }
 
+            // The language of every answer, in one separate call: its points come from the levels, never from the AI.
+            $p = notes_sujets::reglage_langue($redaction);
+            $pointslangue = null;
+            $evaluation->langue_json = null;
+            if ($p > 0) {
+                $prompts = ai_prompt_builder::build_langue_prompt($titres, $textes);
+                $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::LANGUE_MAX_TOKENS);
+                $bruts[] = $response['content'];
+                $prompttokens += $response['prompt_tokens'];
+                $completiontokens += $response['completion_tokens'];
+
+                $langue = langue::verifier(langue::lire_reponse_ia($response['content']), implode("\n", $textes));
+                $pointslangue = langue::points($langue['paliers'], $p);
+                $evaluation->langue_json = json_encode($langue + ['points' => $pointslangue, 'sur' => $p],
+                    JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            }
+            $evaluation->langue_points = $p;
+
             $evaluation->raw_response = json_encode($bruts, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
             $evaluation->prompt_tokens = $prompttokens;
             $evaluation->completion_tokens = $completiontokens;
-            $evaluation->parsed_grade = notes_sujets::note_soumission($notes);
+            $evaluation->parsed_grade = notes_sujets::note_totale($notes, $pointslangue, $p);
             $evaluation->parsed_feedback = implode("\n\n", $commentaires);
             $evaluation->sujets_json = json_encode($details, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
             $evaluation->status = 'completed';
@@ -579,13 +604,17 @@ class ai_evaluator {
                 if ($overridegrade !== null) {
                     $submission->grade_enseignant = $overridegrade;
                 }
+                // Only the evaluations graded with the current language setting count.
+                $reglage = notes_sujets::reglage_langue($redaction);
                 $notes = $DB->get_fieldset_select(
                     'redaction_ai_evaluations',
                     'parsed_grade',
-                    "submissionid = ? AND id <> ? AND status IN ('completed', 'applied')",
-                    [$submission->id, $evaluation->id]
+                    "submissionid = ? AND id <> ? AND status IN ('completed', 'applied') AND langue_points = ?",
+                    [$submission->id, $evaluation->id, $reglage]
                 );
-                $notes[] = $evaluation->parsed_grade;
+                if (notes_sujets::compte($evaluation->langue_points, $reglage)) {
+                    $notes[] = $evaluation->parsed_grade;
+                }
                 $enseignant = $submission->grade_enseignant !== null ? (float) $submission->grade_enseignant : null;
                 $submission->grade = notes_sujets::meilleure($notes, $enseignant);
             } else {
