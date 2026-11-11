@@ -439,6 +439,20 @@ try {
     $check('teacher, language: subjects on 18', strpos($html, format_float(16.2, 1, true, true) . '/18') !== false
         && strpos($html, format_float(15.3, 1, true, true) . '/18') !== false);
 
+    // The teacher changes the setting: the earlier corrections stay in the history, flagged, without a number.
+    $data = clone $lang;
+    $data->instance = $lang->id;
+    unset($data->id);
+    $data->langue_points = 3;
+    redaction_update_instance($data);
+    $lang = $DB->get_record('redaction', ['id' => $lang->id], '*', MUST_EXIST);
+    $detail = (new \mod_redaction\output\grading_sujets($lang, $cml, context_module::instance($cml->id), $g1))->export_for_template($sortie);
+    $html = $sortie->render_from_template('mod_redaction/grading_sujets_detail', $detail);
+    $ev = $detail['evaluations'][0];
+    $check('teacher: a correction graded with another setting is flagged and has no number',
+        $ev['necompteplus'] && !$ev['hasnumero']
+        && strpos($html, htmlspecialchars(get_string('sujets_ens_ne_compte_plus', 'mod_redaction'), ENT_QUOTES)) !== false);
+
     // --- Ordinary activity: nothing changes.
     [$ordinaire, $cmo] = $creeractivite(['training_enabled' => 1, 'ai_enabled' => 1, 'group_submission' => 0]);
     $so = redaction_get_or_create_submission($ordinaire, 0, $a);

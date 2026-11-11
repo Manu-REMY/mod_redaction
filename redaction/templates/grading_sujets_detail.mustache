@@ -24,7 +24,7 @@
     * systemes - numero, titre, contenu (HTML), corrige, hasreponse, reponse (plain text)
     * used, max, hasnote, note, seuil, valide, pasvalide, aucunenote, prof, noteprof, commentaireprof (current teacher comment, prefilled)
     * hasalerte, alerte - Warning about failed or late corrections
-    * evaluations - id, hasnumero, numero (failed ones have none), date, statut, ispending, isfailed, age, longue, hasnote, note, haserror, error, hastexte, texte (text given to that correction), details (titre, note, sur, commentaire),
+    * evaluations - id, hasnumero, numero (failed ones and those graded with another language setting have none), necompteplus, date, statut, ispending, isfailed, age, longue, hasnote, note, haserror, error, hastexte, texte (text given to that correction), details (titre, note, sur, commentaire),
       haslangue, langue (template langue_bloc)
     * choix - rang, options (id, titre, selected)
     * confirmer - The group has already written: the change must be confirmed
@@ -38,7 +38,7 @@
         "hassubmission": true, "used": 1, "max": 5, "hasnote": true, "note": "12", "seuil": "16", "valide": false, "pasvalide": true,
         "aucunenote": false, "prof": false, "noteprof": "", "commentaireprof": "", "hasalerte": false, "alerte": "",
         "hasevaluations": true,
-        "evaluations": [{"id": 1, "hasnumero": true, "numero": 1, "date": "6 Nov", "statut": "Done", "ispending": false, "isfailed": false, "age": "",
+        "evaluations": [{"id": 1, "hasnumero": true, "numero": 1, "necompteplus": false, "date": "6 Nov", "statut": "Done", "ispending": false, "isfailed": false, "age": "",
             "longue": false, "hasnote": true, "note": "12", "haserror": false, "error": "", "hastexte": true, "texte": "Train\nAnswer", "hasdetails": true,
             "details": [{"titre": "Train", "hasnote": true, "note": "12", "sur": "20", "commentaire": "Good."}], "haslangue": false}],
         "choix": [{"rang": 1, "options": [{"id": 1, "titre": "Train", "selected": true}]}],
@@ -97,6 +97,7 @@
             {{#isfailed}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#9888;</span> {{statut}}</span>{{/isfailed}}
             {{^isfailed}}{{statut}}{{/isfailed}}
             {{#hasnote}} &ndash; {{note}}/20{{/hasnote}}
+            {{#necompteplus}} &ndash; <span class="mod_redaction-ens-etat">{{#str}}sujets_ens_ne_compte_plus, mod_redaction{{/str}}</span>{{/necompteplus}}
             {{#ispending}} &ndash; {{#str}}sujets_ens_depuis, mod_redaction, {{age}}{{/str}}
                 {{#longue}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#9888;</span> {{#str}}sujets_ens_trop_longue, mod_redaction{{/str}}</span>{{/longue}}{{/ispending}}
         </p>

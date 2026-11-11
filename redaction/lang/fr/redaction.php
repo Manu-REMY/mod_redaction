@@ -671,6 +671,7 @@ $string['langue_type_phrase_mal_construite'] = 'phrase mal construite';
 $string['langue_type_phrase_incomplete'] = 'phrase incomplète';
 $string['langue_type_ponctuation'] = 'ponctuation';
 $string['sujets_langue_empeche'] = 'Ton explication est juste ; corrige ta langue pour valider.';
+$string['sujets_ens_ne_compte_plus'] = 'corrigée avec un autre réglage de langue : ne compte plus';
 $string['sujets_tentative_detail'] = 'Cette tentative : fond {$a->fond}/{$a->surfond} · langue {$a->langue}/{$a->surlangue} · {$a->total}/20';
 $string['sujets_disabled'] = 'Le mode sujets attribués n\'est pas activé pour cette activité.';
 $string['sujets_saved'] = 'Sujets enregistrés.';

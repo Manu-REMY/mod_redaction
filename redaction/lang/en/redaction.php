@@ -671,6 +671,7 @@ $string['langue_type_phrase_mal_construite'] = 'badly built sentence';
 $string['langue_type_phrase_incomplete'] = 'incomplete sentence';
 $string['langue_type_ponctuation'] = 'punctuation';
 $string['sujets_langue_empeche'] = 'Your explanation is right; correct your language to validate.';
+$string['sujets_ens_ne_compte_plus'] = 'graded with another language setting: does not count';
 $string['sujets_tentative_detail'] = 'This attempt: content {$a->fond}/{$a->surfond} · language {$a->langue}/{$a->surlangue} · {$a->total}/20';
 $string['sujets_disabled'] = 'The assigned subjects mode is not enabled for this activity.';
 $string['sujets_saved'] = 'Subjects saved.';
