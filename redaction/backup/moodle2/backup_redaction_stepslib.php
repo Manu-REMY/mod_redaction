@@ -140,6 +140,8 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'sujets_json',
             'langue_json',
             'langue_points',
+            'finale',
+            'empreinte',
             'status',
             'error_message',
             'applied_by',

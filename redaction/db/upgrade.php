@@ -454,5 +454,27 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111203, 'redaction');
     }
 
+    if ($oldversion < 2026111300) {
+        // Training attempts and a single final submission (request 16): every existing correction is an attempt.
+        $table = new xmldb_table('redaction_ai_evaluations');
+        $field = new xmldb_field('finale', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'langue_points');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('empreinte', XMLDB_TYPE_CHAR, '40', null, null, null, null, 'finale');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Attempts no longer reach the gradebook: work it out again for the activities in this mode.
+        foreach ($DB->get_fieldset_select('redaction', 'id', 'sujets_enabled = 1') as $redactionid) {
+            $tache = new \mod_redaction\task\mettre_a_jour_carnet();
+            $tache->set_custom_data(['redactionid' => (int) $redactionid]);
+            \core\task\manager::queue_adhoc_task($tache);
+        }
+
+        upgrade_mod_savepoint(true, 2026111300, 'redaction');
+    }
+
     return true;
 }
