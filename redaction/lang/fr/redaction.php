@@ -380,6 +380,7 @@ $string['notification_ai_grade_body'] = 'Une note générée par l\'IA a été a
 $string['notification_ai_grade_body_html'] = '<p>Une note générée par l\'IA a été automatiquement appliquée à votre rédaction dans « <em>{$a->activity}</em> » : <strong>{$a->grade}/20</strong> dans le cours « <em>{$a->course}</em> ».</p>';
 $string['notification_ai_grade_small'] = '{$a->activity} : note IA {$a->grade}/20';
 $string['view_evaluation'] = 'Voir l\'évaluation';
+$string['view_grade'] = 'Voir ma note';
 $string['messageprovider:submission_received'] = 'Notification quand un étudiant soumet sa rédaction';
 $string['messageprovider:grade_released'] = 'Notification quand une note est publiée';
 $string['messageprovider:ai_evaluation_complete'] = 'Notification quand une évaluation IA est terminée';

@@ -380,6 +380,7 @@ $string['notification_ai_grade_body'] = 'An AI-generated grade has been automati
 $string['notification_ai_grade_body_html'] = '<p>An AI-generated grade has been automatically applied to your writing in "<em>{$a->activity}</em>": <strong>{$a->grade}/20</strong> in course "<em>{$a->course}</em>".</p>';
 $string['notification_ai_grade_small'] = '{$a->activity}: AI grade {$a->grade}/20';
 $string['view_evaluation'] = 'View evaluation';
+$string['view_grade'] = 'View my grade';
 $string['messageprovider:submission_received'] = 'Notification when a student submits their writing';
 $string['messageprovider:grade_released'] = 'Notification when a grade is released';
 $string['messageprovider:ai_evaluation_complete'] = 'Notification when an AI evaluation is complete';
