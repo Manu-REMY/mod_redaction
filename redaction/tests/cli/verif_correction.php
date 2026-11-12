@@ -506,6 +506,9 @@ try {
     $check('teacher 10: current members and credited users at 10', carnet($redaction, $a) === 10.0 && carnet($redaction, $c) === 10.0 && carnet($redaction, $d) === 10.0);
     $check('someone credited in two groups keeps the higher result', carnet($redaction, $b) === 12.0);
     $sim->reponses = [ia(20), ia(20)];
+    // Request 17: the teacher graded a minute ago, the copy is handed in now, as the service records it.
+    $DB->set_field('redaction_submission', 'grade_enseignant_time', time() - 60, ['id' => $submission->id]);
+    $DB->set_field('redaction_submission', 'timesubmitted', time(), ['id' => $submission->id]);
     $id3 = corriger($redaction, $submission, $a);
     $sub = $DB->get_record('redaction_submission', ['id' => $submission->id]);
     // Request 17: a final handed in after the teacher grade replaces it, even for the members it credited.

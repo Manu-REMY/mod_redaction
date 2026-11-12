@@ -370,10 +370,10 @@ class notes_sujets {
      * Whether a final correction replaces the teacher grade (request 17).
      *
      * Emmanuel's rule: "ma note prime sur l'IA tant qu'il n'y a pas une nouvelle évaluation IA". A final handed in after
-     * the teacher grade replaces it; one handed in before, even corrected after, does not: the teacher saw that text.
-     * Within the same second, the teacher grade stands.
+     * the teacher grade replaces it; one handed in before, even corrected or retried after, does not: the teacher saw that
+     * text. Within the same second, or without a hand-in time, the teacher grade stands.
      *
-     * @param int $finalecreee Time the final correction was queued (redaction_ai_evaluations.timecreated).
+     * @param int $finalecreee Time the copy was handed in (redaction_submission.timesubmitted).
      * @param int $noteprof Time of the teacher grade (redaction_submission.grade_enseignant_time).
      * @return bool
      */

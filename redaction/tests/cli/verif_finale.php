@@ -328,6 +328,19 @@ try {
     $s5 = $DB->get_record('redaction_submission', ['id' => $sub2->id]);
     $check("final handed in before the teacher grade: the teacher grade stays ({$s5->grade})",
         (float) $s5->grade === 8.0 && carnet($redaction, $b) === 8.0 && (float) $s5->grade_enseignant === 8.0);
+    // A final handed in before the teacher grade whose correction failed, retried after it: the teacher grade stays (review).
+    \mod_redaction\sujets::rouvrir($redaction, $s5, null, 0, $b);
+    repondre($sub2, $sujets2, 'Mon quatrième texte de ma poutre.', FORMAT_PLAIN);
+    $DB->update_record('redaction_submission', (object) ['id' => $sub2->id, 'status' => 1, 'timesubmitted' => time() - 120]);
+    \mod_redaction\sujets::noter($redaction, $DB->get_record('redaction_submission', ['id' => $sub2->id]), 7.0);
+    $DB->set_field('redaction_submission', 'grade_enseignant_time', time() - 60, ['id' => $sub2->id]);
+    $sim->reponses = [ia3(18), ia3(18), langue_ia(['TS', 'TS', 'TS', 'TS'])];
+    $f6 = ai_evaluator::queue_evaluation($redaction->id, $sub2->id, 0, $b, true, true);
+    retirer_tache($f6);
+    ai_evaluator::process_evaluation($f6);
+    $s5 = $DB->get_record('redaction_submission', ['id' => $sub2->id]);
+    $check("final retried after the teacher grade, handed in before: the teacher grade stays ({$s5->grade})",
+        (float) $s5->grade === 7.0 && carnet($redaction, $b) === 7.0 && (float) $s5->grade_enseignant === 7.0);
     \mod_redaction\sujets::noter($redaction, $s5, null);
     $check('teacher grade removed: its time cleared', (int) $DB->get_field('redaction_submission', 'grade_enseignant_time', ['id' => $sub2->id]) === 0);
     $sub2 = $DB->get_record('redaction_submission', ['id' => $sub2->id]);

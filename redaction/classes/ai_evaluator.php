@@ -653,12 +653,13 @@ class ai_evaluator {
             // Apply grade and feedback.
             if ($sujetsenabled) {
                 // Request 16: only the final correction grades the copy; an attempt never does. The teacher's wins
-                // until a final handed in after it (request 17), which replaces it, the teacher comment with it.
+                // until a final handed in after it (request 17), which replaces it, the teacher comment with it. The hand-in
+                // time counts, not the time of the correction: a retried correction of a copy handed in before never replaces it.
                 if ($overridegrade !== null) {
                     $submission->grade_enseignant = $overridegrade;
                     $submission->grade_enseignant_time = time();
                 } else if (!empty($evaluation->finale) && $submission->grade_enseignant !== null
-                        && notes_sujets::finale_remplace_prof((int) $evaluation->timecreated, (int) $submission->grade_enseignant_time)) {
+                        && notes_sujets::finale_remplace_prof((int) $submission->timesubmitted, (int) $submission->grade_enseignant_time)) {
                     $submission->grade_enseignant = null;
                     $submission->grade_enseignant_time = 0;
                 }
