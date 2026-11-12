@@ -454,5 +454,41 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111203, 'redaction');
     }
 
+    if ($oldversion < 2026111204) {
+        // Grades to the tenth, as shown (11.97 was shown 12 and did not validate a threshold of 12): work out again
+        // every grade of the assigned subjects mode from its parts, then the grade of each copy and the gradebook.
+        require_once($CFG->dirroot . '/mod/redaction/lib.php');
+        foreach ($DB->get_records('redaction', ['sujets_enabled' => 1]) as $redaction) {
+            $evaluations = $DB->get_records_select('redaction_ai_evaluations', 'redactionid = ? AND parsed_grade IS NOT NULL',
+                [$redaction->id], 'id', 'id, parsed_grade, sujets_json, langue_json, langue_points');
+            foreach ($evaluations as $evaluation) {
+                $notes = array_map(fn($d) => isset($d['note']) ? (float) $d['note'] : null,
+                    (array) json_decode((string) $evaluation->sujets_json, true));
+                $langue = json_decode((string) $evaluation->langue_json, true);
+                $p = $evaluation->langue_points === null ? 0.0 : (float) $evaluation->langue_points;
+                $note = null;
+                if ($notes) {
+                    $note = \mod_redaction\notes_sujets::note_totale($notes,
+                        $p > 0 && isset($langue['points']) ? (float) $langue['points'] : null, $p);
+                }
+                $note = $note ?? round((float) $evaluation->parsed_grade, 1);
+                $DB->set_field('redaction_ai_evaluations', 'parsed_grade', $note, ['id' => $evaluation->id]);
+            }
+
+            // Grade of each copy: the best counted correction, or the teacher's.
+            $reglage = \mod_redaction\notes_sujets::reglage_langue($redaction);
+            foreach ($DB->get_records('redaction_submission', ['redactionid' => $redaction->id]) as $submission) {
+                $notes = $DB->get_fieldset_select('redaction_ai_evaluations', 'parsed_grade',
+                    "submissionid = ? AND status IN ('completed', 'applied') AND langue_points = ?", [$submission->id, $reglage]);
+                $enseignant = $submission->grade_enseignant !== null ? (float) $submission->grade_enseignant : null;
+                $DB->set_field('redaction_submission', 'grade', \mod_redaction\notes_sujets::meilleure($notes, $enseignant),
+                    ['id' => $submission->id]);
+            }
+            redaction_update_grades($redaction);
+        }
+
+        upgrade_mod_savepoint(true, 2026111204, 'redaction');
+    }
+
     return true;
 }

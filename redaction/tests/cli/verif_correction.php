@@ -911,7 +911,7 @@ try {
     $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $idl]);
     $lj = json_decode((string) $eval->langue_json, true);
     $check("language: 2 subjects + 1 language call (found " . count($sim->appels) . ")", count($sim->appels) === 3);
-    $check("language: 18 and 18 on 18 + 1.33 = 17.53 (found {$eval->parsed_grade})", (float) $eval->parsed_grade === 17.53);
+    $check("language: 18 and 18 on 18 + 1.33 = 17.5 to the tenth (found {$eval->parsed_grade})", (float) $eval->parsed_grade === 17.5);
     $check('language: setting recorded', (float) $eval->langue_points === 2.0);
     $check('language: points and scale stored', is_array($lj) && (float) $lj['points'] === 1.33 && (float) $lj['sur'] === 2.0);
     $check('language: the real mistake is kept with its correct form', is_array($lj) && count($lj['fautes']) === 1
@@ -927,9 +927,9 @@ try {
     $check('language call: titles as context', strpos($appellangue['system'], 'Velo1') !== false);
     $check('content call: spelling no longer said free', strpos($sim->appels[0]['system'],
         get_string('ai_prompt_sujet_tolerance', 'mod_redaction')) !== false);
-    $check("old evaluation at 19 no longer counts: grade 17.53 (found " . var_export(carnet($lang, $el), true) . ")",
-        carnet($lang, $el) === 17.53);
-    $check('submission grade: 17.53', (float) $DB->get_field('redaction_submission', 'grade', ['id' => $sublang->id]) === 17.53);
+    $check("old evaluation at 19 no longer counts: grade 17.5 (found " . var_export(carnet($lang, $el), true) . ")",
+        carnet($lang, $el) === 17.5);
+    $check('submission grade: 17.5', (float) $DB->get_field('redaction_submission', 'grade', ['id' => $sublang->id]) === 17.5);
 
     // Unreadable language answer: failed, nothing changes, attempt given back.
     $sim->reponses = [ia(20), ia(20), 'Le texte est plutôt bien écrit.'];
@@ -938,15 +938,15 @@ try {
     $check('unreadable language answer: failed, no grade', $evalf->status === 'failed' && $evalf->parsed_grade === null
         && $evalf->langue_json === null);
     $check('unreadable language answer: attempt given back, grade unchanged',
-        (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sublang->id]) === 1 && carnet($lang, $el) === 17.53);
+        (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sublang->id]) === 1 && carnet($lang, $el) === 17.5);
 
     // A copy that asks for its points: the server computes them from the levels only.
     $sim->reponses = [ia(10), ia(10), substr(langue_ia(['TI', 'TI', 'TI', 'TI']), 0, -1) . ',"points":2,"note":20}'];
     $idp = corriger($lang, $sublang, $el);
     $evalp = $DB->get_record('redaction_ai_evaluations', ['id' => $idp]);
-    // Spelling and syntax at TI without any quote go up to S: 9 + 2 x (2/3 + 2/3 + 0 + 0) / 4 = 9.67.
-    $check("points claimed by the AI are ignored, levels without proof go up to S: 9.67 (found {$evalp->parsed_grade})",
-        (float) $evalp->parsed_grade === 9.67);
+    // Spelling and syntax at TI without any quote go up to S: 9 + 2 x (2/3 + 2/3 + 0 + 0) / 4 = 9.67, 9.7 to the tenth.
+    $check("points claimed by the AI are ignored, levels without proof go up to S: 9.7 (found {$evalp->parsed_grade})",
+        (float) $evalp->parsed_grade === 9.7);
 
     // The teacher changes the language points: the attempts start again, no grade until a new one.
     $data = clone $lang;
