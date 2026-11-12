@@ -22,13 +22,13 @@
     * niveau - Name of the level the threshold validates (fragile, satisfaisant…)
     * seuil - Validation threshold
     * individuel - The activity is individual: one row per student
-    * hasgroupes, groupes - Rows: nom, url, hassystemes, systemes, used, max, hasnote, note, prof, valide,
+    * hasgroupes, groupes - Rows: etat, etatlibelle (state of the copy, request 16), nom, url, hassystemes, systemes, used, max, hasnote, note, prof, valide,
       pasvalide, aucunenote, hasalerte, alerte
 
     Example context (json):
     {
         "seuil": "16", "niveau": "fragile", "individuel": false, "hasgroupes": true,
-        "groupes": [{"nom": "4A-GRP01", "url": "#", "hassystemes": true, "systemes": "Train / Barque", "used": 2, "max": 5,
+        "groupes": [{"etat": "notee", "etatlibelle": "Rendue, notée", "nom": "4A-GRP01", "url": "#", "hassystemes": true, "systemes": "Train / Barque", "used": 2, "max": 5,
             "hasnote": true, "note": "12", "prof": false, "valide": false, "pasvalide": true, "aucunenote": false,
             "hasalerte": true, "alerte": "The last correction failed."}]
     }
@@ -59,6 +59,7 @@
                     {{^hasnote}}&ndash;{{/hasnote}}
                 </td>
                 <td>
+                    <span class="mod_redaction-ens-copie mod_redaction-ens-copie-{{etat}}">{{etatlibelle}}</span>
                     {{#valide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ok"><span aria-hidden="true">&#10003;</span> {{#str}}sujets_valide, mod_redaction, {{niveau}}{{/str}}</span>{{/valide}}
                     {{#pasvalide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_pas_valide, mod_redaction, {{niveau}}{{/str}}</span>{{/pasvalide}}
                     {{#aucunenote}}<span class="mod_redaction-ens-etat">{{#str}}sujets_pas_de_note, mod_redaction{{/str}}</span>{{/aucunenote}}

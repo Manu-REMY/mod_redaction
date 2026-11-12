@@ -66,6 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'feedback' => optional_param('feedback', '', PARAM_TEXT),
             'sujetid' => optional_param_array('sujetid', [], PARAM_INT),
             'confirme' => (bool) optional_param('confirme', 0, PARAM_BOOL),
+            // New deadline when reopening a copy past its date (request 16), in the teacher's time zone.
+            'date' => ($d = \DateTime::createFromFormat('Y-m-d\TH:i', optional_param('date', '', PARAM_TEXT),
+                \core_date::get_user_timezone_object())) ? $d->getTimestamp() : null,
         ],
         $userid
     );

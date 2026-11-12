@@ -22,6 +22,7 @@
     Context variables required for this template:
     * niveau - Name of the level the threshold validates (fragile, satisfaisant…)
     * individuel - The activity is individual: the detail is a student's
+    * etat, etatlibelle, peutrouvrir, daterequise, peutrelancer - State of the copy and teacher actions (request 16)
     * nom, retour, action, sesskey - Group or student name, link back to the overview, form target, session key
     * membres - nom
     * systemes - numero, titre, contenu (HTML), corrige, hasreponse, reponse (plain text)
@@ -34,7 +35,7 @@
 
     Example context (json):
     {
-        "individuel": false, "nom": "4A-GRP01", "retour": "#", "action": "#", "sesskey": "abc",
+        "individuel": false, "etat": "notee", "etatlibelle": "Rendue, notée", "peutrouvrir": true, "daterequise": false, "peutrelancer": false, "nom": "4A-GRP01", "retour": "#", "action": "#", "sesskey": "abc",
         "membres": [{"nom": "Eleve A"}], "hasmembres": true,
         "hassystemes": true,
         "systemes": [{"numero": 1, "titre": "Train", "contenu": "<p>Enonce</p>", "corrige": "Expected", "hasreponse": true, "reponse": "Answer"}],
@@ -96,6 +97,7 @@
     {{#evaluations}}
     <div class="mod_redaction-ens-eval {{#isfailed}}mod_redaction-ens-eval-echec{{/isfailed}}">
         <p>
+            <span class="mod_redaction-ens-tag">{{#isfinale}}{{#str}}sujets_ens_finale, mod_redaction{{/str}}{{/isfinale}}{{^isfinale}}{{#str}}sujets_ens_essai, mod_redaction{{/str}}{{/isfinale}}</span>
             {{#hasnumero}}<strong>{{#str}}sujets_ens_essai_numero, mod_redaction, {{numero}}{{/str}}</strong> &ndash; {{/hasnumero}}{{date}} &ndash;
             {{#isfailed}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#9888;</span> {{statut}}</span>{{/isfailed}}
             {{^isfailed}}{{statut}}{{/isfailed}}
@@ -143,6 +145,26 @@
         <button type="submit" class="btn btn-secondary">{{#str}}sujets_ens_retirer, mod_redaction{{/str}}</button>
     </form>
     {{/prof}}
+    <p class="mod_redaction-ens-copie mod_redaction-ens-copie-{{etat}}">{{etatlibelle}}</p>
+    {{#peutrelancer}}
+    <form method="post" action="{{action}}" class="mod_redaction-ens-form">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="relancer">
+        <button type="submit" class="btn btn-primary">{{#str}}sujets_ens_relancer, mod_redaction{{/str}}</button>
+    </form>
+    {{/peutrelancer}}
+    {{#peutrouvrir}}
+    <form method="post" action="{{action}}" class="mod_redaction-ens-form">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <input type="hidden" name="action" value="rouvrir">
+        <p>{{#str}}sujets_ens_rouvrir_aide, mod_redaction{{/str}}</p>
+        {{#daterequise}}
+        <label for="mod_redaction_ens_date">{{#str}}sujets_ens_nouvelle_date, mod_redaction{{/str}}</label>
+        <input type="datetime-local" id="mod_redaction_ens_date" name="date" required>
+        {{/daterequise}}
+        <button type="submit" class="btn btn-secondary">{{#str}}sujets_ens_rouvrir, mod_redaction{{/str}}</button>
+    </form>
+    {{/peutrouvrir}}
     {{/hassubmission}}
     {{^hassubmission}}<p><em>{{#individuel}}{{#str}}sujets_ens_pas_de_travail_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_pas_de_travail, mod_redaction{{/str}}{{/individuel}}</em></p>{{/hassubmission}}
 

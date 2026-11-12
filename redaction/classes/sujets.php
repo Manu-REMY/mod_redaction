@@ -472,6 +472,18 @@ class sujets {
                     'other' => ['oldgrade' => $ancienne ?? 'none', 'newgrade' => $note ?? 'none'],
                 ])->trigger();
                 $message = get_string($action === 'note' ? 'grade_saved' : 'sujets_ens_note_retiree', 'mod_redaction');
+            } else if ($action === 'rouvrir') {
+                self::rouvrir($redaction, $submission, $donnees['date'] ?? null, $groupid, $userid);
+                $message = get_string('sujets_ens_rouverte', 'mod_redaction');
+            } else if ($action === 'relancer') {
+                if (!$submission || (int) $submission->status !== 1 || \mod_redaction\output\grading_sujets::etat($submission,
+                        $DB->get_records('redaction_ai_evaluations', ['submissionid' => $submission->id], '', 'id, status, finale')) !== 'soumise'
+                        || !$DB->record_exists('redaction_ai_evaluations', ['submissionid' => $submission->id, 'finale' => 1])) {
+                    throw new \moodle_exception('sujets_ens_relancer_impossible', 'mod_redaction');
+                }
+                ai_evaluator::queue_evaluation((int) $redaction->id, (int) $submission->id, (int) $submission->groupid,
+                    (int) $submission->userid, true, true);
+                $message = get_string('sujets_ens_relancee', 'mod_redaction');
             } else if ($action === 'systemes') {
                 $adecrit = $submission && $DB->record_exists_select(
                     'redaction_sujet_reponse',
@@ -491,6 +503,57 @@ class sujets {
         }
 
         return [$message, \core\output\notification::NOTIFY_SUCCESS];
+    }
+
+    /**
+     * Reopens a copy handed in (teacher action, request 16): draft again, its final grade out of the gradebook until
+     * the next final submission; the attempts and the history stay. Past the deadline a new date is required, kept as an
+     * override of the student or the group, else the deadline task would hand the copy in again within minutes.
+     *
+     * @param \stdClass $redaction
+     * @param \stdClass|false $submission
+     * @param int|null $date New deadline (timestamp), required when the deadline is passed.
+     * @param int $groupid Group of the copy, 0 for a student.
+     * @param int $userid Student of the copy, 0 for a group.
+     * @throws \moodle_exception When there is no copy, or a date is missing or in the past.
+     */
+    public static function rouvrir(\stdClass $redaction, $submission, ?int $date, int $groupid, int $userid): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/mod/redaction/lib.php');
+
+        if (!$submission) {
+            throw new \moodle_exception('sujets_ens_pas_de_travail' . ($userid ? '_eleve' : ''), 'mod_redaction');
+        }
+        if ($date !== null && $date <= time()) {
+            throw new \moodle_exception('sujets_ens_rouvrir_date', 'mod_redaction');
+        }
+        if ($date === null && redaction_deadline_passed($redaction, $submission)) {
+            throw new \moodle_exception('sujets_ens_rouvrir_date', 'mod_redaction');
+        }
+
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            if ($date !== null) {
+                $cle = $userid ? ['redactionid' => $redaction->id, 'userid' => $userid] : ['redactionid' => $redaction->id, 'groupid' => $groupid];
+                $override = $DB->get_record('redaction_overrides', $cle);
+                if ($override) {
+                    $DB->update_record('redaction_overrides', (object) ['id' => $override->id, 'deadline_date' => $date, 'timemodified' => time()]);
+                } else {
+                    $DB->insert_record('redaction_overrides', (object) ($cle + ['deadline_date' => $date, 'sortorder' => 0,
+                        'timecreated' => time(), 'timemodified' => time()]));
+                }
+            }
+            $DB->update_record('redaction_submission', (object) [
+                'id' => $submission->id, 'status' => 0, 'timesubmitted' => 0, 'timemodified' => time(),
+                'grade' => $submission->grade_enseignant,
+            ]);
+            // Its finals no longer grade it: the next final submission will.
+            $DB->set_field('redaction_ai_evaluations', 'finale', 0, ['submissionid' => $submission->id, 'finale' => 1]);
+            redaction_update_grades($redaction);
+        } catch (\Throwable $e) {
+            $transaction->rollback($e);
+        }
+        $transaction->allow_commit();
     }
 
     /**

@@ -144,6 +144,28 @@ class grading_sujets implements renderable, templatable {
     }
 
     /**
+     * State of a copy (request 16): brouillon (draft), correction (final correction running), notee (graded by a
+     * final correction or the teacher), soumise (handed in, no grade: empty copy or failed final).
+     *
+     * @param \stdClass|null $submission
+     * @param \stdClass[] $evaluations Its evaluations (status, finale).
+     * @return string
+     */
+    public static function etat(?\stdClass $submission, array $evaluations): string {
+        if (!$submission || (int) $submission->status !== 1) {
+            return 'brouillon';
+        }
+        $finales = array_filter($evaluations, fn($e) => !empty($e->finale));
+        if (array_filter($finales, fn($e) => in_array($e->status, ['pending', 'processing'], true))) {
+            return 'correction';
+        }
+        if ($submission->grade_enseignant !== null || array_filter($finales, fn($e) => in_array($e->status, ['completed', 'applied'], true))) {
+            return 'notee';
+        }
+        return 'soumise';
+    }
+
+    /**
      * What goes wrong in a list of evaluations (newest first): the last one failed, or one pending for too long.
      *
      * @param \stdClass[] $evaluations Evaluations, newest first.
@@ -160,6 +182,12 @@ class grading_sujets implements renderable, templatable {
                 $messages[] = get_string('sujets_ens_alerte_echec', 'mod_redaction');
             }
             break;
+        }
+        // Request 16: a copy handed in whose final corrections keep failing (from the 3rd failure).
+        $finales = array_filter($evaluations, fn($e) => !empty($e->finale));
+        $echecs = count(array_filter($finales, fn($e) => $e->status === 'failed'));
+        if ($echecs >= 3 && $echecs === count($finales)) {
+            $messages[] = get_string('sujets_ens_alerte_finale', 'mod_redaction', $echecs);
         }
         foreach ($evaluations as $evaluation) {
             if (in_array($evaluation->status, ['pending', 'processing'], true)
@@ -215,7 +243,7 @@ class grading_sujets implements renderable, templatable {
         if ($soumissions) {
             [$insql, $inparams] = $DB->get_in_or_equal(array_column($soumissions, 'id'));
             foreach ($DB->get_records_select('redaction_ai_evaluations', "submissionid $insql", $inparams, 'timecreated DESC, id DESC',
-                    'id, submissionid, status, timecreated') as $e) {
+                    'id, submissionid, status, finale, timecreated') as $e) {
                 $evaluations[$e->submissionid][] = $e;
             }
         }
@@ -250,7 +278,10 @@ class grading_sujets implements renderable, templatable {
             $submission = $soumissions[$cible['id']] ?? null;
             $note = $submission ? $submission->grade : null;
             $alerte = $submission ? $this->alerte($evaluations[$submission->id] ?? []) : '';
+            $etat = self::etat($submission, $evaluations[$submission->id ?? 0] ?? []);
             $lignes[] = [
+                'etat' => $etat,
+                'etatlibelle' => get_string('sujets_ens_etat_' . $etat, 'mod_redaction'),
                 'groupid' => $cible['id'],
                 'nom' => $cible['nom'],
                 'url' => $cible['url']->out(false),
@@ -363,6 +394,7 @@ class grading_sujets implements renderable, templatable {
                 }
             }
             $liste[] = [
+                'isfinale' => !empty($evaluation->finale),
                 'hastexte' => trim($texte) !== '',
                 'texte' => $texte,
                 'id' => (int) $evaluation->id,
@@ -418,6 +450,12 @@ class grading_sujets implements renderable, templatable {
             'cmid' => (int) $this->cm->id,
             'groupid' => $individuel ? 0 : (int) $groupe->id,
             'individuel' => $individuel,
+            'etat' => self::etat($submission, $evaluations),
+            'etatlibelle' => get_string('sujets_ens_etat_' . self::etat($submission, $evaluations), 'mod_redaction'),
+            'peutrouvrir' => $submission && (int) $submission->status === 1,
+            'daterequise' => $submission && redaction_deadline_passed($redaction, $submission),
+            'peutrelancer' => $submission && self::etat($submission, $evaluations) === 'soumise'
+                && array_filter($evaluations, fn($e) => !empty($e->finale)),
             'nom' => $nom,
             'retour' => self::url($this->cm)->out(false),
             'action' => $action->out(false),

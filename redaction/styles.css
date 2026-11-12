@@ -2427,3 +2427,22 @@
 .mod_redaction .mod_redaction-langue-empeche {
     font-weight: 600;
 }
+
+/* State of a copy on the teacher screens (request 16): a word, never the colour alone. */
+.mod_redaction .mod_redaction-ens-copie {
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #eef0f3;
+    color: #1d2125;
+}
+.mod_redaction .mod_redaction-ens-copie-notee {
+    background: #d6e4f3;
+    color: #1e3f63;
+}
+.mod_redaction .mod_redaction-ens-copie-soumise {
+    background: #fbe0c8;
+    color: #5c2c05;
+}

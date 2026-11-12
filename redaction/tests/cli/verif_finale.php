@@ -440,6 +440,50 @@ try {
     $relance->execute();
     ob_end_clean();
     $check('12 failed finals: no more retry', $DB->count_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'finale' => 1]) === 12);
+
+    // 8. Request 16, the teacher: state of each copy, final vs attempt, reopen, retry, alert.
+    $ctx7 = context_module::instance(get_coursemodule_from_instance('redaction', $r7->id, $course->id, false, MUST_EXIST)->id);
+    $cm7 = get_coursemodule_from_instance('redaction', $r7->id, $course->id, false, MUST_EXIST);
+    $PAGE->set_context($ctx7);
+    $PAGE->set_url('/');
+    $sortie = $PAGE->get_renderer('core');
+    $lignes = fn() => array_column((new \mod_redaction\output\grading_sujets($r7, $cm7, $ctx7))->export_for_template($sortie)['groupes'], null, 'groupid');
+    $l = $lignes();
+    $check('state: failed final, nothing pending: handed in, no grade, with an alert (' . ($l[$a]['etat'] ?? '?') . ')',
+        ($l[$a]['etat'] ?? '') === 'soumise' && str_contains((string) $l[$a]['alerte'], get_string('sujets_ens_alerte_finale', 'mod_redaction', 12)));
+    $check('state: empty copy handed in by the deadline (' . ($l[$b]['etat'] ?? '?') . ')', ($l[$b]['etat'] ?? '') === 'soumise');
+    [$msg, $type] = \mod_redaction\sujets::traiter_action($r7, $ctx7, 0, 'relancer', [], $a);
+    $check('retry: a new final queued', $type === \core\output\notification::NOTIFY_SUCCESS
+        && $DB->count_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'finale' => 1, 'status' => 'pending']) === 1);
+    $l = $lignes();
+    $check('state: final correction running (' . ($l[$a]['etat'] ?? '?') . ')', ($l[$a]['etat'] ?? '') === 'correction');
+    foreach ($DB->get_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'status' => 'pending']) as $p8) {
+        retirer_tache((int) $p8->id);
+        $DB->update_record('redaction_ai_evaluations', (object) ['id' => $p8->id, 'status' => 'applied', 'parsed_grade' => 14.0]);
+    }
+    redaction_update_grades($r7);
+    $l = $lignes();
+    $check('state: graded (' . ($l[$a]['etat'] ?? '?') . ')', ($l[$a]['etat'] ?? '') === 'notee' && carnet($r7, $a) === 14.0);
+    $detail = (new \mod_redaction\output\grading_sujets($r7, $cm7, $ctx7, 0, $a))->export_for_template($sortie);
+    $check('detail: the final correction is marked as such', (bool) array_filter($detail['evaluations'], fn($e) => !empty($e['isfinale'])));
+    $html = $sortie->render_from_template('mod_redaction/grading_sujets_detail', $detail);
+    $check('detail rendered: state, Final tag, reopen button, no missing string', str_contains($html, get_string('sujets_ens_etat_notee', 'mod_redaction'))
+        && str_contains($html, get_string('sujets_ens_finale', 'mod_redaction')) && str_contains($html, get_string('sujets_ens_rouvrir', 'mod_redaction'))
+        && !str_contains($html, '[['));
+    $html = $sortie->render_from_template('mod_redaction/grading_sujets_overview',
+        (new \mod_redaction\output\grading_sujets($r7, $cm7, $ctx7))->export_for_template($sortie));
+    $check('overview rendered with the state of each copy', str_contains($html, get_string('sujets_ens_etat_notee', 'mod_redaction')) && !str_contains($html, '[['));
+    // Reopen: the deadline is passed, a new date is needed.
+    [$msg, $type] = \mod_redaction\sujets::traiter_action($r7, $ctx7, 0, 'rouvrir', [], $a);
+    $check('reopen after the deadline without a date: refused', $type === \core\output\notification::NOTIFY_ERROR
+        && $msg === get_string('sujets_ens_rouvrir_date', 'mod_redaction'));
+    [$msg, $type] = \mod_redaction\sujets::traiter_action($r7, $ctx7, 0, 'rouvrir', ['date' => time() + 86400], $a);
+    $p8 = $DB->get_record('redaction_submission', ['id' => $plein->id]);
+    $check('reopen with a date: draft again, override for the student, grade out of the gradebook',
+        $type === \core\output\notification::NOTIFY_SUCCESS && (int) $p8->status === 0 && $p8->grade === null
+        && $DB->record_exists('redaction_overrides', ['redactionid' => $r7->id, 'userid' => $a]) && carnet($r7, $a) === null);
+    $l = $lignes();
+    $check('state: draft again (' . ($l[$a]['etat'] ?? '?') . ')', ($l[$a]['etat'] ?? '') === 'brouillon');
 } catch (Throwable $ex) {
     $check('no exception: ' . $ex->getMessage() . ' ' . $ex->getFile() . ':' . $ex->getLine(), false);
 } finally {
