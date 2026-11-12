@@ -494,7 +494,8 @@ try {
     repondre($submission2, $sujets2, '<p>Autre groupe</p>');
     $sim->reponses = [ia(12), ia(12)];
     corriger($redaction, $submission2, $b);
-    $check('B stays at 17 after a lower grade in the new group', carnet($redaction, $b) === 17.0);
+    // Request 16: B is graded by the latest final of each copy that credits B; the old group's final was superseded.
+    $check('B gets the final of the new group, even lower', carnet($redaction, $b) === 12.0);
     $check('the old group is not affected', carnet($redaction, $a) === 19.0);
 
     // Teacher grade: wins even when lower, for the members and anyone credited by that submission.
@@ -510,14 +511,14 @@ try {
     $check('the evaluation still keeps its own 20', (float) $DB->get_field('redaction_ai_evaluations', 'parsed_grade', ['id' => $id3]) === 20.0);
     $DB->set_field('redaction_submission', 'grade_enseignant', null, ['id' => $submission->id]);
     redaction_update_grades($redaction);
-    $check('teacher grade removed: back to the best', carnet($redaction, $a) === 20.0 && carnet($redaction, $b) === 17.0);
+    $check('teacher grade removed: back to the latest final', carnet($redaction, $a) === 20.0 && carnet($redaction, $b) === 12.0);
     // A teacher grade on the group someone is in now wins over a better result from an old group.
     $DB->set_field('redaction_submission', 'grade_enseignant', 10, ['id' => $submission2->id]);
     redaction_update_grades($redaction);
     $check('B has 17 from an old group, teacher 10 in the current one: 10', carnet($redaction, $b) === 10.0);
     $DB->set_field('redaction_submission', 'grade_enseignant', null, ['id' => $submission2->id]);
     redaction_update_grades($redaction);
-    $check('removed: B is back to 17', carnet($redaction, $b) === 17.0);
+    $check('removed: B is back to 12', carnet($redaction, $b) === 12.0);
 
     // Teacher grade on a group the AI never graded, then removed.
     $g3 = groups_create_group((object) ['courseid' => $course->id, 'name' => '9Z-GRP03']);
@@ -549,7 +550,7 @@ try {
     redaction_update_grades($redaction);
 
     $single = redaction_get_user_grades($redaction, $a);
-    $check('one user can be asked for alone', array_keys($single) === [$a] && (float) $single[$a]->rawgrade === 20.0);
+    $check('one user can be asked for alone (the latest final, 6)', array_keys($single) === [$a] && (float) $single[$a]->rawgrade === 6.0);
 
     // Threshold changed by the teacher.
     $redaction->sujets_seuil = 14;
@@ -765,7 +766,8 @@ try {
     $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $id5]);
     $sub5 = $DB->get_record('redaction_submission', ['id' => $s5->id]);
     $check("GRADE_UPDATE_FAILED: failed (found {$eval->status}, {$eval->error_message})", $eval->status === 'failed' && $eval->error_message === $messagecarnet);
-    $check('GRADE_UPDATE_FAILED: no grade, attempt back', $eval->parsed_grade === null && $sub5->grade === null && (int) $sub5->training_count === 0);
+    $check('GRADE_UPDATE_FAILED: no grade; a final spent no attempt, none given back', $eval->parsed_grade === null && $sub5->grade === null
+        && (int) $sub5->training_count === 1);
 
     // The plugin writes what is missing from the list given by the AI, and the AI's own wording about it goes.
     $phrases = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 1, 'training_max_attempts' => 5,
@@ -815,7 +817,7 @@ try {
     $check('locked item: the code is returned', redaction_update_grades($redaction) === GRADE_UPDATE_ITEM_LOCKED);
     $DB->set_field('redaction_submission', 'training_count', 0, ['id' => $submission->id]);
     $sim->reponses = [ia(1), ia(1)];
-    $idverrou = corriger($redaction, $submission, $a);
+    $idverrou = corriger($redaction, $submission, $a, false);
     $check('locked item: not a failure', $statut($idverrou) === 'applied' && $essais() === 1);
     $itemnote->set_locked(false, false, false);
 
@@ -849,8 +851,8 @@ try {
     echo "--- real provider code, closed local port ---\n{$sortie}error_message: {$eval->error_message}\n---\n";
     $check('fresh process: curl and course/lib.php not loaded beforehand', strpos($sortie, 'curl-before=0') !== false && strpos($sortie, 'courselib-before=0') !== false);
     $check('fresh process: no fatal error', stripos($sortie, 'fatal') === false);
-    $check('network error: failed, attempt back', $eval->status === 'failed' && $eval->parsed_grade === null
-        && (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $s6->id]) === 0);
+    $check('network error: failed, no grade, no attempt touched (a final)', $eval->status === 'failed' && $eval->parsed_grade === null
+        && (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $s6->id]) === 1);
     $check('network error: no longer "Class curl not found"', !empty($eval->error_message) && stripos($eval->error_message, 'class') === false);
 
     [$eval, $sortie] = $tache('simule');
@@ -939,12 +941,12 @@ try {
 
     // Unreadable language answer: failed, nothing changes, attempt given back.
     $sim->reponses = [ia(20), ia(20), 'Le texte est plutôt bien écrit.'];
-    $idf = corriger($lang, $sublang, $el);
+    $idf = corriger($lang, $sublang, $el, false);
     $evalf = $DB->get_record('redaction_ai_evaluations', ['id' => $idf]);
     $check('unreadable language answer: failed, no grade', $evalf->status === 'failed' && $evalf->parsed_grade === null
         && $evalf->langue_json === null);
     $check('unreadable language answer: attempt given back, grade unchanged',
-        (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sublang->id]) === 1 && carnet($lang, $el) === 17.5);
+        (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sublang->id]) === 0 && carnet($lang, $el) === 17.5);
 
     // A copy that asks for its points: the server computes them from the levels only.
     $sim->reponses = [ia(10), ia(10), substr(langue_ia(['TI', 'TI', 'TI', 'TI']), 0, -1) . ',"points":2,"note":20}'];
@@ -962,8 +964,10 @@ try {
     redaction_update_instance($data);
     $lang = $DB->get_record('redaction', ['id' => $lang->id], '*', MUST_EXIST);
     $check('setting changed: attempts start again', (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sublang->id]) === 0);
-    $check('setting changed: no grade until a new attempt', carnet($lang, $el) === null
-        && $DB->get_field('redaction_submission', 'grade', ['id' => $sublang->id]) === null);
+    // Request 16: the final grade never vanishes when the setting changes.
+    // The latest final of this copy is the 9.7 one (levels without proof) above.
+    $check('setting changed: the final grade stays', carnet($lang, $el) === 9.7
+        && (float) $DB->get_field('redaction_submission', 'grade', ['id' => $sublang->id]) === 9.7);
     \mod_redaction\sujets::noter($lang, $DB->get_record('redaction_submission', ['id' => $sublang->id]), 12.0);
     $check('a teacher grade stands whatever the setting', carnet($lang, $el) === 12.0);
 

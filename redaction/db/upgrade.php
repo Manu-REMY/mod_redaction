@@ -505,8 +505,10 @@ function xmldb_redaction_upgrade($oldversion) {
             $dbman->add_field($table, $field);
         }
 
-        // Attempts no longer reach the gradebook: work it out again for the activities in this mode.
+        // Attempts no longer grade a copy: until its final submission, a copy has only the teacher grade, if any.
+        // The gradebook is worked out again by the task (it cannot be written during an upgrade).
         foreach ($DB->get_fieldset_select('redaction', 'id', 'sujets_enabled = 1') as $redactionid) {
+            $DB->execute('UPDATE {redaction_submission} SET grade = grade_enseignant WHERE redactionid = ?', [$redactionid]);
             $tache = new \mod_redaction\task\mettre_a_jour_carnet();
             $tache->set_custom_data(['redactionid' => (int) $redactionid]);
             \core\task\manager::queue_adhoc_task($tache);

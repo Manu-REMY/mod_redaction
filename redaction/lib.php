@@ -144,26 +144,20 @@ function redaction_update_instance($data, $mform = null) {
 /**
  * Assigned subjects mode: start the attempts again after a change of the language setting.
  *
- * The attempts graded with another setting no longer count, nor use up the maximum. The teacher grade stays.
+ * The attempts graded with another setting no longer use up the maximum. The grade of a copy is its final correction
+ * (request 16), which a change of setting never erases, or the teacher grade.
  *
  * @param stdClass $redaction Activity record, with its current setting.
  */
 function redaction_sujets_recompter($redaction) {
     global $DB;
 
-    $reglage = \mod_redaction\notes_sujets::reglage_langue($redaction);
     foreach ($DB->get_records('redaction_submission', ['redactionid' => $redaction->id]) as $submission) {
-        $notes = $DB->get_fieldset_select(
-            'redaction_ai_evaluations',
-            'parsed_grade',
-            "submissionid = ? AND status IN ('completed', 'applied') AND langue_points = ?",
-            [$submission->id, $reglage]
-        );
         $enseignant = $submission->grade_enseignant !== null ? (float) $submission->grade_enseignant : null;
         $DB->update_record('redaction_submission', (object) [
             'id' => $submission->id,
             'training_count' => 0,
-            'grade' => \mod_redaction\notes_sujets::meilleure($notes, $enseignant),
+            'grade' => \mod_redaction\notes_sujets::note_finale(\mod_redaction\sujets::note_finale_de((int) $submission->id), $enseignant),
             'timemodified' => time(),
         ]);
     }
