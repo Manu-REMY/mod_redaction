@@ -110,7 +110,7 @@ class ai_prompt_builder {
             }
         }
         $system .= "\n## " . get_string('ai_prompt_important_instructions', 'mod_redaction') . "\n";
-        $regles = ['citer', 'orthographe', 'syntaxe', 'phrases', 'doute', 'donnees'];
+        $regles = ['citer', 'orthographe', 'syntaxe', 'phrases', 'regle', 'doute', 'donnees'];
         if ($aveclexique) {
             $regles[] = 'lexique_regle';
         }

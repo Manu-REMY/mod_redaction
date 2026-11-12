@@ -784,15 +784,16 @@ function redaction_get_user_grades_sujets($redaction, $userid = 0, $pourcarnet =
 
     $meilleures = [];
     $imposees = [];
-    // Only the evaluations graded with the current language setting count.
-    $reglage = \mod_redaction\notes_sujets::reglage_langue($redaction);
+    // Request 16: only the latest successful final correction grades a copy, whatever the language setting is now.
     foreach ($DB->get_records('redaction_submission', ['redactionid' => $redaction->id]) as $submission) {
         $evaluations = $DB->get_records_select_menu(
             'redaction_ai_evaluations',
-            "submissionid = ? AND status IN ('completed', 'applied') AND langue_points = ?",
-            [$submission->id, $reglage],
-            '',
-            'id, parsed_grade'
+            "submissionid = ? AND finale = 1 AND status IN ('completed', 'applied') AND parsed_grade IS NOT NULL",
+            [$submission->id],
+            'id DESC',
+            'id, parsed_grade',
+            0,
+            1
         );
 
         $membres = [];

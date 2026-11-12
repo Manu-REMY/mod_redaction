@@ -226,11 +226,16 @@ function retirer_tache(int $evaluationid): bool {
     return $trouve;
 }
 
-/** Spends an attempt as the student screen does, queues the evaluation and processes it. */
-function corriger(stdClass $redaction, stdClass $submission, int $userid): int {
+/** Spends an attempt as the student screen does, queues the evaluation and processes it: the final one by default, the one that grades. */
+function corriger(stdClass $redaction, stdClass $submission, int $userid, bool $finale = true): int {
     global $DB;
-    $DB->execute('UPDATE {redaction_submission} SET training_count = training_count + 1 WHERE id = ?', [$submission->id]);
-    $id = ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid, $userid, true);
+    if (!$finale) {
+        $DB->execute('UPDATE {redaction_submission} SET training_count = training_count + 1 WHERE id = ?', [$submission->id]);
+    } else {
+        // Each final here stands for a new text: no attempt is taken over (that rule has its own check in verif_finale.php).
+        $DB->set_field('redaction_ai_evaluations', 'empreinte', null, ['submissionid' => $submission->id]);
+    }
+    $id = ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid, $userid, true, $finale);
     retirer_tache($id);
     ai_evaluator::process_evaluation($id);
     return $id;
@@ -332,7 +337,7 @@ try {
     // Second subject unreadable: failed, no grade, attempt given back.
     set_config('ai_auto_apply_delay', 5, 'mod_redaction');
     $sim->reponses = [ia(16), 'Pas du JSON du tout'];
-    $id = corriger($redaction, $submission, $a);
+    $id = corriger($redaction, $submission, $a, false);
     $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $id]);
     $sub = $DB->get_record('redaction_submission', ['id' => $submission->id]);
     $check("unreadable second subject: failed (found {$eval->status})", $eval->status === 'failed');
@@ -344,17 +349,17 @@ try {
 
     // Provider error and out of range note.
     $sim->reponses = [new \RuntimeException('Provider down')];
-    $id = corriger($redaction, $submission, $a);
+    $id = corriger($redaction, $submission, $a, false);
     $check('provider error: failed', $DB->get_field('redaction_ai_evaluations', 'status', ['id' => $id]) === 'failed');
     $sim->reponses = [ia(25), ia(16)];
-    $id = corriger($redaction, $submission, $a);
+    $id = corriger($redaction, $submission, $a, false);
     $check('note of 25: failed', $DB->get_field('redaction_ai_evaluations', 'status', ['id' => $id]) === 'failed');
     $check('attempts all given back', (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $submission->id]) === 0);
 
     // Empty answer at evaluation time: no AI call.
     repondre($submission, $sujets, '<p></p>');
     $sim->appels = [];
-    $id = corriger($redaction, $submission, $a);
+    $id = corriger($redaction, $submission, $a, false);
     $check('empty answer: failed without any AI call', $DB->get_field('redaction_ai_evaluations', 'status', ['id' => $id]) === 'failed' && !$sim->appels);
 
     // Empty answer key: no grade can rest on it.
@@ -364,7 +369,7 @@ try {
         $DB->set_field('redaction_sujet', 'corrige', $vide, ['id' => $dernier->id]);
         $sim->appels = [];
         $sim->reponses = [ia(18), ia(18)];
-        $id = corriger($redaction, $submission, $a);
+        $id = corriger($redaction, $submission, $a, false);
         $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $id]);
         $sub = $DB->get_record('redaction_submission', ['id' => $submission->id]);
         $check('empty key: failed, no grade, attempt back', $eval->status === 'failed' && $eval->parsed_grade === null
@@ -390,7 +395,7 @@ try {
     $check('feedback holds titles and comments', strpos($eval->parsed_feedback, 'Systeme1') !== false && strpos($eval->parsed_feedback, 'Second commentaire.') !== false);
     $check('tokens are summed', (int) $eval->prompt_tokens === 20 && (int) $eval->completion_tokens === 10);
     $check('no criteria grid', empty($eval->criteria_json));
-    $check('attempt stays spent', (int) $sub->training_count === 1);
+    $check('a final correction spends no attempt', (int) $sub->training_count === 0);
     $check('submission grade: 17', (float) $sub->grade === 17.0);
     $check('both members at 17', carnet($redaction, $a) === 17.0 && carnet($redaction, $b) === 17.0);
     $check('language off: setting 0 recorded, no language assessment', $eval->langue_points !== null && (float) $eval->langue_points === 0.0
@@ -409,7 +414,8 @@ try {
     $check('the student cannot close the answer block', substr_count($appel['user'], '</reponse_eleve>') === 1);
     $motsinterdits = ['keywords', 'suggestion', 'criteria', 'expression', 'structure', 'training', get_string('ai_prompt_training_context', 'mod_redaction')];
     $check('no training wording, no grid', !array_filter($motsinterdits, fn($mot) => stripos($appel['system'], $mot) !== false));
-    $check('the format asks for note and commentaire', strpos($appel['system'], '"note"') !== false && strpos($appel['system'], '"commentaire"') !== false);
+    $check('the format asks for note and the three parts of the feedback', strpos($appel['system'], '"note"') !== false
+        && strpos($appel['system'], '"juste"') !== false && strpos($appel['system'], '"piste"') !== false);
     echo "--- system prompt sent ---\n{$appel['system']}--- user prompt sent ---\n{$appel['user']}\n---\n";
 
     // Stored as the student screen stores it: plain text, nothing is cut, the block stays closed.
@@ -423,9 +429,9 @@ try {
     echo "--- plain answer sent ---\n{$user}\n---\n";
     repondre($submission, $sujets, '<p>Le gouvernail tourne.</p>');
 
-    // Worse submission: nothing goes down, the comment is the last one.
+    // Worse training attempt (request 16): the copy keeps its final grade, the comment is the last one.
     $sim->reponses = [ia(8), ia(10, 'Moins bien cette fois.')];
-    $id2 = corriger($redaction, $submission, $a);
+    $id2 = corriger($redaction, $submission, $a, false);
     $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $id2]);
     $sub = $DB->get_record('redaction_submission', ['id' => $submission->id]);
     $check('second evaluation keeps its own 9 and is applied', (float) $eval->parsed_grade === 9.0 && $eval->status === 'applied');
@@ -681,7 +687,7 @@ try {
     // The sweep arrives while the grade is being written: it waits, then leaves the evaluation alone.
     $drapeau = sys_get_temp_dir() . '/verif_correction_' . getmypid();
     $DB->set_field('redaction_submission', 'training_count', 1, ['id' => $submission->id]);
-    $idnote = ai_evaluator::queue_evaluation($redaction->id, $submission->id, $g1, $a, true);
+    $idnote = ai_evaluator::queue_evaluation($redaction->id, $submission->id, $g1, $a, true, true);
     retirer_tache($idnote);
     $worker = lancer_worker(['worker-note', (string) $idnote, $drapeau], $drapeau);
     $check('the write is under way', file_exists($drapeau));
@@ -750,7 +756,7 @@ try {
     $s5 = redaction_get_or_create_submission($autre, $g5, $a);
     repondre($s5, \mod_redaction\sujets::du_groupe($autre, $g5), 'Une reponse', FORMAT_PLAIN);
     $DB->set_field('redaction_submission', 'training_count', 1, ['id' => $s5->id]);
-    $id5 = ai_evaluator::queue_evaluation($autre->id, $s5->id, $g5, $a, true);
+    $id5 = ai_evaluator::queue_evaluation($autre->id, $s5->id, $g5, $a, true, true);
     retirer_tache($id5);
     $DB->insert_record('redaction_sujet_membre', (object) ['evaluationid' => $id5, 'userid' => 0]);
     $check('the code is really GRADE_UPDATE_FAILED', redaction_grade_item_update($autre, [0 => (object) ['userid' => 0, 'rawgrade' => 1]]) === GRADE_UPDATE_FAILED);
@@ -779,7 +785,7 @@ try {
             'attendu' => 'Bien vu.', 'label' => 'validated, nothing missing'],
     ] as $cas) {
         $DB->set_field('redaction_submission', 'training_count', 1, ['id' => $s6->id]);
-        $id6 = ai_evaluator::queue_evaluation($phrases->id, $s6->id, $g6, $a, true);
+        $id6 = ai_evaluator::queue_evaluation($phrases->id, $s6->id, $g6, $a, true, true);
         retirer_tache($id6);
         $sim->reponses = [json_encode(['attendus' => $cas['attendus'], 'erreurs' => [], 'note' => $cas['note'], 'commentaire' => $cas['commentaire']])];
         ai_evaluator::process_evaluation($id6);
@@ -792,7 +798,7 @@ try {
         'sujets_aide_partiel' => 'Dis aussi ce que fait la matière.']);
     $phrases = $DB->get_record('redaction', ['id' => $phrases->id], '*', MUST_EXIST);
     $DB->set_field('redaction_submission', 'training_count', 1, ['id' => $s6->id]);
-    $id6 = ai_evaluator::queue_evaluation($phrases->id, $s6->id, $g6, $a, true);
+    $id6 = ai_evaluator::queue_evaluation($phrases->id, $s6->id, $g6, $a, true, true);
     retirer_tache($id6);
     $sim->appels = [];
     $sim->reponses = [json_encode(['attendus' => ['E1'], 'erreurs' => [], 'note' => 12, 'commentaire' => 'Tu as cité la section.'])];
@@ -830,7 +836,7 @@ try {
     repondre($s6, \mod_redaction\sujets::du_groupe($autre, $g6), 'Une reponse', FORMAT_PLAIN);
     $tache = function (string $mode) use ($DB, $autre, $s6, $g6, $d): array {
         $DB->set_field('redaction_submission', 'training_count', 1, ['id' => $s6->id]);
-        $id = ai_evaluator::queue_evaluation($autre->id, $s6->id, $g6, $d, true);
+        $id = ai_evaluator::queue_evaluation($autre->id, $s6->id, $g6, $d, true, true);
         retirer_tache($id);
         $tubes = [];
         $proc = proc_open([PHP_BINARY, __DIR__ . '/worker_tache.php', $mode, (string) $id], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $tubes);

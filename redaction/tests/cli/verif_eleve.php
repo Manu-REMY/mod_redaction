@@ -168,7 +168,7 @@ try {
     // The grade goes to the student alone.
     $evalid = $DB->insert_record('redaction_ai_evaluations', (object) [
         'redactionid' => $rid, 'submissionid' => $subid, 'groupid' => 0, 'userid' => $eleves9z[0], 'provider' => 'albert',
-        'model' => 'x', 'status' => 'applied', 'parsed_grade' => 13.5, 'langue_points' => 2, 'timecreated' => $now, 'timemodified' => $now,
+        'model' => 'x', 'status' => 'applied', 'finale' => 1, 'parsed_grade' => 13.5, 'langue_points' => 2, 'timecreated' => $now, 'timemodified' => $now,
     ]);
     $DB->insert_record('redaction_sujet_membre', (object) ['evaluationid' => $evalid, 'userid' => $eleves9z[0]]);
     $notes = redaction_get_user_grades_sujets($redaction);

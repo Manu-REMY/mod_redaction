@@ -326,7 +326,7 @@ try {
     $sim->reponses = [ia(12, 'Tu as vu la roue.'), ia(10, 'Il manque le role du moteur.')];
     ai_evaluator::process_evaluation((int) $eval->id);
     $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $eval->id]);
-    $check("correction applied (found {$eval->status})", $eval->status === 'applied');
+    $check("correction applied (found {$eval->status} {$eval->error_message})", $eval->status === 'applied');
     $st = $status($a, $sub->id);
     $check('get_evaluation_status gives applied and a grade', is_array($st) && $st['status'] === 'applied' && $st['grade'] !== null);
     [$da, $ha] = $rendre($a);

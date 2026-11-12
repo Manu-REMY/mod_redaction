@@ -374,6 +374,22 @@ class sujets {
     }
 
     /**
+     * Grade of the latest successful final correction of a submission, null when there is none (request 16).
+     *
+     * It does not depend on the current language setting: a final grade never vanishes when the setting changes.
+     *
+     * @param int $submissionid Submission id.
+     * @return float|null
+     */
+    public static function note_finale_de(int $submissionid): ?float {
+        global $DB;
+        $finales = $DB->get_records_select('redaction_ai_evaluations',
+            "submissionid = ? AND finale = 1 AND status IN ('completed', 'applied') AND parsed_grade IS NOT NULL",
+            [$submissionid], 'id DESC', 'id, parsed_grade', 0, 1);
+        return $finales ? (float) reset($finales)->parsed_grade : null;
+    }
+
+    /**
      * Sets or removes the teacher grade of a submission (teacher action).
      *
      * The teacher grade wins over the AI until it is removed (null). The grade of the submission is then
@@ -393,16 +409,9 @@ class sujets {
             throw new \moodle_exception('grade_invalid', 'mod_redaction');
         }
 
-        // Only the evaluations graded with the current language setting count.
-        $evaluations = $DB->get_fieldset_select(
-            'redaction_ai_evaluations',
-            'parsed_grade',
-            "submissionid = ? AND status IN ('completed', 'applied') AND langue_points = ?",
-            [$submission->id, notes_sujets::reglage_langue($redaction)]
-        );
-
+        // Request 16: the final correction, or the teacher grade which wins.
         $submission->grade_enseignant = $note;
-        $submission->grade = notes_sujets::meilleure($evaluations, $note);
+        $submission->grade = notes_sujets::note_finale(self::note_finale_de((int) $submission->id), $note);
         if ($commentaire !== null) {
             // The form shows the current comment: an empty one clears it.
             $submission->feedback = trim($commentaire);

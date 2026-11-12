@@ -120,7 +120,7 @@ function retirer_tache(int $evaluationid): void {
 function corriger(stdClass $redaction, stdClass $submission, int $userid, float $note, \fournisseur_simule $sim): int {
     global $DB;
     $sim->reponses = [ia($note), ia($note)];
-    $id = ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid, $userid, true);
+    $id = ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid, $userid, true, true);
     retirer_tache($id);
     ai_evaluator::process_evaluation($id);
     if ($DB->get_field('redaction_ai_evaluations', 'status', ['id' => $id]) === 'completed') {
@@ -299,7 +299,7 @@ try {
     // apply_ai_grade on a completed evaluation must not override the teacher grade.
     sujets::noter($redaction, $DB->get_record('redaction_submission', ['id' => $submission->id]), 9.0);
     $sim->reponses = [ia(19), ia(19)];
-    $e3 = ai_evaluator::queue_evaluation($redaction->id, $submission->id, $g1, $a, true);
+    $e3 = ai_evaluator::queue_evaluation($redaction->id, $submission->id, $g1, $a, true, true);
     retirer_tache($e3);
     ai_evaluator::process_evaluation($e3);
     $DB->set_field('redaction_ai_evaluations', 'status', 'completed', ['id' => $e3]);
@@ -423,7 +423,7 @@ try {
         'syntaxe' => ['palier' => 'S', 'remarques' => []], 'lexique' => ['palier' => 'S'], 'organisation' => ['palier' => 'TS']],
         JSON_UNESCAPED_UNICODE);
     $sim->reponses = [ia(18), ia(17), $langueia];
-    $idl = ai_evaluator::queue_evaluation($lang->id, $sublang->id, (int) $g1, $a, true);
+    $idl = ai_evaluator::queue_evaluation($lang->id, $sublang->id, (int) $g1, $a, true, true);
     retirer_tache($idl);
     ai_evaluator::process_evaluation($idl);
     $detail = (new \mod_redaction\output\grading_sujets($lang, $cml, context_module::instance($cml->id), $g1))->export_for_template($sortie);

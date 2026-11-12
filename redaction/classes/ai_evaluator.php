@@ -128,9 +128,11 @@ class ai_evaluator {
      * @param int $groupid Group ID
      * @param int $userid User ID
      * @param bool $skipratelimit Skip rate limiting (for auto-submit tasks)
+     * @param bool $finale Correction of the final submission (assigned subjects mode, request 16), not a training attempt
      * @return int Evaluation ID
      */
-    public static function queue_evaluation(int $redactionid, int $submissionid, int $groupid, int $userid, bool $skipratelimit = false): int {
+    public static function queue_evaluation(int $redactionid, int $submissionid, int $groupid, int $userid, bool $skipratelimit = false,
+            bool $finale = false): int {
         global $DB;
 
         // Check rate limiting unless explicitly skipped (e.g., from cron task).
@@ -148,6 +150,7 @@ class ai_evaluator {
         $evaluation->provider = $redaction->ai_provider;
         $evaluation->model = self::get_model_for_provider($redaction->ai_provider);
         $evaluation->status = 'pending';
+        $evaluation->finale = $finale ? 1 : 0;
         $evaluation->timecreated = time();
         $evaluation->timemodified = time();
 
@@ -359,64 +362,101 @@ class ai_evaluator {
             $textes = [];
             $prompttokens = 0;
             $completiontokens = 0;
-            foreach (sujets::de_soumission($redaction, $submission) as $sujet) {
-                if (notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE) === '') {
-                    throw new \moodle_exception('sujets_corrige_vide', 'mod_redaction');
-                }
-                $reponse = $reponses[$sujet->id] ?? null;
-                if (!$reponse || notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat) === '') {
-                    throw new \moodle_exception('sujets_reponse_vide', 'mod_redaction');
-                }
-                $prompts = ai_prompt_builder::build_sujet_prompt($sujet, $reponse->contenu, (int) $reponse->contenuformat,
-                    (string) ($redaction->sujets_theme ?? ''));
-                $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::MAX_TOKENS);
-                $bruts[] = $response['content'];
-                $prompttokens += $response['prompt_tokens'];
-                $completiontokens += $response['completion_tokens'];
-
-                $lu = notes_sujets::lire_reponse_ia($response['content']);
-                // The words of the discipline expected belong to the answer key: the comment never gives them either.
-                // They go first: what follows "X :" in the key is allowed (wrong ideas), they must not fall there.
-                $lu['commentaire'] = notes_sujets::commentaire_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire($redaction),
-                    notes_sujets::avec_lexique(notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE), $sujet->lexique ?? ''),
-                    notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat), $sujet->titre);
-                $notes[] = $lu['note'];
-                $titres[] = $sujet->titre;
-                $lexiques[] = (string) ($sujet->lexique ?? '');
-                $textes[] = notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat);
-                $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . $lu['commentaire'];
-                $details[] = [
-                    'sujetid' => (int) $sujet->id,
-                    'titre' => $sujet->titre,
-                    'note' => $lu['note'],
-                    'commentaire' => $lu['commentaire'],
-                ];
-            }
-
-            // The language of every answer, in one separate call: its points come from the levels, never from the AI.
+            $finale = !empty($evaluation->finale);
             $p = notes_sujets::reglage_langue($redaction);
-            $pointslangue = null;
-            $evaluation->langue_json = null;
-            if ($p > 0) {
-                $prompts = ai_prompt_builder::build_langue_prompt($titres, $textes, $lexiques);
-                $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::LANGUE_MAX_TOKENS);
-                $bruts[] = $response['content'];
-                $prompttokens += $response['prompt_tokens'];
-                $completiontokens += $response['completion_tokens'];
-
-                $langue = langue::verifier(langue::lire_reponse_ia($response['content']), implode("\n", $textes));
-                $pointslangue = langue::points($langue['paliers'], $p);
-                $evaluation->langue_json = json_encode($langue + ['points' => $pointslangue, 'sur' => $p],
-                    JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            $sujets = array_values(sujets::de_soumission($redaction, $submission));
+            $tous = [];
+            foreach ($sujets as $sujet) {
+                $reponse = $reponses[$sujet->id] ?? null;
+                $tous[] = $reponse ? notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat) : '';
             }
-            $evaluation->langue_points = $p;
+            $empreinte = notes_sujets::empreinte($tous, $p);
 
-            $evaluation->raw_response = json_encode($bruts, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
-            $evaluation->prompt_tokens = $prompttokens;
-            $evaluation->completion_tokens = $completiontokens;
-            $evaluation->parsed_grade = notes_sujets::note_totale($notes, $pointslangue, $p);
-            $evaluation->parsed_feedback = implode("\n\n", $commentaires);
-            $evaluation->sujets_json = json_encode($details, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            // Final submission on the very text of a graded attempt: that attempt is the final correction, no AI call
+            // (Emmanuel, 12/11: "S'il n'a rien changé on garde la note").
+            $reprise = null;
+            if ($finale) {
+                $reprise = $DB->get_records_select('redaction_ai_evaluations',
+                    "submissionid = ? AND finale = 0 AND empreinte = ? AND status IN ('completed', 'applied')",
+                    [$submission->id, $empreinte], 'id DESC', '*', 0, 1);
+                $reprise = $reprise ? reset($reprise) : null;
+            }
+
+            if ($reprise) {
+                foreach (['parsed_grade', 'parsed_feedback', 'sujets_json', 'langue_json', 'langue_points'] as $champ) {
+                    $evaluation->$champ = $reprise->$champ;
+                }
+                $evaluation->raw_response = json_encode(['reprise' => (int) $reprise->id]);
+                $evaluation->prompt_tokens = 0;
+                $evaluation->completion_tokens = 0;
+            } else {
+                foreach ($sujets as $i => $sujet) {
+                    if (notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE) === '') {
+                        throw new \moodle_exception('sujets_corrige_vide', 'mod_redaction');
+                    }
+                    $texte = $tous[$i];
+                    if ($texte === '') {
+                        // A final submission (by the deadline) may leave a subject empty: 0 for its part, no AI call.
+                        if (!$finale) {
+                            throw new \moodle_exception('sujets_reponse_vide', 'mod_redaction');
+                        }
+                        $notes[] = 0.0;
+                        $details[] = ['sujetid' => (int) $sujet->id, 'titre' => $sujet->titre, 'note' => 0.0, 'vide' => true,
+                            'juste' => '', 'a_preciser' => '', 'piste' => '', 'commentaire' => ''];
+                        continue;
+                    }
+                    $reponse = $reponses[$sujet->id];
+                    $prompts = ai_prompt_builder::build_sujet_prompt($sujet, $reponse->contenu, (int) $reponse->contenuformat,
+                        (string) ($redaction->sujets_theme ?? ''));
+                    $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::MAX_TOKENS);
+                    $bruts[] = $response['content'];
+                    $prompttokens += $response['prompt_tokens'];
+                    $completiontokens += $response['completion_tokens'];
+
+                    $lu = notes_sujets::lire_reponse_ia($response['content']);
+                    // The words of the discipline expected belong to the answer key: the feedback never gives them either.
+                    // The statement of the subject is shown to the student: its words may be used.
+                    $retour = notes_sujets::retour_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire($redaction),
+                        notes_sujets::avec_lexique(notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE), $sujet->lexique ?? ''),
+                        $texte . ' ' . $sujet->titre . ' ' . notes_sujets::texte_reponse((string) $sujet->contenu, FORMAT_HTML));
+                    $notes[] = $lu['note'];
+                    $titres[] = $sujet->titre;
+                    $lexiques[] = (string) ($sujet->lexique ?? '');
+                    $textes[] = $texte;
+                    $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . $retour['commentaire'];
+                    $details[] = ['sujetid' => (int) $sujet->id, 'titre' => $sujet->titre, 'note' => $lu['note']] + $retour;
+                }
+
+                // The language of every answer written, in one separate call: its points come from the levels, never from the AI.
+                $pointslangue = null;
+                $evaluation->langue_json = null;
+                if ($p > 0 && $textes) {
+                    $prompts = ai_prompt_builder::build_langue_prompt($titres, $textes, $lexiques);
+                    $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::LANGUE_MAX_TOKENS);
+                    $bruts[] = $response['content'];
+                    $prompttokens += $response['prompt_tokens'];
+                    $completiontokens += $response['completion_tokens'];
+
+                    $langue = langue::verifier(langue::lire_reponse_ia($response['content']), implode("\n", $textes));
+                    $langue = self::langue_filtree($langue, implode("\n", $lexiques) . "\n"
+                        . implode("\n", array_map(fn($s) => notes_sujets::texte_reponse($s->corrige, notes_sujets::FORMAT_TEXTE), $sujets)),
+                        implode("\n", $textes) . "\n" . implode("\n", $titres));
+                    $pointslangue = langue::points($langue['paliers'], $p);
+                    $evaluation->langue_json = json_encode($langue + ['points' => $pointslangue, 'sur' => $p],
+                        JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+                } else if ($p > 0) {
+                    $pointslangue = 0.0;
+                }
+                $evaluation->langue_points = $p;
+
+                $evaluation->raw_response = json_encode($bruts, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+                $evaluation->prompt_tokens = $prompttokens;
+                $evaluation->completion_tokens = $completiontokens;
+                $evaluation->parsed_grade = notes_sujets::note_totale($notes, $pointslangue, $p);
+                $evaluation->parsed_feedback = implode("\n\n", $commentaires);
+                $evaluation->sujets_json = json_encode($details, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            }
+            $evaluation->empreinte = $empreinte;
             $evaluation->status = 'completed';
             $evaluation->timemodified = time();
 
@@ -495,10 +535,13 @@ class ai_evaluator {
                     $evaluation->timemodified = time();
                     $DB->update_record('redaction_ai_evaluations', $evaluation);
 
-                    $DB->execute(
-                        'UPDATE {redaction_submission} SET training_count = training_count - 1 WHERE id = ? AND training_count > 0',
-                        [$evaluation->submissionid]
-                    );
+                    // A final correction spent no attempt: nothing to give back; the copy stays submitted and is retried.
+                    if (empty($evaluation->finale)) {
+                        $DB->execute(
+                            'UPDATE {redaction_submission} SET training_count = training_count - 1 WHERE id = ? AND training_count > 0',
+                            [$evaluation->submissionid]
+                        );
+                    }
                 }
 
                 $transaction->allow_commit();
@@ -609,23 +652,12 @@ class ai_evaluator {
         try {
             // Apply grade and feedback.
             if ($sujetsenabled) {
-                // A worse submission never lowers the grade: it stays the best one, or the teacher's.
+                // Request 16: only the final correction grades the copy; an attempt never does. The teacher's wins.
                 if ($overridegrade !== null) {
                     $submission->grade_enseignant = $overridegrade;
                 }
-                // Only the evaluations graded with the current language setting count.
-                $reglage = notes_sujets::reglage_langue($redaction);
-                $notes = $DB->get_fieldset_select(
-                    'redaction_ai_evaluations',
-                    'parsed_grade',
-                    "submissionid = ? AND id <> ? AND status IN ('completed', 'applied') AND langue_points = ?",
-                    [$submission->id, $evaluation->id, $reglage]
-                );
-                if (notes_sujets::compte($evaluation->langue_points, $reglage)) {
-                    $notes[] = $evaluation->parsed_grade;
-                }
                 $enseignant = $submission->grade_enseignant !== null ? (float) $submission->grade_enseignant : null;
-                $submission->grade = notes_sujets::meilleure($notes, $enseignant);
+                $submission->grade = notes_sujets::note_finale(sujets::note_finale_de((int) $submission->id), $enseignant);
             } else {
                 $submission->grade = $overridegrade ?? $evaluation->parsed_grade;
             }
@@ -709,6 +741,25 @@ class ai_evaluator {
         \core\task\manager::queue_adhoc_task($task);
 
         return $evaluationid;
+    }
+
+    /**
+     * Language assessment without any rule or advice that gives a word of the answer key or of the vocabulary expected
+     * the student did not write (request 16): the sentence goes, the mistake stays.
+     *
+     * @param array $langue Assessment from langue::verifier().
+     * @param string $interdits Answer keys and vocabulary expected.
+     * @param string $permis The student's text and the titles.
+     * @return array
+     */
+    protected static function langue_filtree(array $langue, string $interdits, string $permis): array {
+        foreach (['fautes', 'remarques'] as $liste) {
+            foreach ($langue[$liste] as $i => $element) {
+                $langue[$liste][$i]['regle'] = notes_sujets::filtrer((string) ($element['regle'] ?? ''), $interdits, $permis);
+            }
+        }
+        $langue['conseil'] = notes_sujets::filtrer((string) ($langue['conseil'] ?? ''), $interdits, $permis);
+        return $langue;
     }
 
     /**

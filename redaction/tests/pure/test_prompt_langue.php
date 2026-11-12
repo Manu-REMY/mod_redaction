@@ -66,6 +66,7 @@ test('aucun corrigé', fn() => !str_contains($p['system'] . $p['user'], 'corrige
 
 // Request 9: a list of words is not written in sentences.
 test('consigne : réponse non rédigée en phrases', fn() => str_contains($p['system'], '[ai_prompt_langue_phrases]'));
+test('consigne : une règle par faute et un conseil (demande 16)', fn() => str_contains($p['system'], '[ai_prompt_langue_regle]'));
 
 // Request 7: the words of the discipline expected, given per subject, only when there are some.
 test('sans lexique : ni titre ni règle du lexique', fn() => !str_contains($p['system'], '[ai_prompt_langue_lexique_attendu]')
