@@ -882,6 +882,7 @@ $string['sujets_ens_etat_notee'] = 'Handed in, graded';
 $string['sujets_ens_etat_soumise'] = 'Handed in, no grade';
 $string['sujets_ens_alerte_finale'] = 'The final correction failed {$a} times: the copy has no grade. Retry it below.';
 $string['sujets_ens_rouvrir_date'] = 'The deadline is passed: give a new date, in the future, to reopen this copy.';
+$string['sujets_ens_rouvrir_attente'] = 'A correction of this copy is running: wait for it before reopening the copy.';
 $string['sujets_ens_rouverte'] = 'Copy reopened: back to draft, its grade will come from its next final version.';
 $string['sujets_ens_relancer_impossible'] = 'There is no failed final correction to retry on this copy.';
 $string['sujets_ens_relancee'] = 'Final correction queued again.';

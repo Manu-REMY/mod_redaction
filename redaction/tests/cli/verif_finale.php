@@ -460,6 +460,17 @@ try {
     $relance->execute();
     ob_end_clean();
     $check('12 failed finals: no more retry', $DB->count_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'finale' => 1]) === 12);
+    // Final review 4: the student sees the final version being corrected, not an attempt to submit again.
+    \core\session\manager::set_user($DB->get_record('user', ['id' => $a]));
+    $cm7e = get_coursemodule_from_instance('redaction', $r7->id, $course->id, false, MUST_EXIST);
+    $ctx7e = context_module::instance($cm7e->id);
+    $PAGE->set_context($ctx7e);
+    $PAGE->set_url('/');
+    $de = (new \mod_redaction\output\sujets_eleve($r7, $cm7e, $ctx7e, $DB->get_record('redaction_submission', ['id' => $plein->id]), 0))
+        ->export_for_template($PAGE->get_renderer('core'));
+    \core\session\manager::set_user(get_admin());
+    $check('failed final, student side: "being corrected", no attempt notice, no indication', $de['etatlibelle'] === get_string('sujets_se_etat_correction', 'mod_redaction')
+        && !$de['echec'] && !$de['hasindicatif'] && !$de['canessai'] && !$de['canfinale']);
 
     // 8. Request 16, the teacher: state of each copy, final vs attempt, reopen, retry, alert.
     $ctx7 = context_module::instance(get_coursemodule_from_instance('redaction', $r7->id, $course->id, false, MUST_EXIST)->id);
@@ -477,6 +488,12 @@ try {
         && $DB->count_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'finale' => 1, 'status' => 'pending']) === 1);
     $l = $lignes();
     $check('state: final correction running (' . ($l[$a]['etat'] ?? '?') . ')', ($l[$a]['etat'] ?? '') === 'correction');
+    // Final review 3: no reopening while the final correction runs (it would write a final back on a draft).
+    [$msg, $type] = \mod_redaction\sujets::traiter_action($r7, $ctx7, 0, 'rouvrir', ['date' => time() + 86400], $a);
+    $detailc = (new \mod_redaction\output\grading_sujets($r7, $cm7, $ctx7, 0, $a))->export_for_template($sortie);
+    $check('reopen refused while the final correction runs, and not offered', $type === \core\output\notification::NOTIFY_ERROR
+        && $msg === get_string('sujets_ens_rouvrir_attente', 'mod_redaction') && empty($detailc['peutrouvrir'])
+        && (int) $DB->get_field('redaction_submission', 'status', ['id' => $plein->id]) === 1);
     foreach ($DB->get_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'status' => 'pending']) as $p8) {
         retirer_tache((int) $p8->id);
         $DB->update_record('redaction_ai_evaluations', (object) ['id' => $p8->id, 'status' => 'applied', 'parsed_grade' => 14.0]);

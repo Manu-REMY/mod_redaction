@@ -204,7 +204,8 @@ class notes_sujets {
         if ($parties['juste'] === '') {
             $parties['juste'] = $parties['commentaire'];
         }
-        if ($parties['juste'] === '') {
+        // An answer with nothing right may leave "juste" empty: one part at least is enough.
+        if ($parties['juste'] === '' && $parties['a_preciser'] === '' && $parties['piste'] === '') {
             throw new \UnexpectedValueException('AI answer has no comment');
         }
         $commentaire = self::bout_a_bout([$parties['juste'], $parties['a_preciser'], $parties['piste']]);
@@ -308,7 +309,9 @@ class notes_sujets {
                 }
             }
         } else {
-            $apreciser = $lu['erreurs'] ? $apreciser : '';
+            // From the threshold too, an attempt is only practice: what to make clearer never gives a word of the key.
+            // What is right stays whole: the answer that earned it holds the key's ideas already.
+            $apreciser = $lu['erreurs'] ? self::sans_mots_du_corrige($apreciser, $corrige, $permis) : '';
             $piste = '';
             if ($juste === '') {
                 $juste = $phrases['juste'];

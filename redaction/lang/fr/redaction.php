@@ -882,6 +882,7 @@ $string['sujets_ens_etat_notee'] = 'Rendue, notée';
 $string['sujets_ens_etat_soumise'] = 'Rendue, sans note';
 $string['sujets_ens_alerte_finale'] = 'La correction finale a échoué {$a} fois : la copie n\'a pas de note. Relancez-la ci-dessous.';
 $string['sujets_ens_rouvrir_date'] = 'La date limite est passée : donnez une nouvelle date, dans le futur, pour rouvrir cette copie.';
+$string['sujets_ens_rouvrir_attente'] = 'Une correction de cette copie est en cours : attendez-la avant de rouvrir la copie.';
 $string['sujets_ens_rouverte'] = 'Copie rouverte : de nouveau en brouillon, sa note viendra de sa prochaine version finale.';
 $string['sujets_ens_relancer_impossible'] = 'Il n\'y a pas de correction finale en échec à relancer sur cette copie.';
 $string['sujets_ens_relancee'] = 'Correction finale relancée.';

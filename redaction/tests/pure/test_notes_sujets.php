@@ -286,9 +286,13 @@ test('ancien format : le commentaire devient la partie juste', function () {
     $lu = notes_sujets::lire_reponse_ia('{"attendus":[],"erreurs":[],"note":5,"commentaire":"C."}');
     return $lu['juste'] === 'C.' && $lu['a_preciser'] === '' && $lu['piste'] === '' && $lu['commentaire'] === 'C.';
 });
-test('ni juste ni commentaire : refusé', function () {
+test('final review 1 : rien de juste, mais à préciser et une piste : accepté', function () {
+    $lu = notes_sujets::lire_reponse_ia('{"attendus":[],"erreurs":[],"note":3,"juste":"","a_preciser":"Tu ne dis rien de ta section.","piste":"Q ?"}');
+    return $lu['juste'] === '' && $lu['a_preciser'] === 'Tu ne dis rien de ta section.' && $lu['commentaire'] === 'Tu ne dis rien de ta section. Q ?';
+});
+test('aucune partie ni commentaire : refusé', function () {
     try {
-        notes_sujets::lire_reponse_ia('{"attendus":[],"erreurs":[],"note":5,"piste":"Q ?"}');
+        notes_sujets::lire_reponse_ia('{"attendus":[],"erreurs":[],"note":5,"juste":"","a_preciser":"","piste":""}');
     } catch (\UnexpectedValueException $e) {
         return true;
     }
@@ -316,6 +320,9 @@ test('retour_final : au-dessus du seuil sans erreur, la partie juste seule', fun
 });
 test('retour_final : au-dessus du seuil avec une erreur X, la partie à préciser reste', fn() =>
     retour_poutre('Que se passe-t-il ?', 18.0, ['X1'])['a_preciser'] === 'Tu ne dis pas ce qui se passe.');
+test('final review 2 : au-dessus du seuil, à préciser ne donne pas non plus un mot du corrigé', fn() =>
+    notes_sujets::retour_final(['note' => 18.0, 'juste' => 'Tu décris ta section en I.', 'a_preciser' => 'Cette idée est fausse : celle du bas est tendue.',
+        'piste' => '', 'commentaire' => '', 'attendus' => ['E1'], 'erreurs' => ['X1']], 16.0, PHRASES, CORRIGE_POUTRE, PERMIS_POUTRE)['a_preciser'] === '');
 test('filtrer : retire la phrase qui contient un mot du corrigé non écrit', fn() =>
     notes_sujets::filtrer('Bien. Pense à la traction.', 'E1 : traction.', 'Ma poutre.') === 'Bien.');
 

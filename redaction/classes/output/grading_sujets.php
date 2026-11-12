@@ -452,7 +452,7 @@ class grading_sujets implements renderable, templatable {
             'individuel' => $individuel,
             'etat' => self::etat($submission, $evaluations),
             'etatlibelle' => get_string('sujets_ens_etat_' . self::etat($submission, $evaluations), 'mod_redaction'),
-            'peutrouvrir' => $submission && (int) $submission->status === 1,
+            'peutrouvrir' => $submission && (int) $submission->status === 1 && self::etat($submission, $evaluations) !== 'correction',
             'daterequise' => $submission && redaction_deadline_passed($redaction, $submission),
             'peutrelancer' => $submission && self::etat($submission, $evaluations) === 'soumise'
                 && array_filter($evaluations, fn($e) => !empty($e->finale)),

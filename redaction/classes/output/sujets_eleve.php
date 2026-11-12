@@ -193,6 +193,14 @@ class sujets_eleve implements renderable, templatable {
             $raison = get_string('training_error_' . $check['reason'], 'mod_redaction');
         }
 
+        // Handed in, its final not graded yet (running, or failed and waiting for a retry): the final version is being
+        // corrected; nothing about an attempt to submit again, no indication from an attempt (final review).
+        $enattente = $rendue && $note === null && array_filter($toutes, fn($e) => !empty($e->finale));
+        if ($enattente) {
+            $echec = false;
+            $indicatif = null;
+        }
+
         return [
             'cmid' => (int) $this->cm->id,
             'submissionid' => (int) $submission->id,
@@ -221,7 +229,7 @@ class sujets_eleve implements renderable, templatable {
             'empeche' => $empeche,
             // Request 16: the progress panel.
             'etat' => $etat,
-            'etatlibelle' => get_string('sujets_se_etat_' . $etat, 'mod_redaction'),
+            'etatlibelle' => get_string('sujets_se_etat_' . ($enattente ? 'correction' : $etat), 'mod_redaction'),
             'hasdatelimite' => !empty($datelimite),
             'datelimite' => !empty($datelimite) ? userdate($datelimite, get_string('strftimedatetimeshort', 'langconfig')) : '',
             'tard' => $tard && !$rendue,

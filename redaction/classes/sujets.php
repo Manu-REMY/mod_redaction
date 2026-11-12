@@ -524,6 +524,10 @@ class sujets {
         if (!$submission) {
             throw new \moodle_exception('sujets_ens_pas_de_travail' . ($userid ? '_eleve' : ''), 'mod_redaction');
         }
+        // A correction still running would write its final back on the draft copy (final review).
+        if (ai_evaluator::has_pending_evaluation((int) $submission->id)) {
+            throw new \moodle_exception('sujets_ens_rouvrir_attente', 'mod_redaction');
+        }
         if ($date !== null && $date <= time()) {
             throw new \moodle_exception('sujets_ens_rouvrir_date', 'mod_redaction');
         }
