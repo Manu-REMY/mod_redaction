@@ -144,3 +144,34 @@ Couleurs : bleu = validé, orange = pas encore validé, toujours avec ✓ / ✗ 
 - CLI préprod : essai sans carnet ; finale au carnet ; double soumission finale refusée ; échec puis relance ; date
   limite → soumission automatique ; copie vide à la date limite → verrouillée sans note ; mode groupe et mode élève.
 - Script de l'écran élève (puppeteer) : deux boutons, confirmation, volet après soumission.
+
+## Retours explicatifs (validé par Emmanuel le 12/11 sur maquette : « Super »)
+
+Maquette : https://claude.ai/artifact/JL5jpSTe8EfW6nyqc6qsk7. Règle inchangée : le retour ne donne jamais le corrigé
+(D-002) ; il explique à partir des mots de l'élève et de l'énoncé, et guide par une question.
+
+### Fond, pour chaque sujet
+
+- L'IA répond en trois parties au lieu d'un commentaire de deux phrases :
+  - `juste` : ce qui est juste et pourquoi c'est juste, avec les mots de l'élève (2 phrases au plus) ;
+  - `a_preciser` : ce qui manque au raisonnement, dit à partir de ce que l'élève a écrit (« tu dis que… sans dire… »),
+    et les erreurs X nommées (« cette idée est fausse »), jamais la bonne réponse (2 phrases au plus) ;
+  - `piste` : une question qui oriente, avec les mots de l'énoncé (1 phrase).
+- Filtres du serveur sur chaque partie, sous le seuil : `sans_mots_du_corrige` (mots du corrigé et du vocabulaire
+  attendu que l'élève n'a pas écrits ; **les mots de l'énoncé du sujet deviennent permis**) ; `sans_manque` sur `juste`.
+  Une `piste` vidée par le filtre est remplacée par la phrase d'aide de l'activité (demande 14). Au-dessus du seuil :
+  `juste` seul, plus `a_preciser` s'il reste une erreur X.
+- `sujets_json` garde par sujet `juste`, `a_preciser`, `piste` et, pour les écrans existants, `commentaire` (les trois
+  mis bout à bout). Les anciennes corrections (un seul `commentaire`) s'affichent comme avant.
+- Affichage : « ✓ Ce qui est juste », « ✗ À préciser », « → Piste », chacun avec son mot (daltonisme).
+
+### Langue
+
+- Chaque faute d'orthographe reçoit une `regle` : la règle en une phrase, appliquée à la copie (« le verbe s'accorde
+  avec son sujet "les deux semelles", au pluriel »). Chaque remarque de syntaxe aussi.
+- Un `conseil` « Pour progresser » : une phrase sur la faute la plus fréquente ou la dimension la plus faible.
+- Filtres : `regle` et `conseil` ne peuvent contenir aucun mot du vocabulaire attendu ni du corrigé que l'élève n'a pas
+  écrit (sinon la phrase est retirée) ; une faute sans règle reste affichée sans règle.
+- Affichage : fautes regroupées par type (accord du verbe, mot mal écrit, homophone…), forme écrite → forme correcte,
+  la règle dessous ; répétitions comptées (« ×3 ») ; le conseil à la fin.
+- Le plafond de jetons de l'appel de langue est relevé en conséquence (réponse plus longue).
