@@ -392,7 +392,8 @@ class sujets {
     /**
      * Sets or removes the teacher grade of a submission (teacher action).
      *
-     * The teacher grade wins over the AI until it is removed (null). The grade of the submission is then
+     * The teacher grade wins over the AI until it is removed (null) or a final is handed in after it (request 17),
+     * which is why its time is kept. The grade of the submission is then
      * worked out again, the gradebook updated, and timemodified bumped: the class life tool polls it.
      *
      * @param \stdClass $redaction The activity record.
@@ -409,8 +410,9 @@ class sujets {
             throw new \moodle_exception('grade_invalid', 'mod_redaction');
         }
 
-        // Request 16: the final correction, or the teacher grade which wins.
+        // Request 16: the final correction, or the teacher grade which wins until a final handed in after it (request 17).
         $submission->grade_enseignant = $note;
+        $submission->grade_enseignant_time = $note === null ? 0 : time();
         $submission->grade = notes_sujets::note_finale(self::note_finale_de((int) $submission->id), $note);
         if ($commentaire !== null) {
             // The form shows the current comment: an empty one clears it.

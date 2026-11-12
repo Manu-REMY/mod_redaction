@@ -103,6 +103,7 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'status',
             'grade',
             'grade_enseignant',
+            'grade_enseignant_time',
             'feedback',
             'feedbackformat',
             'training_count',

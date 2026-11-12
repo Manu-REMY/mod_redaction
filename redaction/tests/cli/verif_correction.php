@@ -508,7 +508,9 @@ try {
     $sim->reponses = [ia(20), ia(20)];
     $id3 = corriger($redaction, $submission, $a);
     $sub = $DB->get_record('redaction_submission', ['id' => $submission->id]);
-    $check('a better submission does not beat the teacher', (float) $sub->grade === 10.0 && carnet($redaction, $a) === 10.0);
+    // Request 17: a final handed in after the teacher grade replaces it, even for the members it credited.
+    $check('a final handed in after the teacher grade replaces it', (float) $sub->grade === 20.0 && carnet($redaction, $a) === 20.0
+        && $sub->grade_enseignant === null && (int) $sub->grade_enseignant_time === 0);
     $check('the evaluation still keeps its own 20', (float) $DB->get_field('redaction_ai_evaluations', 'parsed_grade', ['id' => $id3]) === 20.0);
     $DB->set_field('redaction_submission', 'grade_enseignant', null, ['id' => $submission->id]);
     redaction_update_grades($redaction);

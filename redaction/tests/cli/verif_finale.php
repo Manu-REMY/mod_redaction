@@ -297,10 +297,46 @@ try {
     $check('teacher grade wins over the final', carnet($redaction, $b) === 9.0);
     \mod_redaction\sujets::noter($redaction, $DB->get_record('redaction_submission', ['id' => $sub2->id]), null);
     $check('teacher grade removed: the final again', carnet($redaction, $b) === 16.4);
+    // 4b. Request 17: the teacher grade stands until a final handed in after it, then the final replaces it.
+    \mod_redaction\sujets::noter($redaction, $DB->get_record('redaction_submission', ['id' => $sub2->id]), 9.0, 'Revois ta copie.');
+    $s4 = $DB->get_record('redaction_submission', ['id' => $sub2->id]);
+    $check('teacher grade: its time is kept', (int) $s4->grade_enseignant_time >= $now && (int) $s4->grade_enseignant_time <= time());
+    // The teacher graded at 10:00, the student handed in at 10:05: the final replaces the grade.
+    $DB->set_field('redaction_submission', 'grade_enseignant_time', time() - 300, ['id' => $sub2->id]);
+    \mod_redaction\sujets::rouvrir($redaction, $s4, null, 0, $b);
+    $check('reopened: the teacher grade stays until the next final', carnet($redaction, $b) === 9.0);
+    repondre($sub2, $sujets2, 'Mon second texte de ma poutre.', FORMAT_PLAIN);
+    $sim->reponses = [ia3(14), ia3(14), langue_ia(['S', 'S', 'S', 'S'])];
+    $f4 = passer($redaction, $DB->get_record('redaction_submission', ['id' => $sub2->id]), $b, true);
+    $s4 = $DB->get_record('redaction_submission', ['id' => $sub2->id]);
+    $note4 = (float) $DB->get_field('redaction_ai_evaluations', 'parsed_grade', ['id' => $f4]);
+    $check("final after the teacher grade: replaces it ({$s4->grade}, gradebook " . carnet($redaction, $b) . ')',
+        (float) $s4->grade === $note4 && carnet($redaction, $b) === $note4 && $note4 !== 9.0);
+    $check('final after the teacher grade: teacher grade and its time cleared',
+        $s4->grade_enseignant === null && (int) $s4->grade_enseignant_time === 0);
+    $check('final after the teacher grade: the AI feedback replaces the teacher comment', !str_contains((string) $s4->feedback, 'Revois'));
+    // A final handed in before the teacher grade, corrected after it: the teacher grade stays.
+    \mod_redaction\sujets::rouvrir($redaction, $s4, null, 0, $b);
+    repondre($sub2, $sujets2, 'Mon troisième texte de ma poutre.', FORMAT_PLAIN);
+    $DB->update_record('redaction_submission', (object) ['id' => $sub2->id, 'status' => 1, 'timesubmitted' => time()]);
+    $f5 = ai_evaluator::queue_evaluation($redaction->id, $sub2->id, 0, $b, true, true);
+    retirer_tache($f5);
+    $DB->set_field('redaction_ai_evaluations', 'timecreated', time() - 60, ['id' => $f5]);
+    \mod_redaction\sujets::noter($redaction, $DB->get_record('redaction_submission', ['id' => $sub2->id]), 8.0);
+    $sim->reponses = [ia3(17), ia3(17), langue_ia(['TS', 'TS', 'TS', 'TS'])];
+    ai_evaluator::process_evaluation($f5);
+    $s5 = $DB->get_record('redaction_submission', ['id' => $sub2->id]);
+    $check("final handed in before the teacher grade: the teacher grade stays ({$s5->grade})",
+        (float) $s5->grade === 8.0 && carnet($redaction, $b) === 8.0 && (float) $s5->grade_enseignant === 8.0);
+    \mod_redaction\sujets::noter($redaction, $s5, null);
+    $check('teacher grade removed: its time cleared', (int) $DB->get_field('redaction_submission', 'grade_enseignant_time', ['id' => $sub2->id]) === 0);
+    $sub2 = $DB->get_record('redaction_submission', ['id' => $sub2->id]);
+    $note16 = carnet($redaction, $b);
+
     $DB->set_field('redaction', 'langue_points', 3, ['id' => $redaction->id]);
     $redaction = $DB->get_record('redaction', ['id' => $redaction->id]);
     redaction_update_grades($redaction);
-    $check('language setting changed after the final: grade kept', carnet($redaction, $b) === 16.4);
+    $check('language setting changed after the final: grade kept', carnet($redaction, $b) === $note16);
     $DB->set_field('redaction', 'langue_points', 2, ['id' => $redaction->id]);
     $redaction = $DB->get_record('redaction', ['id' => $redaction->id]);
 

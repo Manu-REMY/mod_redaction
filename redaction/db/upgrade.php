@@ -517,5 +517,29 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111300, 'redaction');
     }
 
+    if ($oldversion < 2026111303) {
+        // Request 17: the time of the teacher grade, so that a final handed in after it replaces it.
+        $table = new xmldb_table('redaction_submission');
+        $field = new xmldb_field('grade_enseignant_time', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'grade_enseignant');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // An existing teacher grade: the time of its latest log entry, else the last change of the copy.
+        $notees = $DB->get_records_select('redaction_submission', 'grade_enseignant IS NOT NULL', null, '', 'id, timemodified');
+        foreach ($notees as $submission) {
+            $journal = !$dbman->table_exists('logstore_standard_log') ? null : $DB->get_field_sql(
+                "SELECT MAX(timecreated)
+                   FROM {logstore_standard_log}
+                  WHERE eventname = ? AND objectid = ?",
+                ['\\mod_redaction\\event\\grade_updated', $submission->id]
+            );
+            $DB->set_field('redaction_submission', 'grade_enseignant_time', (int) ($journal ?: $submission->timemodified),
+                ['id' => $submission->id]);
+        }
+
+        upgrade_mod_savepoint(true, 2026111303, 'redaction');
+    }
+
     return true;
 }

@@ -59,7 +59,7 @@ $dbman = $DB->get_manager();
 $expectedfields = [
     'redaction' => ['sujets_enabled', 'sujets_par_groupe', 'sujets_seuil', 'langue_enabled', 'langue_points', 'sujets_phrases',
         'sujets_theme', 'sujets_aide_partiel', 'sujets_aide_rien'],
-    'redaction_submission' => ['grade_enseignant'],
+    'redaction_submission' => ['grade_enseignant', 'grade_enseignant_time'],
     'redaction_ai_evaluations' => ['sujets_json', 'langue_json', 'langue_points', 'finale', 'empreinte'],
     'redaction_sujet' => ['id', 'redactionid', 'sortorder', 'titre', 'contenu', 'contenuformat', 'corrige', 'lexique',
         'timecreated', 'timemodified'],

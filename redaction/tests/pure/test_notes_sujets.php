@@ -277,6 +277,10 @@ test('note_finale : la finale', fn() => notes_sujets::note_finale(12.5, null) ==
 test('note_finale : le professeur sans finale', fn() => notes_sujets::note_finale(null, 14.0) === 14.0);
 test('note_finale : le professeur gagne, même plus bas', fn() => notes_sujets::note_finale(18.0, 9.0) === 9.0);
 test('note_finale : rien', fn() => notes_sujets::note_finale(null, null) === null);
+// Request 17: the teacher grade stands until a final correction handed in after it.
+test('finale_remplace_prof : finale rendue après la note du professeur', fn() => notes_sujets::finale_remplace_prof(1000, 999) === true);
+test('finale_remplace_prof : finale rendue avant (corrigée après)', fn() => notes_sujets::finale_remplace_prof(998, 999) === false);
+test('finale_remplace_prof : même seconde, le professeur garde la main', fn() => notes_sujets::finale_remplace_prof(999, 999) === false);
 
 test('retour en trois parties lu', function () {
     $lu = notes_sujets::lire_reponse_ia('{"attendus":["E1"],"erreurs":[],"note":12,"juste":"J.","a_preciser":"P.","piste":"Q ?"}');
