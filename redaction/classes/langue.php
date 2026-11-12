@@ -85,6 +85,7 @@ class langue {
                 'correction' => self::texte($faute['correction'] ?? null),
                 'type' => self::type($faute['type'] ?? null, self::TYPES_ORTHOGRAPHE),
                 'fois' => max(1, $fois),
+                'regle' => self::texte($faute['regle'] ?? null),
             ];
         }
 
@@ -93,10 +94,12 @@ class langue {
             $remarques[] = [
                 'cite' => self::texte($remarque['cite'] ?? null),
                 'type' => self::type($remarque['type'] ?? null, self::TYPES_SYNTAXE),
+                'regle' => self::texte($remarque['regle'] ?? null),
             ];
         }
 
-        return ['paliers' => $paliers, 'fautes' => $fautes, 'remarques' => $remarques];
+        // Request 16: one sentence to progress, on the most frequent mistake or the weakest dimension.
+        return ['paliers' => $paliers, 'fautes' => $fautes, 'remarques' => $remarques, 'conseil' => self::texte($data['conseil'] ?? null)];
     }
 
     /**
@@ -178,7 +181,8 @@ class langue {
             $remarques[self::normaliser($remarque['cite'])] = $remarque;
         }
 
-        $verifie = ['paliers' => $lu['paliers'], 'fautes' => array_values($fautes), 'remarques' => array_values($remarques)];
+        $verifie = ['paliers' => $lu['paliers'], 'fautes' => array_values($fautes), 'remarques' => array_values($remarques),
+            'conseil' => (string) ($lu['conseil'] ?? '')];
         foreach (self::AVEC_PREUVE as $dimension => $preuves) {
             if (in_array($verifie['paliers'][$dimension], ['TI', 'I'], true) && !$verifie[$preuves]) {
                 $verifie['paliers'][$dimension] = 'S';

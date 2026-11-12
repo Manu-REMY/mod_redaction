@@ -192,14 +192,20 @@ class notes_sujets {
             throw new \UnexpectedValueException('AI note is outside 0-20');
         }
 
-        $commentaire = $data['commentaire'] ?? null;
-        if (is_string($commentaire)) {
+        // Three parts (request 16), or the single comment of the corrections made before.
+        $parties = [];
+        foreach (['juste', 'a_preciser', 'piste', 'commentaire'] as $cle) {
+            $valeur = $data[$cle] ?? '';
             // The label of the answer key must never reach a student.
-            $commentaire = trim(preg_replace('/\bsi absent\s*:\s*/iu', '', $commentaire));
+            $parties[$cle] = is_string($valeur) ? trim(preg_replace('/\bsi absent\s*:\s*/iu', '', $valeur)) : '';
         }
-        if (!is_string($commentaire) || $commentaire === '') {
+        if ($parties['juste'] === '') {
+            $parties['juste'] = $parties['commentaire'];
+        }
+        if ($parties['juste'] === '') {
             throw new \UnexpectedValueException('AI answer has no comment');
         }
+        $commentaire = self::bout_a_bout([$parties['juste'], $parties['a_preciser'], $parties['piste']]);
 
         // The cap and the "il manque" sentence depend on this list: without it, the correction fails and the attempt goes back.
         $attendus = self::reperes($data['attendus'] ?? null, 'E');
@@ -212,6 +218,9 @@ class notes_sujets {
             'note' => $complet ? $note : min($note, self::NOTE_INCOMPLETE),
             'note_ia' => $note,
             'commentaire' => $commentaire,
+            'juste' => $parties['juste'],
+            'a_preciser' => $parties['a_preciser'],
+            'piste' => $parties['piste'],
             'attendus' => $attendus,
             'erreurs' => self::reperes($data['erreurs'] ?? null, 'X') ?? [],
         ];
@@ -256,25 +265,100 @@ class notes_sujets {
      */
     public static function commentaire_final(array $lu, float $seuil, array $phrases, string $corrige = '', string $reponse = '',
             string $titre = ''): string {
-        $texte = self::sans_manque($lu['commentaire']);
-        $ajout = '';
+        $lu += ['juste' => $lu['commentaire'] ?? '', 'a_preciser' => '', 'piste' => ''];
+        return self::retour_final($lu, $seuil, $phrases, $corrige, $reponse . ' ' . $titre)['commentaire'];
+    }
+
+    /**
+     * Feedback shown to the student, in three parts: what is right, what to make clearer, a lead (request 16).
+     *
+     * Under the threshold each part loses the sentences holding a word of the answer key the student did not write
+     * (words of $permis are allowed: the answer, the title, the statement of the subject), and "juste" loses what it
+     * says is missing. A lead emptied that way, or not given, becomes the plugin's help sentence of the activity.
+     * From the threshold: what is right, and what to make clearer only when a wrong idea X remains.
+     *
+     * @param array $lu An answer read by lire_reponse_ia (juste, a_preciser, piste, note, attendus, erreurs).
+     * @param float $seuil Grade from which the work is validated.
+     * @param array $phrases Sentences for the keys fonctionnement, les_deux, precision, juste (phrases_aide()).
+     * @param string $corrige Answer key, with the vocabulary expected (avec_lexique()).
+     * @param string $permis Text whose words can be shown.
+     * @return array ['juste', 'a_preciser', 'piste', 'commentaire'] Plain text; commentaire = the three parts in a row.
+     */
+    public static function retour_final(array $lu, float $seuil, array $phrases, string $corrige, string $permis): array {
+        $juste = self::sans_manque((string) ($lu['juste'] ?? ''));
+        $apreciser = trim((string) ($lu['a_preciser'] ?? ''));
+        $piste = trim((string) ($lu['piste'] ?? ''));
+
         if ($lu['note'] < $seuil) {
-            $texte = self::sans_mots_du_corrige($texte, $corrige, $reponse . ' ' . $titre);
-            $piece = in_array('E1', $lu['attendus'], true);
-            $fonctionnement = in_array('E2', $lu['attendus'], true);
-            if ($piece && $fonctionnement) {
-                $ajout = $lu['erreurs'] && $texte !== '' ? '' : $phrases['precision'];
-            } else if ($piece) {
-                $ajout = $phrases['fonctionnement'];
-            } else {
-                // Not "the part is missing": the AI may have refused an answer that does name it, or marked it E2 alone.
-                $ajout = $phrases['les_deux'];
+            $juste = self::sans_mots_du_corrige($juste, $corrige, $permis);
+            $apreciser = self::sans_mots_du_corrige($apreciser, $corrige, $permis);
+            $piste = self::sans_mots_du_corrige($piste, $corrige, $permis);
+            if ($piste === '') {
+                $piece = in_array('E1', $lu['attendus'], true);
+                $fonctionnement = in_array('E2', $lu['attendus'], true);
+                if ($piece && $fonctionnement) {
+                    $piste = $lu['erreurs'] && ($juste . $apreciser) !== '' ? '' : $phrases['precision'];
+                } else if ($piece) {
+                    $piste = $phrases['fonctionnement'];
+                } else {
+                    // Not "the part is missing": the AI may have refused an answer that does name it, or marked it E2 alone.
+                    $piste = $phrases['les_deux'];
+                }
             }
-        } else if ($texte === '') {
-            $ajout = $phrases['juste'];
+        } else {
+            $apreciser = $lu['erreurs'] ? $apreciser : '';
+            $piste = '';
+            if ($juste === '') {
+                $juste = $phrases['juste'];
+            }
         }
 
-        return trim($texte . ' ' . $ajout);
+        return ['juste' => $juste, 'a_preciser' => $apreciser, 'piste' => $piste,
+            'commentaire' => self::bout_a_bout([$juste, $apreciser, $piste])];
+    }
+
+    /**
+     * Pieces of feedback in a row, the empty ones left out.
+     *
+     * @param string[] $parties
+     * @return string
+     */
+    protected static function bout_a_bout(array $parties): string {
+        return implode(' ', array_filter(array_map('trim', $parties), fn($p) => $p !== ''));
+    }
+
+    /**
+     * Removes each sentence holding a word of the answer key that the student did not write (public use of the filter).
+     *
+     * @param string $texte
+     * @param string $corrige Answer key and vocabulary expected.
+     * @param string $permis Text whose words can be shown.
+     * @return string
+     */
+    public static function filtrer(string $texte, string $corrige, string $permis): string {
+        return self::sans_mots_du_corrige($texte, $corrige, $permis);
+    }
+
+    /**
+     * Fingerprint of the corrected answers and the language setting: an unchanged text gives the same one (request 16).
+     *
+     * @param string[] $textes Plain text of each answer, in the order of the subjects.
+     * @param float $reglage Language setting (reglage_langue()).
+     * @return string sha1
+     */
+    public static function empreinte(array $textes, float $reglage): string {
+        return sha1(json_encode([array_values(array_map('strval', $textes)), round($reglage, 2)], JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * Grade of a copy: the teacher's when there is one, else the grade of the final correction (request 16).
+     *
+     * @param float|null $finale Grade of the latest successful final correction.
+     * @param float|null $enseignant Teacher grade.
+     * @return float|null
+     */
+    public static function note_finale(?float $finale, ?float $enseignant): ?float {
+        return $enseignant ?? $finale;
     }
 
     /** @var string[] Levels the threshold may validate, those of PRONOTE but INS, in their order. */

@@ -263,5 +263,60 @@ test('mot du lexique que l\'élève n\'a pas écrit : phrase retirée, même ave
         16.0, PHRASES, notes_sujets::avec_lexique(CORRIGE_BMX, 'transmission'), 'Ce sont les pédales.', 'BMX')
     === 'PHRASE-LES-DEUX');
 
+// Request 16: attempts and a single final submission.
+test('empreinte : mêmes réponses, même réglage → même empreinte', fn() =>
+    notes_sujets::empreinte(['a', 'b'], 2.0) === notes_sujets::empreinte(['a', 'b'], 2.0));
+test('empreinte : un espace de plus la change', fn() =>
+    notes_sujets::empreinte(['a', 'b'], 2.0) !== notes_sujets::empreinte(['a', 'b '], 2.0));
+test('empreinte : l\'ordre des sujets compte', fn() =>
+    notes_sujets::empreinte(['a', 'b'], 2.0) !== notes_sujets::empreinte(['b', 'a'], 2.0));
+test('empreinte : le réglage de langue compte', fn() =>
+    notes_sujets::empreinte(['a', 'b'], 2.0) !== notes_sujets::empreinte(['a', 'b'], 3.0));
+test('note_finale : la finale', fn() => notes_sujets::note_finale(12.5, null) === 12.5);
+test('note_finale : le professeur sans finale', fn() => notes_sujets::note_finale(null, 14.0) === 14.0);
+test('note_finale : le professeur gagne, même plus bas', fn() => notes_sujets::note_finale(18.0, 9.0) === 9.0);
+test('note_finale : rien', fn() => notes_sujets::note_finale(null, null) === null);
+
+test('retour en trois parties lu', function () {
+    $lu = notes_sujets::lire_reponse_ia('{"attendus":["E1"],"erreurs":[],"note":12,"juste":"J.","a_preciser":"P.","piste":"Q ?"}');
+    return $lu['juste'] === 'J.' && $lu['a_preciser'] === 'P.' && $lu['piste'] === 'Q ?' && $lu['commentaire'] === 'J. P. Q ?';
+});
+test('ancien format : le commentaire devient la partie juste', function () {
+    $lu = notes_sujets::lire_reponse_ia('{"attendus":[],"erreurs":[],"note":5,"commentaire":"C."}');
+    return $lu['juste'] === 'C.' && $lu['a_preciser'] === '' && $lu['piste'] === '' && $lu['commentaire'] === 'C.';
+});
+test('ni juste ni commentaire : refusé', function () {
+    try {
+        notes_sujets::lire_reponse_ia('{"attendus":[],"erreurs":[],"note":5,"piste":"Q ?"}');
+    } catch (\UnexpectedValueException $e) {
+        return true;
+    }
+    return false;
+});
+
+const CORRIGE_POUTRE = 'E1 : la semelle du haut est comprimée. E2 : celle du bas est tendue.';
+const PERMIS_POUTRE = 'Ma section en I. Explique pourquoi ta poutre résiste à la flexion.';
+/** Final feedback under the threshold, for the beam. */
+function retour_poutre(string $piste, float $note = 8.0, array $erreurs = []): array {
+    return notes_sujets::retour_final(['note' => $note, 'juste' => 'Tu décris ta section en I.', 'a_preciser' => 'Tu ne dis pas ce qui se passe.',
+        'piste' => $piste, 'commentaire' => '', 'attendus' => ['E1'], 'erreurs' => $erreurs], 16.0, PHRASES, CORRIGE_POUTRE, PERMIS_POUTRE);
+}
+test('retour_final : une piste qui donne un mot du corrigé est remplacée par la phrase d\'aide', fn() =>
+    retour_poutre('Pense à la partie comprimée.')['piste'] === 'PHRASE-FONCTIONNEMENT');
+test('retour_final : une piste avec les mots de l\'énoncé est gardée', fn() =>
+    retour_poutre('Que se passe-t-il quand ta poutre résiste à la flexion ?')['piste'] === 'Que se passe-t-il quand ta poutre résiste à la flexion ?');
+test('retour_final : le commentaire met les trois parties bout à bout', function () {
+    $r = retour_poutre('Que se passe-t-il quand ta poutre résiste ?');
+    return $r['commentaire'] === 'Tu décris ta section en I. Tu ne dis pas ce qui se passe. Que se passe-t-il quand ta poutre résiste ?';
+});
+test('retour_final : au-dessus du seuil sans erreur, la partie juste seule', function () {
+    $r = retour_poutre('Que se passe-t-il ?', 18.0);
+    return $r['juste'] === 'Tu décris ta section en I.' && $r['a_preciser'] === '' && $r['piste'] === '';
+});
+test('retour_final : au-dessus du seuil avec une erreur X, la partie à préciser reste', fn() =>
+    retour_poutre('Que se passe-t-il ?', 18.0, ['X1'])['a_preciser'] === 'Tu ne dis pas ce qui se passe.');
+test('filtrer : retire la phrase qui contient un mot du corrigé non écrit', fn() =>
+    notes_sujets::filtrer('Bien. Pense à la traction.', 'E1 : traction.', 'Ma poutre.') === 'Bien.');
+
 echo $failures ? "\n{$failures} échec(s)\n" : "\nTout est vert\n";
 exit($failures ? 1 : 0);

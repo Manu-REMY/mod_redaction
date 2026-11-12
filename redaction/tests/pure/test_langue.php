@@ -122,5 +122,20 @@ foreach (json_decode(file_get_contents(__DIR__ . '/phrases_cas.json'), true) as 
     test('phrases : ' . $cas['note'], fn() => langue::phrases($cas['texte']) === $cas['phrases']);
 }
 
+// Request 16: a rule for each mistake and a piece of advice.
+test('règle de la faute gardée, conseil gardé', function () {
+    $lu = langue::lire_reponse_ia('{"orthographe":{"palier":"I","fautes":[{"cite":"résiste","correction":"résistent","type":"accord","regle":"Le verbe s\'accorde."}]},'
+        . '"syntaxe":{"palier":"S","remarques":[{"cite":"a b","type":"ponctuation","regle":"Une phrase finit par un point."}]},'
+        . '"lexique":{"palier":"S"},"organisation":{"palier":"S"},"conseil":"Relis tes verbes."}');
+    $v = langue::verifier($lu, 'les semelles résiste a b');
+    return $lu['fautes'][0]['regle'] === 'Le verbe s\'accorde.' && $lu['remarques'][0]['regle'] === 'Une phrase finit par un point.'
+        && $lu['conseil'] === 'Relis tes verbes.' && $v['conseil'] === 'Relis tes verbes.' && $v['fautes'][0]['regle'] === 'Le verbe s\'accorde.';
+});
+test('sans règle ni conseil : chaînes vides', function () {
+    $lu = langue::lire_reponse_ia('{"orthographe":{"palier":"S","fautes":[{"cite":"x","correction":"y","type":"lexicale"}]},'
+        . '"syntaxe":{"palier":"S"},"lexique":{"palier":"S"},"organisation":{"palier":"S"}}');
+    return $lu['fautes'][0]['regle'] === '' && $lu['conseil'] === '';
+});
+
 echo $failures === 0 ? "\nOK\n" : "\n$failures FAILED\n";
 exit($failures === 0 ? 0 : 1);
