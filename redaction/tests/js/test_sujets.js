@@ -411,6 +411,38 @@ const check = (label, ok, detail) => {
     check('sentences: answers written in sentences are sent with no warning', r.warnings === 0 && r.submits === 1, r);
     await page.close();
 
+    // 7c. Request 16: the final version asks for a confirmation, then hands in; cancelling sends nothing.
+    page = await open('ecran_normal.html');
+    await page.evaluate(() => {
+        window.handlers.mod_redaction_save_sujet_reponse = () => window.ok();
+        window.handlers.mod_redaction_submit_final = () => window.ok();
+        window.handlers.mod_redaction_get_evaluation_status = () => ({status: 'pending'});
+    });
+    await init(page, 2);
+    r = await page.evaluate(async () => {
+        const n = document.querySelectorAll('.mod_redaction-se-reponse').length;
+        for (let i = 0; i < n; i++) {
+            type(i, 'La poutre travaille en compression. Elle est plus large en bas pour mieux résister.');
+        }
+        await tick(2000);
+        $('#mod_redaction-se-final').click();
+        await settle();
+        const annule = {warnings: window.warnings.length, finals: calls_of('mod_redaction_submit_final').length,
+            essais: calls_of('mod_redaction_submit_sujets').length};
+        window.warningAnswer = true;
+        $('#mod_redaction-se-final').click();
+        await settle();
+        const envoye = {warnings: window.warnings.length, finals: calls_of('mod_redaction_submit_final').length,
+            essais: calls_of('mod_redaction_submit_sujets').length,
+            readonly: [...document.querySelectorAll('.mod_redaction-se-reponse')].every((a) => a.readOnly),
+            boutons: !!$('#mod_redaction-se-final') && $('#mod_redaction-se-final').disabled && $('#mod_redaction-se-submit').disabled};
+        return {annule, envoye};
+    });
+    check('final version: a confirmation first, cancelling sends nothing', r.annule.warnings === 1 && r.annule.finals === 0 && r.annule.essais === 0, r.annule);
+    check('final version: confirmed, handed in once, answers read-only, both buttons off', r.envoye.warnings === 2 && r.envoye.finals === 1
+        && r.envoye.essais === 0 && r.envoye.readonly && r.envoye.boutons, r.envoye);
+    await page.close();
+
     // 8. No JS error anywhere.
     check('no JS error or unhandled rejection in any page (' + consoleErrors.length + ')', consoleErrors.length === 0, consoleErrors);
 

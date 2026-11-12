@@ -99,6 +99,14 @@ class sujets_eleve implements renderable, templatable {
         $maxeffective = redaction_effective_max_attempts($redaction);
         $restants = max(0, $maxeffective - (int) $submission->training_count);
 
+        // Request 16: state of the copy, its deadline, the final version.
+        $toutes = $DB->get_records('redaction_ai_evaluations', ['submissionid' => $submission->id], 'id DESC', 'id, status, finale');
+        $etat = grading_sujets::etat($submission, $toutes);
+        $rendue = (int) $submission->status === 1;
+        $datelimite = redaction_get_effective_deadline($redaction, (int) $submission->userid, (int) $submission->groupid);
+        $tard = redaction_deadline_passed($redaction, $submission);
+        $finalepossible = !$rendue && !$tard;
+
         $items = [];
         $numero = 0;
         foreach ($sujets as $sujet) {
@@ -109,7 +117,7 @@ class sujets_eleve implements renderable, templatable {
                 'titre' => format_string($sujet->titre),
                 'contenu' => format_text($sujet->contenu ?? '', FORMAT_HTML, ['context' => $this->context]),
                 'reponse' => (string) ($reponses[$sujet->id] ?? ''),
-                'readonly' => $pending,
+                'readonly' => $pending || $rendue || $tard,
             ];
         }
 
@@ -126,10 +134,11 @@ class sujets_eleve implements renderable, templatable {
             'submissionid = ? AND status = ?',
             [$submission->id, 'applied'],
             'timecreated DESC, id DESC',
-            'id, sujets_json, parsed_grade, langue_json, langue_points',
+            'id, sujets_json, parsed_grade, langue_json, langue_points, finale',
             0,
             1
         );
+        $indicatif = null;
         if ($derniere) {
             $derniere = reset($derniere);
             $p = (float) ($derniere->langue_points ?? 0);
@@ -138,6 +147,10 @@ class sujets_eleve implements renderable, templatable {
                 if (isset($detail['note'])) {
                     $notes[] = (float) $detail['note'];
                 }
+                // Request 16: the three parts; a correction made before them has its single comment in "juste".
+                $juste = (string) ($detail['juste'] ?? ($detail['commentaire'] ?? ''));
+                $apreciser = (string) ($detail['a_preciser'] ?? '');
+                $piste = (string) ($detail['piste'] ?? '');
                 $commentaires[] = [
                     'titre' => format_string($detail['titre'] ?? ''),
                     'hasnote' => isset($detail['note']),
@@ -145,6 +158,13 @@ class sujets_eleve implements renderable, templatable {
                         ? format_float(\mod_redaction\notes_sujets::sur_echelle((float) $detail['note'], $p), 1, true, true) : '',
                     'sur' => format_float(\mod_redaction\notes_sujets::NOTE_MAX - $p, 1, true, true),
                     'commentaire' => (string) ($detail['commentaire'] ?? ''),
+                    'vide' => !empty($detail['vide']),
+                    'hasjuste' => $juste !== '',
+                    'juste' => $juste,
+                    'hasapreciser' => $apreciser !== '',
+                    'a_preciser' => $apreciser,
+                    'haspiste' => $piste !== '',
+                    'piste' => $piste,
                 ];
             }
             $langue = langue_bloc::donnees($derniere->langue_json, false);
@@ -159,6 +179,10 @@ class sujets_eleve implements renderable, templatable {
                     'total' => format_float($total, 1, true, true),
                 ]);
                 $empeche = \mod_redaction\notes_sujets::juste_sauf_langue($notes, $total, $seuil);
+            }
+            // Before the final version, the grade of the last feedback is only an indication.
+            if (empty($derniere->finale) && $derniere->parsed_grade !== null) {
+                $indicatif = (float) $derniere->parsed_grade;
             }
         }
 
@@ -195,6 +219,22 @@ class sujets_eleve implements renderable, templatable {
             'hasdetailtentative' => $detailtentative !== '',
             'detailtentative' => $detailtentative,
             'empeche' => $empeche,
+            // Request 16: the progress panel.
+            'etat' => $etat,
+            'etatlibelle' => get_string('sujets_se_etat_' . $etat, 'mod_redaction'),
+            'hasdatelimite' => !empty($datelimite),
+            'datelimite' => !empty($datelimite) ? userdate($datelimite, get_string('strftimedatetimeshort', 'langconfig')) : '',
+            'tard' => $tard && !$rendue,
+            'rendue' => $rendue,
+            'dateremise' => $rendue && $submission->timesubmitted ? userdate((int) $submission->timesubmitted, get_string('strftimedatetimeshort', 'langconfig')) : '',
+            'hasindicatif' => $note === null && $indicatif !== null,
+            'indicatif' => $indicatif !== null ? format_float($indicatif, 1, true, true) : '',
+            'atteint' => $indicatif !== null && $indicatif >= $seuil,
+            'numeroretour' => (int) $submission->training_count,
+            'max' => $maxeffective,
+            'canessai' => !$rendue && !$tard,
+            'canfinale' => $finalepossible,
+            'finaledisabled' => !$finalepossible || $pending,
         ];
     }
 }

@@ -251,8 +251,8 @@ try {
     $check('screen: the expected answer never reaches the screen', stripos($ha, 'corrige') === false && stripos($ha, 'Corrigesecret') === false
         && stripos(json_encode($da), 'corrige') === false);
     $check('screen: no inline style', stripos($ha, 'style=') === false);
-    $check('screen: banner not validated, threshold recalled', !$da['valide'] && strpos($ha, 'mod_redaction-se-ko') !== false
-        && strpos($ha, 'Niveau fragile pas encore validé') !== false && strpos($ha, 'Il faut au moins 16/20') !== false);
+    $check('screen: no feedback yet, no banner, threshold recalled', !$da['valide'] && !$da['hasindicatif']
+        && strpos($ha, 'Il faut au moins 16/20') !== false && strpos($ha, 'Mon avancement') !== false);
     $check('screen: no grade yet, five attempts left', !$da['hasnote'] && $da['restants'] === 5);
     $enregistrer('1-debut-membre-A', $ha);
     $enregistrer('1-debut-membre-B', $hb);
@@ -331,7 +331,9 @@ try {
     $check('get_evaluation_status gives applied and a grade', is_array($st) && $st['status'] === 'applied' && $st['grade'] !== null);
     [$da, $ha] = $rendre($a);
     [$db, $hb] = $rendre($b);
-    $check('after correction: same grade and state for both members', $ha === $hb && $da['hasnote'] && !$da['valide'] && $da['restants'] === 4);
+    // Request 16: an attempt gives an indication, never the grade of the copy.
+    $check('after correction: same indication and state for both members', $ha === $hb && !$da['hasnote'] && $da['hasindicatif']
+        && !$da['atteint'] && $da['restants'] === 4);
     $check('after correction: orange banner, grade out of 20, comments with the subject title', strpos($ha, 'mod_redaction-se-ko') !== false
         && strpos($ha, '/20') !== false && strpos($ha, 'Tu as vu la roue.') !== false && strpos($ha, 'Il manque le role du moteur.') === false && strpos($ha, 'Systeme') !== false);
     $check('after correction: still editable, button usable', !$da['pending'] && !$da['disabled'] && strpos($ha, 'readonly') === false);
@@ -346,8 +348,8 @@ try {
     $sim->reponses = [new \RuntimeException('Provider down')];
     ai_evaluator::process_evaluation((int) $r['evaluationid']);
     [$da, $ha] = $rendre($a);
-    $check('failed: attempt given back, "correction en attente" shown, grade kept', $da['echec'] && !$da['pending'] && $da['restants'] === 4
-        && $da['hasnote'] && strpos($ha, 'Correction en attente') !== false);
+    $check('failed: attempt given back, "correction en attente" shown, indication kept', $da['echec'] && !$da['pending'] && $da['restants'] === 4
+        && $da['hasindicatif'] && strpos($ha, 'Correction en attente') !== false);
     $enregistrer('4-correction-en-attente', $ha);
 
     // Validated.
@@ -356,8 +358,8 @@ try {
     $sim->reponses = [ia(18, 'Parfait.'), ia(17, 'Presque parfait.')];
     ai_evaluator::process_evaluation((int) $r['evaluationid']);
     [$da, $ha] = $rendre($b);
-    $check('validated: blue banner with the word, grade kept as the best', $da['valide'] && strpos($ha, 'mod_redaction-se-ok') !== false
-        && strpos($ha, 'Niveau fragile validé') !== false);
+    $check('threshold reached on this feedback: blue banner, said to be validated only by the final version', $da['atteint'] && !$da['valide']
+        && strpos($ha, 'mod_redaction-se-ok') !== false && strpos($ha, get_string('sujets_se_atteint', 'mod_redaction', 'fragile')) !== false);
     $check('validated: text stays editable while attempts remain', !$da['disabled'] && $da['restants'] === 3 && strpos($ha, 'readonly') === false);
     $enregistrer('5-valide', $ha);
 
@@ -370,10 +372,9 @@ try {
     enrol_try_internal_enrol($course->id, $late, $studentrole);
     groups_add_member($g1, $late);
     [$dl, $hl] = $rendre($late);
-    $check('late joiner: no grade, no validated banner, no false success', !$dl['hasnote'] && !$dl['valide']
-        && strpos($hl, 'mod_redaction-se-ko') !== false && strpos($hl, 'Niveau fragile validé') === false);
+    $check('late joiner: no grade, nothing said validated', !$dl['hasnote'] && !$dl['valide'] && strpos($hl, 'Niveau fragile validé') === false);
     [$db2] = $rendre($b);
-    $check('the original member keeps the validated state', $db2['valide'] && $db2['hasnote']);
+    $check('the original member keeps the indication of the group', $db2['atteint'] && !$db2['hasnote']);
     $check('the group comments stay shared with the late joiner', $dl['hascommentaires']);
     $enregistrer('7-arrive-apres-la-note', $hl);
 
@@ -416,7 +417,7 @@ try {
     $check('language: points of the attempt', strpos($ha, '1,3/2') !== false);
     $check('language: subjects on 18', strpos($ha, '15,3/18') !== false && strpos($ha, '16,2/18') !== false);
     $check('language: this attempt in detail', strpos($ha, 'Cette tentative') !== false && strpos($ha, '17,1/20') !== false);
-    $check('language: validated, no "correct your language" sentence', $da['valide']
+    $check('language: threshold reached, no "correct your language" sentence', $da['atteint']
         && strpos($ha, get_string('sujets_langue_empeche', 'mod_redaction')) === false);
     $check('language: no inline style', stripos($ha, 'style=') === false);
 
@@ -429,7 +430,7 @@ try {
     [$da, $ha] = $rendre($a);
     $enregistrer('9-langue-empeche', $ha);
     $check('language keeps it under the threshold: the sentence is shown', strpos($ha, get_string('sujets_langue_empeche', 'mod_redaction')) !== false);
-    $check('language keeps it under the threshold: the best attempt still counts', $da['valide']);
+    $check('language keeps it under the threshold: the indication is this feedback, under the threshold', !$da['atteint'] && $da['hasindicatif']);
 
     // Registration and strings.
     foreach (['mod_redaction_save_sujet_reponse', 'mod_redaction_submit_sujets'] as $nom) {

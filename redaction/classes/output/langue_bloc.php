@@ -59,7 +59,10 @@ class langue_bloc {
         }
 
         $fautes = [];
-        foreach ((array) ($langue['fautes'] ?? []) as $faute) {
+        // Request 16: the mistakes of one kind together, each with its rule.
+        $liste = (array) ($langue['fautes'] ?? []);
+        usort($liste, fn($x, $y) => strcmp((string) ($x['type'] ?? ''), (string) ($y['type'] ?? '')));
+        foreach ($liste as $faute) {
             $fois = (int) ($faute['fois'] ?? 1);
             $fautes[] = [
                 'cite' => get_string('langue_citation', 'mod_redaction', (string) ($faute['cite'] ?? '')),
@@ -68,6 +71,8 @@ class langue_bloc {
                 'type' => !empty($faute['type']) ? get_string('langue_type_' . $faute['type'], 'mod_redaction') : '',
                 'hasfois' => $fois > 1,
                 'fois' => get_string('langue_fois', 'mod_redaction', $fois),
+                'hasregle' => trim((string) ($faute['regle'] ?? '')) !== '',
+                'regle' => trim((string) ($faute['regle'] ?? '')),
             ];
         }
 
@@ -77,6 +82,8 @@ class langue_bloc {
                 'cite' => get_string('langue_citation', 'mod_redaction', (string) ($remarque['cite'] ?? '')),
                 'hastype' => !empty($remarque['type']),
                 'type' => !empty($remarque['type']) ? get_string('langue_type_' . $remarque['type'], 'mod_redaction') : '',
+                'hasregle' => trim((string) ($remarque['regle'] ?? '')) !== '',
+                'regle' => trim((string) ($remarque['regle'] ?? '')),
             ];
         }
 
@@ -91,6 +98,8 @@ class langue_bloc {
             'fautes' => $fautes,
             'hasremarques' => !empty($remarques),
             'remarques' => $remarques,
+            'hasconseil' => trim((string) ($langue['conseil'] ?? '')) !== '',
+            'conseil' => trim((string) ($langue['conseil'] ?? '')),
             'hasecartees' => $pourenseignant && $ecartees > 0,
             'ecartees' => $pourenseignant && $ecartees > 0 ? get_string('langue_ecartees', 'mod_redaction', $ecartees) : '',
         ];

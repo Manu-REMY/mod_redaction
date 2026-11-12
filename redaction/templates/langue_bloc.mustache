@@ -57,7 +57,8 @@
         <li><span class="mod_redaction-langue-cite">{{cite}}</span> <span aria-hidden="true">&rarr;</span>
             <strong class="mod_redaction-langue-correction">{{correction}}</strong>{{#hastype}}
             <span class="mod_redaction-langue-type">({{type}})</span>{{/hastype}}{{#hasfois}}
-            <span class="mod_redaction-langue-type">{{fois}}</span>{{/hasfois}}</li>
+            <span class="mod_redaction-langue-type">{{fois}}</span>{{/hasfois}}{{#hasregle}}
+            <span class="mod_redaction-langue-regle">{{#str}}langue_regle, mod_redaction{{/str}} {{regle}}</span>{{/hasregle}}</li>
         {{/fautes}}
     </ul>
     {{/hasfautes}}
@@ -66,10 +67,14 @@
     <ul class="mod_redaction-langue-liste">
         {{#remarques}}
         <li><span class="mod_redaction-langue-cite">{{cite}}</span>{{#hastype}}
-            <span class="mod_redaction-langue-type">({{type}})</span>{{/hastype}}</li>
+            <span class="mod_redaction-langue-type">({{type}})</span>{{/hastype}}{{#hasregle}}
+            <span class="mod_redaction-langue-regle">{{#str}}langue_regle, mod_redaction{{/str}} {{regle}}</span>{{/hasregle}}</li>
         {{/remarques}}
     </ul>
     {{/hasremarques}}
+    {{#hasconseil}}
+    <p class="mod_redaction-langue-conseil"><strong>{{#str}}langue_conseil, mod_redaction{{/str}}</strong> {{conseil}}</p>
+    {{/hasconseil}}
     {{#hasecartees}}
     <p class="mod_redaction-langue-ecartees">{{ecartees}}</p>
     {{/hasecartees}}

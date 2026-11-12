@@ -244,10 +244,11 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
     }
 
     /**
-     * Submit the saved answers to the correction.
+     * Submit the saved answers: a training attempt, or the final version (request 16).
      * @param {HTMLButtonElement} button
+     * @param {string} methodname mod_redaction_submit_sujets (attempt) or mod_redaction_submit_final
      */
-    function submit(button) {
+    function submit(button, methodname) {
         button.disabled = true;
         submitting = true;
         setMessage('');
@@ -257,7 +258,7 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
                 return {success: false, notsaved: true, message: strings.notsaved};
             }
             return Ajax.call([{
-                methodname: 'mod_redaction_submit_sujets',
+                methodname: methodname || 'mod_redaction_submit_sujets',
                 args: {cmid: config.cmid},
             }])[0];
         }).then(function(result) {
@@ -269,6 +270,10 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
             }
             root.querySelectorAll('.mod_redaction-se-reponse').forEach(function(area) {
                 area.readOnly = true;
+            });
+            // Neither button while a correction runs; after the final version, never again.
+            root.querySelectorAll('#mod_redaction-se-submit, #mod_redaction-se-final').forEach(function(other) {
+                other.disabled = true;
             });
             button.textContent = strings.inprogress;
             setMessage('');
@@ -312,10 +317,35 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
             {key: 'sujets_phrases_envoyer', component: 'mod_redaction'},
         ]).then(function(texte) {
             return Notification.saveCancelPromise(texte[0], texte[1], texte[2]).then(function() {
-                submit(button);
+                submit(button, 'mod_redaction_submit_sujets');
                 return null;
             }).catch(function() {
                 // The student chose to go back and write sentences: nothing is sent.
+            });
+        }).catch(Notification.exception);
+    }
+
+    /**
+     * Hand in the final version, after a confirmation that also recalls the sentences when an answer has too few.
+     * @param {HTMLButtonElement} button
+     */
+    function soumettreFinale(button) {
+        var numeros = peuDePhrases();
+        var cles = [
+            {key: 'sujets_finale_confirmer_titre', component: 'mod_redaction'},
+            {key: 'sujets_finale_confirmer', component: 'mod_redaction'},
+            {key: 'sujets_finale_envoyer', component: 'mod_redaction'},
+        ];
+        if (numeros.length) {
+            cles.push({key: 'sujets_phrases_alerte', component: 'mod_redaction', param: {sujets: numeros.join(', '), phrases: config.phrases}});
+        }
+        Str.get_strings(cles).then(function(texte) {
+            var question = texte[1] + (numeros.length ? ' ' + texte[3] : '');
+            return Notification.saveCancelPromise(texte[0], question, texte[2]).then(function() {
+                submit(button, 'mod_redaction_submit_final');
+                return null;
+            }).catch(function() {
+                // The student chose to go back: nothing is handed in.
             });
         }).catch(Notification.exception);
     }
@@ -337,6 +367,12 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
         if (button) {
             button.addEventListener('click', function() {
                 verifierPuisSoumettre(button);
+            });
+        }
+        var finale = root.querySelector('#mod_redaction-se-final');
+        if (finale) {
+            finale.addEventListener('click', function() {
+                soumettreFinale(finale);
             });
         }
 

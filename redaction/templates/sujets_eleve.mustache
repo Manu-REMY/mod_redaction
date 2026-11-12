@@ -1,128 +1,157 @@
 {{!
-    This file is part of Moodle - http://moodle.org/
-
-    Moodle is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Moodle is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-}}
-{{!
     @template mod_redaction/sujets_eleve
 
-    Student screen of the assigned subjects mode: the subjects of the group, one answer box each,
-    the submit button, the attempts left, the best grade and the last comments.
+    Student screen of the assigned subjects mode (request 16): the subjects and their answer boxes on the left,
+    the "Mon avancement" panel on the right (state, deadline, grade, last feedback, attempts, final version),
+    and on a narrow screen a bar at the bottom with the state and the two buttons.
 
     Context variables required for this template:
-    * niveau - Name of the level the threshold validates (fragile, satisfaisant…)
     * cmid, submissionid - Identifiers used by the script
     * groupname - Name of the group
     * hasphrases, phrases - Sentences expected in each answer, recalled under each answer box
     * items - Subjects: id, number, titre, contenu (HTML), reponse, readonly
-    * valide, seuil, hasnote, note - Validation banner and best grade
-    * restants - Attempts left
-    * pending, echec, disabled, raison - State of the correction and of the button
+    * etat, etatlibelle, rendue, dateremise, hasdatelimite, datelimite, tard - State of the copy and its deadline
+    * valide, seuil, niveau, hasnote, note - Grade of the copy (final version or teacher) and validation
+    * hasindicatif, indicatif, atteint, numeroretour, max, restants - Last feedback before the final version
+    * pending, echec, disabled, raison, canessai, canfinale, finaledisabled - State of the correction and of the buttons
     * hascommentaireprof, commentaireprof - Comment of the teacher, while the teacher grade stands
-    * hascommentaires, commentaires - Comments of the last correction: titre, note, sur, commentaire
+    * hascommentaires, commentaires - Last feedback per subject: titre, note, sur, vide, juste, a_preciser, piste (has*)
     * empeche - The explanations are right but the language keeps the total under the threshold
     * haslangue, langue - Language assessment of the last correction (template langue_bloc)
     * hasdetailtentative, detailtentative - Content, language and total of the last correction
 
     Example context (json):
     {
-        "cmid": 1, "submissionid": 2, "groupname": "4A-GRP01", "hasphrases": true, "phrases": 2,
-        "items": [{"id": 5, "number": 1, "titre": "Pont", "contenu": "<p>Explique</p>", "reponse": "", "readonly": false}],
-        "valide": false, "seuil": "16", "niveau": "fragile", "hasnote": true, "note": "12",
-        "restants": 3, "pending": false, "echec": false, "disabled": false, "raison": "",
-        "hascommentaireprof": true, "commentaireprof": "Bien vu.",
+        "cmid": 1, "submissionid": 2, "groupname": "", "hasphrases": true, "phrases": 2,
+        "items": [{"id": 5, "number": 1, "titre": "Ma poutre « flexion »", "contenu": "<p>Explique</p>", "reponse": "", "readonly": false}],
+        "etat": "brouillon", "etatlibelle": "Brouillon", "rendue": false, "dateremise": "", "hasdatelimite": true,
+        "datelimite": "19/11/26, 07:00", "tard": false,
+        "valide": false, "seuil": "12", "niveau": "« presque maîtrisé »", "hasnote": false, "note": "",
+        "hasindicatif": true, "indicatif": "13,1", "atteint": true, "numeroretour": 2, "max": 8, "restants": 6,
+        "pending": false, "echec": false, "disabled": false, "raison": "", "canessai": true, "canfinale": true, "finaledisabled": false,
+        "hascommentaireprof": false, "commentaireprof": "",
         "hascommentaires": true,
-        "commentaires": [{"titre": "Pont", "hasnote": true, "note": "12", "sur": "20", "commentaire": "Il manque une idee."}],
+        "commentaires": [{"titre": "Ma poutre « flexion »", "hasnote": true, "note": "11,8", "sur": "18", "vide": false,
+            "hasjuste": true, "juste": "Tu décris ta section.", "hasapreciser": true, "a_preciser": "Dis ce que subit chaque semelle.",
+            "haspiste": true, "piste": "Que se passe-t-il quand ta poutre plie ?"}],
         "empeche": false, "haslangue": false, "hasdetailtentative": false, "detailtentative": ""
     }
 }}
 <div class="mod_redaction mod_redaction-sujets-eleve" id="mod_redaction-sujets-eleve">
-    {{#groupname}}
-    <p class="mod_redaction-se-group">{{#str}}group_label, mod_redaction{{/str}} <strong>{{groupname}}</strong></p>
-    {{/groupname}}
-
-    <div class="mod_redaction-se-banner {{#valide}}mod_redaction-se-ok{{/valide}}{{^valide}}mod_redaction-se-ko{{/valide}}" role="status">
-        <span class="mod_redaction-se-mark" aria-hidden="true">{{#valide}}&#10003;{{/valide}}{{^valide}}&#10007;{{/valide}}</span>
-        <span class="mod_redaction-se-banner-text">
-            <strong>{{#valide}}{{#str}}sujets_valide, mod_redaction, {{niveau}}{{/str}}{{/valide}}{{^valide}}{{#str}}sujets_pas_valide, mod_redaction, {{niveau}}{{/str}}{{/valide}}</strong>
-            <span class="mod_redaction-se-seuil">{{#str}}sujets_seuil_rappel, mod_redaction, {{seuil}}{{/str}}</span>
-        </span>
-    </div>
-
-    <ul class="mod_redaction-se-facts">
-        <li class="mod_redaction-se-grade">
-            {{#hasnote}}{{#str}}sujets_meilleure_note, mod_redaction, {{note}}{{/str}}{{/hasnote}}
-            {{^hasnote}}{{#str}}sujets_pas_de_note, mod_redaction{{/str}}{{/hasnote}}
-        </li>
-        <li class="mod_redaction-se-attempts">{{#str}}sujets_essais_restants, mod_redaction, {{restants}}{{/str}}</li>
-    </ul>
-
-    {{#echec}}
-    <div class="mod_redaction-se-notice mod_redaction-se-failed" role="status">{{#str}}sujets_correction_attente, mod_redaction{{/str}}</div>
-    {{/echec}}
-
-    {{#items}}
-    <section class="mod_redaction-se-sujet" aria-labelledby="mod_redaction-se-titre-{{id}}">
-        <h3 class="mod_redaction-se-titre" id="mod_redaction-se-titre-{{id}}">{{#str}}sujet_number, mod_redaction, {{number}}{{/str}} : {{titre}}</h3>
-        <div class="mod_redaction-se-contenu">{{{contenu}}}</div>
-        <label class="mod_redaction-se-label" for="mod_redaction-se-reponse-{{id}}">{{#str}}sujets_reponse_label, mod_redaction{{/str}}</label>
-        <textarea class="form-control mod_redaction-se-reponse" id="mod_redaction-se-reponse-{{id}}" rows="6"
-            data-sujetid="{{id}}" {{#readonly}}readonly{{/readonly}}>{{reponse}}</textarea>
-        {{#hasphrases}}<p class="mod_redaction-se-phrases">{{#str}}sujets_phrases_consigne, mod_redaction, {{phrases}}{{/str}}</p>{{/hasphrases}}
-    </section>
-    {{/items}}
-
-    <div class="mod_redaction-se-actions">
-        <button type="button" class="btn btn-primary mod_redaction-se-submit" id="mod_redaction-se-submit"
-            {{#disabled}}disabled{{/disabled}}>{{#pending}}{{#str}}sujets_correction_en_cours, mod_redaction{{/str}}{{/pending}}{{^pending}}{{#str}}sujets_soumettre, mod_redaction{{/str}}{{/pending}}</button>
+<div class="mod_redaction-se-layout">
+    <div class="mod_redaction-se-main">
+        {{#groupname}}
+        <p class="mod_redaction-se-group">{{#str}}group_label, mod_redaction{{/str}} <strong>{{groupname}}</strong></p>
+        {{/groupname}}
+        {{#items}}
+        <section class="mod_redaction-se-sujet" aria-labelledby="mod_redaction-se-titre-{{id}}">
+            <h3 class="mod_redaction-se-titre" id="mod_redaction-se-titre-{{id}}">{{#str}}sujet_number, mod_redaction, {{number}}{{/str}} : {{titre}}</h3>
+            <div class="mod_redaction-se-contenu">{{{contenu}}}</div>
+            <label class="mod_redaction-se-label" for="mod_redaction-se-reponse-{{id}}">{{#str}}sujets_reponse_label, mod_redaction{{/str}}</label>
+            <textarea class="form-control mod_redaction-se-reponse" id="mod_redaction-se-reponse-{{id}}" rows="7"
+                data-sujetid="{{id}}" {{#readonly}}readonly{{/readonly}}>{{reponse}}</textarea>
+            {{#hasphrases}}<p class="mod_redaction-se-phrases">{{#str}}sujets_phrases_consigne, mod_redaction, {{phrases}}{{/str}}</p>{{/hasphrases}}
+        </section>
+        {{/items}}
         <span class="mod_redaction-se-savestate" id="mod_redaction-se-savestate" role="status" aria-live="polite"></span>
     </div>
-    <div class="mod_redaction-se-attente{{#pending}} mod_redaction-se-pending{{/pending}}" id="mod_redaction-se-attente" role="status"{{^pending}} hidden{{/pending}}>
-        <span class="spinner-border mod_redaction-se-spinner" aria-hidden="true"></span>
-        <span>{{#str}}sujets_correction_patience, mod_redaction{{/str}}</span>
-    </div>
-    {{#raison}}
-    <p class="mod_redaction-se-reason">{{raison}}</p>
-    {{/raison}}
-    <div class="mod_redaction-se-message" id="mod_redaction-se-message" role="alert"></div>
 
-    {{#hascommentaireprof}}
-    <section class="mod_redaction-se-comments mod_redaction-se-teacher">
-        <h3>{{#str}}sujets_commentaire_prof, mod_redaction{{/str}}</h3>
-        <p class="mod_redaction-se-comment">{{commentaireprof}}</p>
-    </section>
-    {{/hascommentaireprof}}
-
-    {{#hascommentaires}}
-    <section class="mod_redaction-se-comments">
-        <h3>{{#str}}sujets_derniers_commentaires, mod_redaction{{/str}}</h3>
-        {{#commentaires}}
-        <div class="mod_redaction-se-comment">
-            <p class="mod_redaction-se-comment-title"><strong>{{titre}}</strong>{{#hasnote}} <span class="mod_redaction-se-comment-grade">{{note}}/{{sur}}</span>{{/hasnote}}</p>
-            <p>{{commentaire}}</p>
+    <aside class="mod_redaction-se-volet" id="mod_redaction-se-volet-ancre" aria-label="{{#str}}sujets_se_avancement, mod_redaction{{/str}}">
+        <h2 class="mod_redaction-se-volet-titre">{{#str}}sujets_se_avancement, mod_redaction{{/str}}</h2>
+        <div class="mod_redaction-se-cartes">
+            <div class="mod_redaction-se-carte">
+                <div class="mod_redaction-se-carte-label">{{#str}}sujets_se_etat, mod_redaction{{/str}}</div>
+                <div class="mod_redaction-se-carte-valeur">{{etatlibelle}}{{#rendue}}{{#dateremise}} · {{dateremise}}{{/dateremise}}{{/rendue}}</div>
+            </div>
+            <div class="mod_redaction-se-carte">
+                <div class="mod_redaction-se-carte-label">{{#str}}sujets_se_a_rendre, mod_redaction{{/str}}</div>
+                <div class="mod_redaction-se-carte-valeur">{{#hasdatelimite}}{{datelimite}}{{/hasdatelimite}}{{^hasdatelimite}}&ndash;{{/hasdatelimite}}</div>
+            </div>
         </div>
-        {{/commentaires}}
-        {{#empeche}}
-        <p class="mod_redaction-se-notice mod_redaction-langue-empeche" role="status">{{#str}}sujets_langue_empeche, mod_redaction{{/str}}</p>
-        {{/empeche}}
-    </section>
-    {{/hascommentaires}}
 
-    {{#haslangue}}
-    {{#langue}}{{> mod_redaction/langue_bloc}}{{/langue}}
-    {{/haslangue}}
-    {{#hasdetailtentative}}
-    <p class="mod_redaction-langue-detail">{{detailtentative}}</p>
-    {{/hasdetailtentative}}
+        {{#hasnote}}
+        <div class="mod_redaction-se-banner {{#valide}}mod_redaction-se-ok{{/valide}}{{^valide}}mod_redaction-se-ko{{/valide}}" role="status">
+            <span class="mod_redaction-se-mark" aria-hidden="true">{{#valide}}&#10003;{{/valide}}{{^valide}}&#10007;{{/valide}}</span>
+            <span class="mod_redaction-se-banner-text">
+                <strong>{{#str}}sujets_se_note, mod_redaction, {{note}}{{/str}} · {{#valide}}{{#str}}sujets_valide, mod_redaction, {{niveau}}{{/str}}{{/valide}}{{^valide}}{{#str}}sujets_pas_valide, mod_redaction, {{niveau}}{{/str}}{{/valide}}</strong>
+                <span class="mod_redaction-se-seuil">{{#str}}sujets_seuil_rappel, mod_redaction, {{seuil}}{{/str}}</span>
+            </span>
+        </div>
+        {{/hasnote}}
+        {{^hasnote}}
+        {{#hasindicatif}}
+        <div class="mod_redaction-se-banner {{#atteint}}mod_redaction-se-ok{{/atteint}}{{^atteint}}mod_redaction-se-ko{{/atteint}}" role="status">
+            <span class="mod_redaction-se-mark" aria-hidden="true">{{#atteint}}&#10003;{{/atteint}}{{^atteint}}&#10007;{{/atteint}}</span>
+            <span class="mod_redaction-se-banner-text">
+                <strong>{{#str}}sujets_se_dernier_retour, mod_redaction, {{indicatif}}{{/str}}</strong>
+                <span class="mod_redaction-se-seuil">{{#atteint}}{{#str}}sujets_se_atteint, mod_redaction, {{niveau}}{{/str}}{{/atteint}}{{^atteint}}{{#str}}sujets_se_pas_atteint, mod_redaction, {{seuil}}{{/str}}{{/atteint}}</span>
+            </span>
+        </div>
+        {{/hasindicatif}}
+        {{^hasindicatif}}
+        <p class="mod_redaction-se-seuil">{{#str}}sujets_pas_de_note, mod_redaction{{/str}} · {{#str}}sujets_seuil_rappel, mod_redaction, {{seuil}}{{/str}}</p>
+        {{/hasindicatif}}
+        {{/hasnote}}
+
+        {{#echec}}
+        <div class="mod_redaction-se-notice mod_redaction-se-failed" role="status">{{#str}}sujets_correction_attente, mod_redaction{{/str}}</div>
+        {{/echec}}
+
+        {{#hascommentaireprof}}
+        <section class="mod_redaction-se-comments mod_redaction-se-teacher">
+            <h3>{{#str}}sujets_commentaire_prof, mod_redaction{{/str}}</h3>
+            <p class="mod_redaction-se-comment">{{commentaireprof}}</p>
+        </section>
+        {{/hascommentaireprof}}
+
+        {{#hascommentaires}}
+        <section class="mod_redaction-se-comments">
+            <h3>{{#str}}sujets_se_retour_titre, mod_redaction, {{numeroretour}}{{/str}}</h3>
+            {{#commentaires}}
+            <div class="mod_redaction-se-comment">
+                <p class="mod_redaction-se-comment-title"><strong>{{titre}}</strong>{{#hasnote}} <span class="mod_redaction-se-comment-grade">{{note}}/{{sur}}</span>{{/hasnote}}</p>
+                {{#vide}}<p>{{#str}}sujets_se_vide, mod_redaction{{/str}}</p>{{/vide}}
+                {{#hasjuste}}<p class="mod_redaction-se-partie"><span class="mod_redaction-se-signe mod_redaction-se-signe-ok" aria-hidden="true">&#10003;</span> <strong>{{#str}}sujets_se_juste, mod_redaction{{/str}}</strong> {{juste}}</p>{{/hasjuste}}
+                {{#hasapreciser}}<p class="mod_redaction-se-partie"><span class="mod_redaction-se-signe mod_redaction-se-signe-ko" aria-hidden="true">&#10007;</span> <strong>{{#str}}sujets_se_a_preciser, mod_redaction{{/str}}</strong> {{a_preciser}}</p>{{/hasapreciser}}
+                {{#haspiste}}<p class="mod_redaction-se-partie"><span class="mod_redaction-se-signe" aria-hidden="true">&rarr;</span> <strong>{{#str}}sujets_se_piste, mod_redaction{{/str}}</strong> {{piste}}</p>{{/haspiste}}
+            </div>
+            {{/commentaires}}
+            {{#empeche}}
+            <p class="mod_redaction-se-notice mod_redaction-langue-empeche" role="status">{{#str}}sujets_langue_empeche, mod_redaction{{/str}}</p>
+            {{/empeche}}
+        </section>
+        {{/hascommentaires}}
+
+        {{#haslangue}}
+        {{#langue}}{{> mod_redaction/langue_bloc}}{{/langue}}
+        {{/haslangue}}
+        {{#hasdetailtentative}}
+        <p class="mod_redaction-langue-detail">{{detailtentative}}</p>
+        {{/hasdetailtentative}}
+
+        <div class="mod_redaction-se-actions">
+            {{#canessai}}
+            <p class="mod_redaction-se-restants">{{#str}}sujets_essais_restants, mod_redaction, {{restants}}{{/str}}</p>
+            <button type="button" class="btn btn-outline-primary mod_redaction-se-submit" id="mod_redaction-se-submit"
+                {{#disabled}}disabled{{/disabled}}>{{#pending}}{{#str}}sujets_correction_en_cours, mod_redaction{{/str}}{{/pending}}{{^pending}}{{#str}}sujets_se_demander, mod_redaction, {{restants}}{{/str}}{{/pending}}</button>
+            {{/canessai}}
+            {{#canfinale}}
+            <button type="button" class="btn btn-primary mod_redaction-se-final" id="mod_redaction-se-final"
+                {{#finaledisabled}}disabled{{/finaledisabled}}>{{#str}}sujets_se_finale, mod_redaction{{/str}}</button>
+            <p class="mod_redaction-se-aide">{{#str}}sujets_se_finale_aide, mod_redaction{{/str}}</p>
+            {{/canfinale}}
+            {{#tard}}<p class="mod_redaction-se-reason">{{#str}}training_error_deadline_passed, mod_redaction{{/str}}</p>{{/tard}}
+            {{#raison}}<p class="mod_redaction-se-reason">{{raison}}</p>{{/raison}}
+        </div>
+        <div class="mod_redaction-se-attente{{#pending}} mod_redaction-se-pending{{/pending}}" id="mod_redaction-se-attente" role="status"{{^pending}} hidden{{/pending}}>
+            <span class="spinner-border mod_redaction-se-spinner" aria-hidden="true"></span>
+            <span>{{#str}}sujets_correction_patience, mod_redaction{{/str}}</span>
+        </div>
+        <div class="mod_redaction-se-message" id="mod_redaction-se-message" role="alert"></div>
+    </aside>
+</div>
+<div class="mod_redaction-se-barre">
+    <span class="mod_redaction-se-barre-etat">{{etatlibelle}}{{#hasnote}} · {{note}}/20{{/hasnote}}{{^hasnote}}{{#hasindicatif}} · {{indicatif}}/20{{/hasindicatif}}{{/hasnote}}</span>
+    <a class="btn btn-secondary btn-sm" href="#mod_redaction-se-volet-ancre">{{#str}}sujets_se_avancement, mod_redaction{{/str}}</a>
+</div>
 </div>

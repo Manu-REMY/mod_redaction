@@ -194,6 +194,9 @@ function passer(stdClass $redaction, stdClass $submission, int $userid, bool $fi
     global $DB;
     if (!$finale) {
         $DB->execute('UPDATE {redaction_submission} SET training_count = training_count + 1 WHERE id = ?', [$submission->id]);
+    } else {
+        // As the service does: the copy is locked when its final version is handed in.
+        $DB->update_record('redaction_submission', (object) ['id' => $submission->id, 'status' => 1, 'timesubmitted' => time()]);
     }
     $id = ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid, $userid, true, $finale);
     retirer_tache($id);
@@ -259,6 +262,22 @@ try {
     $check('final, unchanged text: no AI call (' . count($sim->appels) . ')', count($sim->appels) === 0);
     $check('final, unchanged text: grade of the attempt', (float) $fv->parsed_grade === (float) $ev->parsed_grade && (int) $fv->finale === 1);
     $check('final: the grade goes to the gradebook', carnet($redaction, $a) === (float) $ev->parsed_grade);
+    // The student screen after the final version: grade, read-only answers, no button.
+    \core\session\manager::set_user($DB->get_record('user', ['id' => $a]));
+    $cmf = get_coursemodule_from_instance('redaction', $redaction->id, $course->id, false, MUST_EXIST);
+    $ctxf = context_module::instance($cmf->id);
+    $PAGE->set_context($ctxf);
+    $PAGE->set_url('/');
+    $outf = $PAGE->get_renderer('core');
+    $submission = $DB->get_record('redaction_submission', ['id' => $submission->id]);
+    $df = (new \mod_redaction\output\sujets_eleve($redaction, $cmf, $ctxf, $submission, 0))->export_for_template($outf);
+    $hf = $outf->render_from_template('mod_redaction/sujets_eleve', $df);
+    \core\session\manager::set_user(get_admin());
+    $check('student screen after the final: graded, validated, handed in, answers read-only, no button',
+        $df['hasnote'] && $df['valide'] && $df['rendue'] && !$df['canessai'] && !$df['canfinale'] && str_contains($hf, 'readonly')
+        && !str_contains($hf, 'mod_redaction-se-final') && !str_contains($hf, '[['));
+    $check('student screen: what is right, with its word (above the threshold, nothing else)',
+        str_contains($hf, get_string('sujets_se_juste', 'mod_redaction')) && !str_contains($hf, get_string('sujets_se_piste', 'mod_redaction')));
 
     // 3. A changed answer: a new correction.
     $sub2 = redaction_get_or_create_submission($redaction, 0, $b);
@@ -306,6 +325,7 @@ try {
         in_array($e3->status, ['completed', 'applied'], true) && count($sim->appels) === 2);
     $check('final with an empty subject: 0 for that subject', count($d3) === 2 && (float) $d3[1]['note'] === 0.0);
     $check('group final: the grade goes to both members', carnet($r3, $a) !== null && carnet($r3, $a) === carnet($r3, $b));
+    $DB->set_field('redaction_submission', 'status', 0, ['id' => $s3->id]);
     $check('an attempt with an empty subject is still refused',
         redaction_can_submit_attempt($r3, $DB->get_record('redaction_submission', ['id' => $s3->id]))['reason'] === 'empty_answer');
 
