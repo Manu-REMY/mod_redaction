@@ -25,6 +25,7 @@
         <FIELD NAME="sujets_seuil" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="16" SEQUENCE="false" DECIMALS="2" COMMENT="Validation threshold out of 20"/>
         <FIELD NAME="langue_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1=language mastery assessed (assigned subjects mode)"/>
         <FIELD NAME="langue_points" TYPE="number" LENGTH="5" NOTNULL="true" DEFAULT="2" SEQUENCE="false" DECIMALS="2" COMMENT="Points of the language part out of 20"/>
+        <FIELD NAME="sujets_phrases" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="2" SEQUENCE="false" COMMENT="Sentences expected in each answer, 0 = no warning"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
@@ -234,6 +235,7 @@
         <FIELD NAME="contenu" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Statement shown to students"/>
         <FIELD NAME="contenuformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="corrige" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Expected answer, teacher only, never exported or shown to students"/>
+        <FIELD NAME="lexique" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Words of the discipline expected, teacher only, never shown to students"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>

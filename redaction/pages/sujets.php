@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $titres = optional_param_array('titre', [], PARAM_TEXT);
     $contenus = optional_param_array('contenu', [], PARAM_RAW);
     $corriges = optional_param_array('corrige', [], PARAM_RAW);
+    $lexiques = optional_param_array('lexique', [], PARAM_TEXT);
     $deletes = optional_param_array('delete', [], PARAM_INT);
 
     $now = time();
@@ -51,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $titre = trim($titres[$index] ?? '');
         $contenu = trim($contenus[$index] ?? '');
         $corrige = trim($corriges[$index] ?? '');
+        $lexique = trim($lexiques[$index] ?? '');
 
         if ($sujetid && !empty($deletes[$index])) {
             $own = $DB->get_record('redaction_sujet', ['id' => $sujetid, 'redactionid' => $redaction->id]);
@@ -71,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'contenu' => clean_text($contenu, FORMAT_HTML),
             'contenuformat' => FORMAT_HTML,
             'corrige' => $corrige,
+            'lexique' => $lexique,
             'timemodified' => $now,
         ];
         if ($sujetid && $DB->record_exists('redaction_sujet', ['id' => $sujetid, 'redactionid' => $redaction->id])) {
@@ -105,6 +108,7 @@ foreach ($DB->get_records('redaction_sujet', ['redactionid' => $redaction->id], 
         'titre' => $sujet->titre,
         'contenu' => $sujet->contenu,
         'corrige' => $sujet->corrige,
+        'lexique' => (string) ($sujet->lexique ?? ''),
         'isexisting' => true,
     ];
 }
@@ -116,6 +120,7 @@ if ($number < $maxsujets) {
         'titre' => '',
         'contenu' => '',
         'corrige' => '',
+        'lexique' => '',
         'isexisting' => false,
     ];
 }

@@ -95,7 +95,7 @@ try {
     $id = redaction_add_instance((object) [
         'course' => $course->id, 'name' => 'verif_sauvegarde temporaire', 'intro' => '', 'introformat' => FORMAT_HTML,
         'ai_enabled' => 1, 'ai_provider' => 'simule', 'training_enabled' => 1, 'group_submission' => 1, 'training_max_attempts' => 5,
-        'sujets_enabled' => 1, 'sujets_par_groupe' => 2, 'sujets_seuil' => 16, 'langue_enabled' => 1, 'langue_points' => 3,
+        'sujets_enabled' => 1, 'sujets_par_groupe' => 2, 'sujets_seuil' => 16, 'langue_enabled' => 1, 'langue_points' => 3, 'sujets_phrases' => 3,
     ]);
     $rids[] = $id;
     $cmid = add_course_module((object) ['course' => $course->id, 'module' => $moduleid, 'instance' => $id, 'section' => 0]);
@@ -106,7 +106,7 @@ try {
     foreach ([1, 2] as $i) {
         $sujets[$i] = $DB->insert_record('redaction_sujet', (object) [
             'redactionid' => $redaction->id, 'sortorder' => $i, 'titre' => 'Systeme' . $i, 'contenu' => 'Enonce' . $i,
-            'contenuformat' => FORMAT_HTML, 'corrige' => 'Corrige' . $i, 'timecreated' => $now, 'timemodified' => $now,
+            'contenuformat' => FORMAT_HTML, 'corrige' => 'Corrige' . $i, 'lexique' => 'mot' . $i, 'timecreated' => $now, 'timemodified' => $now,
         ]);
         $DB->insert_record('redaction_sujet_groupe', (object) [
             'redactionid' => $redaction->id, 'groupid' => $groupe, 'sujetid' => $sujets[$i], 'rang' => $i, 'timecreated' => $now,
@@ -174,6 +174,8 @@ try {
         $check('restored: the evaluation and its 2 credited members',
             count($ev) === 1 && $DB->count_records('redaction_sujet_membre', ['evaluationid' => reset($ev)->id]) === 2);
         $check('restored: the language setting (on, 3 points)', (int) $copie->langue_enabled === 1 && (float) $copie->langue_points == 3.0);
+        $check('restored: the sentences expected (3)', (int) $copie->sujets_phrases === 3);
+        $check('restored: the vocabulary of each subject', array_column($nouveaux, 'lexique') == ['mot1', 'mot2']);
         $check('restored: the language assessment of the evaluation',
             count($ev) === 1 && reset($ev)->langue_json === $languejson && (float) reset($ev)->langue_points == 3.0);
     }

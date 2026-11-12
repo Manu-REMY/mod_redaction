@@ -23,6 +23,7 @@
     Context variables required for this template:
     * cmid, submissionid - Identifiers used by the script
     * groupname - Name of the group
+    * hasphrases, phrases - Sentences expected in each answer, recalled under each answer box
     * items - Subjects: id, number, titre, contenu (HTML), reponse, readonly
     * valide, seuil, hasnote, note - Validation banner and best grade
     * restants - Attempts left
@@ -35,7 +36,7 @@
 
     Example context (json):
     {
-        "cmid": 1, "submissionid": 2, "groupname": "4A-GRP01",
+        "cmid": 1, "submissionid": 2, "groupname": "4A-GRP01", "hasphrases": true, "phrases": 2,
         "items": [{"id": 5, "number": 1, "titre": "Pont", "contenu": "<p>Explique</p>", "reponse": "", "readonly": false}],
         "valide": false, "seuil": "16", "hasnote": true, "note": "12",
         "restants": 3, "pending": false, "echec": false, "disabled": false, "raison": "",
@@ -77,6 +78,7 @@
         <label class="mod_redaction-se-label" for="mod_redaction-se-reponse-{{id}}">{{#str}}sujets_reponse_label, mod_redaction{{/str}}</label>
         <textarea class="form-control mod_redaction-se-reponse" id="mod_redaction-se-reponse-{{id}}" rows="6"
             data-sujetid="{{id}}" {{#readonly}}readonly{{/readonly}}>{{reponse}}</textarea>
+        {{#hasphrases}}<p class="mod_redaction-se-phrases">{{#str}}sujets_phrases_consigne, mod_redaction, {{phrases}}{{/str}}</p>{{/hasphrases}}
     </section>
     {{/items}}
 

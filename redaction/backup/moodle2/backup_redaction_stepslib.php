@@ -60,6 +60,7 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'sujets_seuil',
             'langue_enabled',
             'langue_points',
+            'sujets_phrases',
             'timecreated',
             'timemodified',
         ]);
@@ -160,6 +161,7 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'contenu',
             'contenuformat',
             'corrige',
+            'lexique',
             'timecreated',
             'timemodified',
         ]);

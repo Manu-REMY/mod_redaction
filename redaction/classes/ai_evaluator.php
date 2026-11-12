@@ -355,6 +355,7 @@ class ai_evaluator {
             $notes = [];
             $commentaires = [];
             $titres = [];
+            $lexiques = [];
             $textes = [];
             $prompttokens = 0;
             $completiontokens = 0;
@@ -373,11 +374,14 @@ class ai_evaluator {
                 $completiontokens += $response['completion_tokens'];
 
                 $lu = notes_sujets::lire_reponse_ia($response['content']);
+                // The words of the discipline expected belong to the answer key: the comment never gives them either.
+                // They go first: what follows "X :" in the key is allowed (wrong ideas), they must not fall there.
                 $lu['commentaire'] = notes_sujets::commentaire_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire(),
-                    notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE),
+                    notes_sujets::avec_lexique(notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE), $sujet->lexique ?? ''),
                     notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat), $sujet->titre);
                 $notes[] = $lu['note'];
                 $titres[] = $sujet->titre;
+                $lexiques[] = (string) ($sujet->lexique ?? '');
                 $textes[] = notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat);
                 $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . $lu['commentaire'];
                 $details[] = [
@@ -393,7 +397,7 @@ class ai_evaluator {
             $pointslangue = null;
             $evaluation->langue_json = null;
             if ($p > 0) {
-                $prompts = ai_prompt_builder::build_langue_prompt($titres, $textes);
+                $prompts = ai_prompt_builder::build_langue_prompt($titres, $textes, $lexiques);
                 $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::LANGUE_MAX_TOKENS);
                 $bruts[] = $response['content'];
                 $prompttokens += $response['prompt_tokens'];

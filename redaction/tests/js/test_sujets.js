@@ -11,6 +11,8 @@ const {execSync} = require('child_process');
 const puppeteer = require(path.join(execSync('npm root -g').toString().trim(), 'puppeteer'));
 
 const source = fs.readFileSync(path.resolve(process.argv[2] || path.join(__dirname, '../../amd/src/sujets.js')), 'utf8');
+// The real sentence count, loaded as the module the script asks for.
+const phrasesSource = fs.readFileSync(path.join(__dirname, '../../amd/src/phrases.js'), 'utf8');
 const fixture = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
 
 // Everything the script needs from Moodle, plus a fake clock so that no test waits for real time.
@@ -40,6 +42,8 @@ window.settle = settle;
 window.calls = [];
 window.handlers = {};
 window.notifications = [];
+window.warnings = [];
+window.warningAnswer = false;
 window.stringsGate = null;
 const STR = ['Enregistrement...', 'Enregistré', 'Non enregistré', 'Correction en cours'];
 const modules = {
@@ -48,7 +52,12 @@ const modules = {
         return Promise.resolve().then(() => window.handlers[r.methodname](r.args));
     })},
     'core/notification': {exception: (e) => window.notifications.push(String(e && e.message || e)),
-        addNotification: (n) => window.notifications.push(n.message)},
+        addNotification: (n) => window.notifications.push(n.message),
+        saveCancelPromise: (title, question, label) => {
+            window.warnings.push({title, question, label});
+            return window.warningAnswer ? Promise.resolve() : Promise.reject(new Error('cancelled'));
+        }},
+    'mod_redaction/phrases': {compter: (texte) => window.phrasesModule.compter(texte)},
     'core/str': {get_strings: () => (window.stringsGate ? window.stringsGate.then(() => STR) : Promise.resolve(STR))},
 };
 window.define = (deps, factory) => { window.sujetsModule = factory(...deps.map((d) => modules[d])); };
@@ -94,13 +103,14 @@ const check = (label, ok, detail) => {
         });
         await page.goto('http://sujets.test/');
         await page.addScriptTag({content: harness});
+        await page.addScriptTag({content: '(function(define) {' + phrasesSource + '})(function(d, f) { window.phrasesModule = f(); });'});
         await page.addScriptTag({content: source});
         return page;
     };
-    const init = (page) => page.evaluate(async () => {
-        window.sujetsModule.init({cmid: 11, submissionid: 22});
+    const init = (page, phrases) => page.evaluate(async (phrases) => {
+        window.sujetsModule.init({cmid: 11, submissionid: 22, phrases: phrases || 0});
         await window.settle();
-    });
+    }, phrases);
 
     // 1. Debounced save with the right arguments.
     let page = await open('ecran_normal.html');
@@ -351,6 +361,54 @@ const check = (label, ok, detail) => {
     check('late strings: before they load the screen is inert and shows no "undefined"', r.early.calls === 0 && r.early.state === '' && r.early.label === 'Soumettre', r.early);
     check('late strings: after they load, saving and submitting show real words, never "undefined"', r.late.state === 'Enregistré'
         && r.late.label === 'Correction en cours' && !r.late.html, r.late);
+    await page.close();
+
+    // 7b. Request 9: an answer that is a list of words brings a warning; the student may go back or send anyway.
+    page = await open('ecran_normal.html');
+    await page.evaluate(() => {
+        window.handlers.mod_redaction_save_sujet_reponse = () => window.ok();
+        window.handlers.mod_redaction_submit_sujets = () => window.ok();
+    });
+    await init(page, 2);
+    r = await page.evaluate(async () => {
+        const n = document.querySelectorAll('.mod_redaction-se-reponse').length;
+        for (let i = 0; i < n; i++) {
+            type(i, 'La poutre travaille en compression. Elle est plus large en bas pour mieux résister.');
+        }
+        type(0, 'moteur, roue, axe');
+        await tick(2000);
+        $('#mod_redaction-se-submit').click();
+        await settle();
+        const back = {warnings: window.warnings.length, submits: calls_of('mod_redaction_submit_sujets').length,
+            disabled: $('#mod_redaction-se-submit').disabled};
+        window.warningAnswer = true;
+        $('#mod_redaction-se-submit').click();
+        await settle();
+        const sent = {warnings: window.warnings.length, submits: calls_of('mod_redaction_submit_sujets').length};
+        return {back, sent};
+    });
+    check('sentences: a list of words brings the warning, going back sends nothing and leaves the button usable',
+        r.back.warnings === 1 && r.back.submits === 0 && !r.back.disabled, r.back);
+    check('sentences: "send anyway" sends', r.sent.warnings === 2 && r.sent.submits === 1, r.sent);
+    await page.close();
+
+    page = await open('ecran_normal.html');
+    await page.evaluate(() => {
+        window.handlers.mod_redaction_save_sujet_reponse = () => window.ok();
+        window.handlers.mod_redaction_submit_sujets = () => window.ok();
+    });
+    await init(page, 2);
+    r = await page.evaluate(async () => {
+        const n = document.querySelectorAll('.mod_redaction-se-reponse').length;
+        for (let i = 0; i < n; i++) {
+            type(i, 'La poutre travaille en compression. Elle est plus large en bas pour mieux résister.');
+        }
+        await tick(2000);
+        $('#mod_redaction-se-submit').click();
+        await settle();
+        return {warnings: window.warnings.length, submits: calls_of('mod_redaction_submit_sujets').length};
+    });
+    check('sentences: answers written in sentences are sent with no warning', r.warnings === 0 && r.submits === 1, r);
     await page.close();
 
     // 8. No JS error anywhere.

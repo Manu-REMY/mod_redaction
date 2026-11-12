@@ -44,6 +44,9 @@ class langue {
     /** @var string[] Dimensions whose low level must be proved by a quote found in the text. */
     const AVEC_PREUVE = ['orthographe' => 'fautes', 'syntaxe' => 'remarques'];
 
+    /** @var int Words a segment needs to count as a sentence: below, it is a word or two, not a sentence. */
+    const MOTS_PAR_PHRASE = 3;
+
     /**
      * Reads the AI answer about the language.
      *
@@ -198,6 +201,42 @@ class langue {
             $somme += self::PALIERS[$paliers[$dimension]];
         }
         return round($p * $somme / count(self::DIMENSIONS), 2);
+    }
+
+    /**
+     * Number of sentences of an answer, to warn a student who writes a list of words (request 9).
+     *
+     * A sentence is a segment between end marks (. ! ? …) or line breaks with at least MOTS_PAR_PHRASE words,
+     * unless every part between its commas has two words at most: that is a list ("le moteur, la roue, l'axe").
+     * It does not look for a verb: it only feeds a warning, never a grade. The script of the student screen
+     * (amd/src/phrases.js) does the same count; both are tested on tests/pure/phrases_cas.json.
+     *
+     * @param string $texte Plain text of the answer.
+     * @return int
+     */
+    public static function phrases(string $texte): int {
+        $n = 0;
+        foreach (preg_split('/[.!?…]+|\R+/u', $texte) as $segment) {
+            if (self::mots($segment) < self::MOTS_PAR_PHRASE) {
+                continue;
+            }
+            $parties = explode(',', $segment);
+            if (count($parties) > 1 && max(array_map([self::class, 'mots'], $parties)) <= 2) {
+                continue;
+            }
+            $n++;
+        }
+        return $n;
+    }
+
+    /**
+     * Number of words of a piece of text (letters or digits in a row; an apostrophe separates two words).
+     *
+     * @param string $texte
+     * @return int
+     */
+    protected static function mots(string $texte): int {
+        return (int) preg_match_all('/[\p{L}\p{N}]+/u', $texte);
     }
 
     /**

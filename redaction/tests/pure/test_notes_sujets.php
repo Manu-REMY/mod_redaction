@@ -254,5 +254,14 @@ test('langue désactivée compte avec 0', fn() => notes_sujets::compte('0.00', 0
 test('réglage : langue désactivée', fn() => notes_sujets::reglage_langue((object) ['langue_enabled' => 0, 'langue_points' => 2]) === 0.0);
 test('réglage : 2 points', fn() => notes_sujets::reglage_langue((object) ['langue_enabled' => 1, 'langue_points' => '2.00']) === 2.0);
 
+// Request 7: the words of the discipline expected are part of the answer key, placed before it so that "X :" never frees them.
+test('avec_lexique : le lexique passe avant le corrigé', fn() =>
+    notes_sujets::avec_lexique('E1 : a. X : b.', 'pivot, transmettre') === "pivot, transmettre\nE1 : a. X : b.");
+test('avec_lexique : sans lexique, le corrigé seul', fn() => notes_sujets::avec_lexique('E1 : a.', ' ') === 'E1 : a.');
+test('mot du lexique que l\'élève n\'a pas écrit : phrase retirée, même avec un X dans le corrigé', fn() =>
+    notes_sujets::commentaire_final(['note' => 4.0, 'commentaire' => 'Pense au mot transmission.', 'attendus' => [], 'erreurs' => []],
+        16.0, PHRASES, notes_sujets::avec_lexique(CORRIGE_BMX, 'transmission'), 'Ce sont les pédales.', 'BMX')
+    === 'PHRASE-LES-DEUX');
+
 echo $failures ? "\n{$failures} échec(s)\n" : "\nTout est vert\n";
 exit($failures ? 1 : 0);

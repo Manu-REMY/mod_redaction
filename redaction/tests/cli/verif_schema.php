@@ -57,10 +57,10 @@ $dbman = $DB->get_manager();
 
 // Expected schema.
 $expectedfields = [
-    'redaction' => ['sujets_enabled', 'sujets_par_groupe', 'sujets_seuil', 'langue_enabled', 'langue_points'],
+    'redaction' => ['sujets_enabled', 'sujets_par_groupe', 'sujets_seuil', 'langue_enabled', 'langue_points', 'sujets_phrases'],
     'redaction_submission' => ['grade_enseignant'],
     'redaction_ai_evaluations' => ['sujets_json', 'langue_json', 'langue_points'],
-    'redaction_sujet' => ['id', 'redactionid', 'sortorder', 'titre', 'contenu', 'contenuformat', 'corrige',
+    'redaction_sujet' => ['id', 'redactionid', 'sortorder', 'titre', 'contenu', 'contenuformat', 'corrige', 'lexique',
         'timecreated', 'timemodified'],
     'redaction_sujet_groupe' => ['id', 'redactionid', 'groupid', 'sujetid', 'rang', 'timecreated'],
     'redaction_sujet_eleve' => ['id', 'redactionid', 'userid', 'sujetid', 'rang', 'timecreated'],

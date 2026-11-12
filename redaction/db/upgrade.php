@@ -397,5 +397,23 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111200, 'redaction');
     }
 
+    if ($oldversion < 2026111201) {
+        // Sentences expected in each answer (request 9): 2, a warning only.
+        $table = new xmldb_table('redaction');
+        $field = new xmldb_field('sujets_phrases', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '2', 'langue_points');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Words of the discipline expected for each subject (request 7).
+        $table = new xmldb_table('redaction_sujet');
+        $field = new xmldb_field('lexique', XMLDB_TYPE_TEXT, null, null, null, null, null, 'corrige');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026111201, 'redaction');
+    }
+
     return true;
 }

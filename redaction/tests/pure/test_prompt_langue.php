@@ -64,5 +64,16 @@ test('chevrons neutralisés', fn() => str_contains($p['user'], 'a ‹ b ‹/repo
 test('une seule fermeture par réponse', fn() => substr_count($p['user'], '</reponse_eleve>') === 2);
 test('aucun corrigé', fn() => !str_contains($p['system'] . $p['user'], 'corrige'));
 
+// Request 9: a list of words is not written in sentences.
+test('consigne : réponse non rédigée en phrases', fn() => str_contains($p['system'], '[ai_prompt_langue_phrases]'));
+
+// Request 7: the words of the discipline expected, given per subject, only when there are some.
+test('sans lexique : ni titre ni règle du lexique', fn() => !str_contains($p['system'], '[ai_prompt_langue_lexique_attendu]')
+    && !str_contains($p['system'], '[ai_prompt_langue_lexique_regle]'));
+$l = ai_prompt_builder::build_langue_prompt(['Le vélo', 'La voiture'], ['a b c', 'd e f'], ['pédalier, chaîne', '']);
+test('avec lexique : la règle et les mots du sujet', fn() => str_contains($l['system'], '[ai_prompt_langue_lexique_regle]')
+    && str_contains($l['system'], 'pédalier, chaîne'));
+test('avec lexique : jamais dans le message de l\'élève', fn() => !str_contains($l['user'], 'pédalier'));
+
 echo $failures ? "\n{$failures} échec(s)\n" : "\nTout est vert\n";
 exit($failures ? 1 : 0);

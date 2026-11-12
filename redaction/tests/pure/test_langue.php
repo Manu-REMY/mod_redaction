@@ -117,5 +117,10 @@ test('points P=5 tous TS', fn() => langue::points(paliers('TS', 'TS', 'TS', 'TS'
 test('points tous TI', fn() => langue::points(paliers('TI', 'TI', 'TI', 'TI'), 2.0) === 0.0);
 test('points P=2 TI,I,S,TS', fn() => langue::points(paliers('TI', 'I', 'S', 'TS'), 2.0) === 1.0);
 
+// Sentences of an answer (request 9): same cases as the script of the student screen (tests/js/test_phrases.js).
+foreach (json_decode(file_get_contents(__DIR__ . '/phrases_cas.json'), true) as $cas) {
+    test('phrases : ' . $cas['note'], fn() => langue::phrases($cas['texte']) === $cas['phrases']);
+}
+
 echo $failures === 0 ? "\nOK\n" : "\n$failures FAILED\n";
 exit($failures === 0 ? 0 : 1);

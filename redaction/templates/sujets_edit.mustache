@@ -23,7 +23,7 @@
     * actionurl - Form target
     * sesskey - Session key
     * backurl - Back to the activity
-    * rows - List of subject rows: index, number, id, titre, contenu, corrige, isexisting
+    * rows - List of subject rows: index, number, id, titre, contenu, corrige, lexique, isexisting
 
     Example context (json):
     {
@@ -31,7 +31,7 @@
         "sesskey": "abc",
         "backurl": "/mod/redaction/view.php?id=1",
         "rows": [
-            {"index": 0, "number": 1, "id": 5, "titre": "Pont", "contenu": "Expliquer", "corrige": "Attendu", "isexisting": true}
+            {"index": 0, "number": 1, "id": 5, "titre": "Pont", "contenu": "Expliquer", "corrige": "Attendu", "lexique": "actionneur, liaison", "isexisting": true}
         ]
     }
 }}
@@ -55,6 +55,11 @@
                 <label for="sujet-corrige-{{index}}">{{#str}}sujet_corrige, mod_redaction{{/str}}</label>
                 <textarea id="sujet-corrige-{{index}}" name="corrige[{{index}}]" rows="4" class="form-control">{{corrige}}</textarea>
                 <small class="form-text text-muted">{{#str}}sujet_corrige_help, mod_redaction{{/str}}</small>
+            </div>
+            <div class="mod_redaction-sujet-field">
+                <label for="sujet-lexique-{{index}}">{{#str}}sujet_lexique, mod_redaction{{/str}}</label>
+                <textarea id="sujet-lexique-{{index}}" name="lexique[{{index}}]" rows="2" class="form-control">{{lexique}}</textarea>
+                <small class="form-text text-muted">{{#str}}sujet_lexique_help, mod_redaction{{/str}}</small>
             </div>
             {{#isexisting}}
             <div class="mod_redaction-sujet-field">

@@ -278,6 +278,20 @@ class notes_sujets {
     }
 
     /**
+     * Answer key with the words of the discipline expected, which belong to it (request 7).
+     *
+     * The words go first: what follows "X :" in the key lists wrong ideas a comment may name, they must not fall there.
+     *
+     * @param string $corrige Answer key, plain text.
+     * @param string $lexique Words of the discipline expected, plain text.
+     * @return string
+     */
+    public static function avec_lexique(string $corrige, string $lexique): string {
+        $lexique = trim($lexique);
+        return $lexique === '' ? $corrige : $lexique . "\n" . $corrige;
+    }
+
+    /**
      * Removes each sentence holding a word of the answer key that the student did not write, whatever its wording.
      *
      * A harmless sentence may go too: the plugin's own sentence is still there, a sentence giving the answer is what must not stay.

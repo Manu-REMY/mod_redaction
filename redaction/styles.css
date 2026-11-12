@@ -2230,6 +2230,13 @@
     height: auto;
 }
 
+/* Reminder of the sentences expected, under each answer box (request 9). */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-phrases {
+    margin: 0.25rem 0 0;
+    font-size: 0.9em;
+    color: #495057;
+}
+
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-label {
     display: block;
     font-weight: 600;

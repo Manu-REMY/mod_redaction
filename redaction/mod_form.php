@@ -184,6 +184,16 @@ class mod_redaction_mod_form extends moodleform_mod {
         $mform->hideIf('langue_points', 'sujets_enabled', 'eq', 0);
         $mform->hideIf('langue_points', 'langue_enabled', 'eq', 0);
 
+        // Sentences expected in each answer: a warning before the submission, never a grade.
+        $phrases = [0 => get_string('sujets_phrases_aucune', 'redaction')];
+        for ($i = 1; $i <= 5; $i++) {
+            $phrases[$i] = (string) $i;
+        }
+        $mform->addElement('select', 'sujets_phrases', get_string('sujets_phrases', 'redaction'), $phrases);
+        $mform->setDefault('sujets_phrases', 2);
+        $mform->addHelpButton('sujets_phrases', 'sujets_phrases', 'redaction');
+        $mform->hideIf('sujets_phrases', 'sujets_enabled', 'eq', 0);
+
         // Add standard grading elements.
         $this->standard_grading_coursemodule_elements();
 

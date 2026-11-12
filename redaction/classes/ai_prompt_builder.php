@@ -85,9 +85,14 @@ class ai_prompt_builder {
      *
      * @param string[] $titres Titles of the subjects.
      * @param string[] $reponses Plain text of each answer, in the same order.
+     * @param string[] $lexiques Words of the discipline expected for each subject, in the same order (teacher only:
+     *     they go to the system prompt, never into what the student sees).
      * @return array ['system' => string, 'user' => string]
      */
-    public static function build_langue_prompt(array $titres, array $reponses): array {
+    public static function build_langue_prompt(array $titres, array $reponses, array $lexiques = []): array {
+        $lexiques = array_map(fn($l) => trim(notes_sujets::texte_reponse((string) $l, notes_sujets::FORMAT_TEXTE)), $lexiques);
+        $aveclexique = (bool) array_filter($lexiques, fn($l) => $l !== '');
+
         $system = get_string('ai_prompt_langue_intro', 'mod_redaction') . "\n\n";
         $system .= '## ' . get_string('ai_prompt_langue_grille', 'mod_redaction') . "\n";
         foreach (langue::DIMENSIONS as $dimension) {
@@ -98,14 +103,21 @@ class ai_prompt_builder {
             }
         }
         $system .= "\n## " . get_string('ai_prompt_important_instructions', 'mod_redaction') . "\n";
-        foreach (['citer', 'orthographe', 'syntaxe', 'doute', 'donnees'] as $regle) {
+        $regles = ['citer', 'orthographe', 'syntaxe', 'phrases', 'doute', 'donnees'];
+        if ($aveclexique) {
+            $regles[] = 'lexique_regle';
+        }
+        foreach ($regles as $regle) {
             $system .= '- ' . get_string('ai_prompt_langue_' . $regle, 'mod_redaction') . "\n";
         }
         $system .= "\n## " . get_string('ai_prompt_response_format', 'mod_redaction') . "\n";
         $system .= get_string('ai_prompt_langue_format', 'mod_redaction') . "\n";
         $system .= "\n## " . get_string('ai_prompt_langue_contexte', 'mod_redaction') . "\n";
-        foreach ($titres as $titre) {
+        foreach (array_values($titres) as $i => $titre) {
             $system .= '- ' . notes_sujets::texte_reponse($titre, notes_sujets::FORMAT_TEXTE) . "\n";
+            if (($lexiques[$i] ?? '') !== '') {
+                $system .= '  ' . get_string('ai_prompt_langue_lexique_attendu', 'mod_redaction') . ' ' . $lexiques[$i] . "\n";
+            }
         }
 
         $user = get_string('ai_prompt_langue_reponses', 'mod_redaction') . "\n";

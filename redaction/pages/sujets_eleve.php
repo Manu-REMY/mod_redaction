@@ -45,6 +45,7 @@ $submission = redaction_get_or_create_submission($redaction, $usergroup, $USER->
 $PAGE->requires->js_call_amd('mod_redaction/sujets', 'init', [[
     'cmid' => (int) $cm->id,
     'submissionid' => (int) $submission->id,
+    'phrases' => (int) ($redaction->sujets_phrases ?? 0),
 ]]);
 
 $screen = new \mod_redaction\output\sujets_eleve($redaction, $cm, $context, $submission, (int) $usergroup);

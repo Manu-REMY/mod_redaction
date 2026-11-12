@@ -1,0 +1,15 @@
+[
+  {"texte": "", "phrases": 0, "note": "vide"},
+  {"texte": "moteur, roue, axe, pignon", "phrases": 0, "note": "liste de mots séparés par des virgules"},
+  {"texte": "Le moteur, la roue, l'axe.", "phrases": 0, "note": "liste de groupes nominaux courts"},
+  {"texte": "- moteur\n- roue\n- axe", "phrases": 0, "note": "liste à puces"},
+  {"texte": "Compression", "phrases": 0, "note": "un mot"},
+  {"texte": "La poutre travaille en compression.", "phrases": 1, "note": "une phrase"},
+  {"texte": "La poutre travaille en compression. Elle est plus large en bas pour mieux résister.", "phrases": 2, "note": "deux phrases"},
+  {"texte": "Le moteur tourne, puis la roue avance", "phrases": 1, "note": "phrase sans point final, avec virgule"},
+  {"texte": "Le moteur tourne ! La roue avance ? Oui, elle avance vite.", "phrases": 3, "note": "ponctuations variées"},
+  {"texte": "La poutre plie\nElle casse au milieu", "phrases": 2, "note": "phrases séparées par un retour à la ligne"},
+  {"texte": "Il tourne.", "phrases": 0, "note": "phrase de deux mots : trop courte pour compter"},
+  {"texte": "j'ai choisi ce profil parce qu'il résiste", "phrases": 1, "note": "apostrophes"},
+  {"texte": "... , , !!", "phrases": 0, "note": "ponctuation seule"}
+]

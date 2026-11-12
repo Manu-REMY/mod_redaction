@@ -13,7 +13,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['core/ajax', 'core/notification', 'core/str'], function(Ajax, Notification, Str) {
+define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], function(Ajax, Notification, Str, Phrases) {
 
     var SAVE_DELAY = 1500;
     var POLL_INTERVAL = 5000;
@@ -282,6 +282,45 @@ define(['core/ajax', 'core/notification', 'core/str'], function(Ajax, Notificati
     }
 
     /**
+     * Numbers of the subjects whose answer has fewer sentences than the activity expects (a list of words, a word or two).
+     * @returns {number[]}
+     */
+    function peuDePhrases() {
+        var attendues = config.phrases || 0;
+        var numeros = [];
+        root.querySelectorAll('.mod_redaction-se-reponse').forEach(function(area, index) {
+            if (attendues > 0 && Phrases.compter(area.value) < attendues) {
+                numeros.push(index + 1);
+            }
+        });
+        return numeros;
+    }
+
+    /**
+     * Submit, after a warning when an answer is not written in sentences: the student may send all the same.
+     * @param {HTMLButtonElement} button
+     */
+    function verifierPuisSoumettre(button) {
+        var numeros = peuDePhrases();
+        if (!numeros.length) {
+            submit(button);
+            return;
+        }
+        Str.get_strings([
+            {key: 'sujets_phrases_alerte_titre', component: 'mod_redaction'},
+            {key: 'sujets_phrases_alerte', component: 'mod_redaction', param: {sujets: numeros.join(', '), phrases: config.phrases}},
+            {key: 'sujets_phrases_envoyer', component: 'mod_redaction'},
+        ]).then(function(texte) {
+            return Notification.saveCancelPromise(texte[0], texte[1], texte[2]).then(function() {
+                submit(button);
+                return null;
+            }).catch(function() {
+                // The student chose to go back and write sentences: nothing is sent.
+            });
+        }).catch(Notification.exception);
+    }
+
+    /**
      * Wire the answers, the button and the page exit once the strings are known.
      */
     function bind() {
@@ -297,7 +336,7 @@ define(['core/ajax', 'core/notification', 'core/str'], function(Ajax, Notificati
         var button = root.querySelector('#mod_redaction-se-submit');
         if (button) {
             button.addEventListener('click', function() {
-                submit(button);
+                verifierPuisSoumettre(button);
             });
         }
 
@@ -320,7 +359,7 @@ define(['core/ajax', 'core/notification', 'core/str'], function(Ajax, Notificati
     return {
         /**
          * Initialise the screen.
-         * @param {object} params cmid and submissionid
+         * @param {object} params cmid, submissionid and phrases (sentences expected in each answer, 0 for no warning)
          */
         init: function(params) {
             config = params;

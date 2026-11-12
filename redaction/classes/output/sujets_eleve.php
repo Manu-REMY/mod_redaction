@@ -114,6 +114,7 @@ class sujets_eleve implements renderable, templatable {
         }
 
         $groupe = $DB->get_field('groups', 'name', ['id' => $this->groupid]);
+        $phrases = (int) ($redaction->sujets_phrases ?? 0);
 
         // Comments of the last counted correction, one per subject, on the scale left to the content.
         $commentaires = [];
@@ -172,6 +173,8 @@ class sujets_eleve implements renderable, templatable {
             'cmid' => (int) $this->cm->id,
             'submissionid' => (int) $submission->id,
             'groupname' => $groupe === false ? '' : format_string($groupe),
+            'hasphrases' => $phrases > 0,
+            'phrases' => $phrases,
             'items' => $items,
             'valide' => $valide,
             'seuil' => format_float($seuil, 0, true, true),
