@@ -149,6 +149,11 @@ function repondre(stdClass $submission, array $sujets, string $texte, int $forma
     }
 }
 
+/** mtrace wrapper that echoes, so an output buffer catches what a task traces. */
+function mtrace_dans_tampon(string $string, string $eol): void {
+    echo $string . $eol;
+}
+
 /** Removes the adhoc task of an evaluation, so nothing else can pick it up. Returns whether it was queued. */
 function retirer_tache(int $evaluationid): bool {
     global $DB;
@@ -609,6 +614,41 @@ try {
     $d94 = json_decode((string) $DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $e94]), true);
     $check('D-050: answer key changed, content graded again (' . count($sim->appels) . ' calls)',
         count($sim->appels) === 2 && (float) ($d94[0]['note'] ?? -1) === 9.0);
+
+    // A correction still queued when its activity is deleted (12/11: seven such tasks failed again and again in preprod).
+    $r10 = $creeractivite(['training_enabled' => 1, 'group_submission' => 0, 'training_max_attempts' => 5]);
+    $s10 = redaction_get_or_create_submission($r10, 0, $a);
+    $e10 = ai_evaluator::queue_evaluation($r10->id, $s10->id, 0, $a, true);
+    $enfile = function (int $evaluationid) use ($DB): bool {
+        foreach ($DB->get_records('task_adhoc', ['classname' => '\mod_redaction\task\evaluate_submission']) as $tache) {
+            if ((int) (json_decode($tache->customdata)->evaluationid ?? 0) === $evaluationid) {
+                return true;
+            }
+        }
+        return false;
+    };
+    $check('deleted activity: its correction was queued', $enfile($e10));
+    // Deleted the way a teacher does it, module included.
+    course_delete_module((int) get_coursemodule_from_instance('redaction', $r10->id, $course->id, false, MUST_EXIST)->id);
+    $rids = array_values(array_diff($rids, [$r10->id]));
+    $check('deleted activity: its queued correction is removed', !$enfile($e10));
+    // A task whose correction is gone ends without error: nothing is left to correct.
+    $orpheline = new \mod_redaction\task\evaluate_submission();
+    $orpheline->set_custom_data(['evaluationid' => $e10]);
+    // In CLI mtrace writes straight to STDOUT: route it through echo so the buffer catches it.
+    $ancienwrapper = $CFG->mtrace_wrapper ?? null;
+    $CFG->mtrace_wrapper = 'mtrace_dans_tampon';
+    ob_start();
+    try {
+        $orpheline->execute();
+        $sortie = ob_get_clean();
+        $check('deleted correction: the task ends without error and says so', strpos($sortie, 'Evaluation ' . $e10 . ' no longer exists') !== false);
+    } catch (Throwable $exo) {
+        ob_end_clean();
+        $check('deleted correction: the task ends without error (' . $exo->getMessage() . ')', false);
+    } finally {
+        $CFG->mtrace_wrapper = $ancienwrapper;
+    }
 } catch (Throwable $ex) {
     $check('no exception: ' . $ex->getMessage() . ' ' . $ex->getFile() . ':' . $ex->getLine(), false);
 } finally {

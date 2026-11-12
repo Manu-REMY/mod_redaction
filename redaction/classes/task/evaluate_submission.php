@@ -44,6 +44,7 @@ class evaluate_submission extends \core\task\adhoc_task {
      * Execute the task.
      */
     public function execute() {
+        global $DB;
         $data = $this->get_custom_data();
 
         if (empty($data->evaluationid)) {
@@ -52,6 +53,12 @@ class evaluate_submission extends \core\task\adhoc_task {
         }
 
         require_once(__DIR__ . '/../ai_evaluator.php');
+
+        // Its activity or course was deleted while it waited: nothing is left to correct.
+        if (!$DB->record_exists('redaction_ai_evaluations', ['id' => $data->evaluationid])) {
+            mtrace('Evaluation ' . $data->evaluationid . ' no longer exists: nothing to correct');
+            return;
+        }
 
         mtrace('Processing evaluation ' . $data->evaluationid);
 

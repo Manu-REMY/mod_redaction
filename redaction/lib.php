@@ -178,6 +178,18 @@ function redaction_delete_instance($id) {
         return false;
     }
 
+    // Corrections still queued would fail again and again once their evaluation is gone: take them away first.
+    $evaluationids = $DB->get_fieldset_select('redaction_ai_evaluations', 'id', 'redactionid = ?', [$id]);
+    if ($evaluationids) {
+        $enattente = array_flip($evaluationids);
+        foreach ($DB->get_records('task_adhoc', ['classname' => '\\mod_redaction\\task\\evaluate_submission'], '', 'id, customdata') as $tache) {
+            $evaluationid = (int) (json_decode((string) $tache->customdata)->evaluationid ?? 0);
+            if (isset($enattente[$evaluationid])) {
+                $DB->delete_records('task_adhoc', ['id' => $tache->id]);
+            }
+        }
+    }
+
     // Assigned subjects data hangs off submissions and AI evaluations: clear it first.
     $DB->delete_records_select('redaction_sujet_membre',
         'evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE redactionid = :rid)', ['rid' => $id]);
