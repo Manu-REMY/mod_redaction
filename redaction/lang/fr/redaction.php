@@ -184,6 +184,7 @@ $string['incomplete'] = 'Incomplet';
 // Task.
 $string['task_evaluate_submission'] = 'Évaluer une soumission avec l\'IA';
 $string['task_auto_submit_deadline'] = 'Soumettre automatiquement les brouillons à la date limite';
+$string['task_relancer_finales'] = 'Relancer les corrections finales en échec (sujets attribués)';
 $string['auto_submitted_at_deadline'] = 'Soumis automatiquement à la date limite';
 
 // AI Errors.

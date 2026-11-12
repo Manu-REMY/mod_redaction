@@ -350,6 +350,10 @@ try {
         retirer_tache((int) $ev6->id);
     }
     $DB->set_field('redaction_ai_evaluations', 'status', 'failed', ['submissionid' => $s6->id]);
+    $sujet6 = reset($su6);
+    $ecrit = \mod_redaction\external\save_sujet_reponse::execute($cm6->id, (int) $sujet6->id, 'Texte changé après la finale');
+    $check('after the final: the answers can no longer be changed', !$ecrit['success']
+        && $DB->get_field('redaction_sujet_reponse', 'contenu', ['submissionid' => $s6->id, 'sujetid' => $sujet6->id]) === 'Ma réponse complète.');
     $encore = \mod_redaction\external\submit_final::execute($cm6->id);
     $check('a second final is refused', !$encore['success']
         && $encore['message'] === get_string('training_error_already_submitted', 'mod_redaction'));
@@ -366,7 +370,76 @@ try {
     $check('after the deadline: final refused', !$tard['success'] && $tard['message'] === get_string('training_error_deadline_passed', 'mod_redaction'));
     $check('after the deadline: attempt refused', !$tardessai['success']
         && $tardessai['message'] === get_string('training_error_deadline_passed', 'mod_redaction'));
+    $tardecrit = \mod_redaction\external\save_sujet_reponse::execute($cm6->id, (int) $sujet6->id, 'Texte après la date');
+    $check('after the deadline: the answers can no longer be changed', !$tardecrit['success']
+        && $tardecrit['message'] === get_string('training_error_deadline_passed', 'mod_redaction'));
     \core\session\manager::set_user(get_admin());
+
+    // 7. Request 16: the deadline hands in the drafts; failed final corrections are retried, within limits.
+    $r7 = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 0, 'training_max_attempts' => 5,
+        'sujets_enabled' => 1, 'sujets_par_groupe' => 1, 'sujets_seuil' => 12]);
+    $DB->insert_record('redaction_sujet', (object) [
+        'redactionid' => $r7->id, 'sortorder' => 1, 'titre' => 'Seul', 'contenu' => 'Enonce', 'contenuformat' => FORMAT_HTML,
+        'corrige' => 'E1 : a. E2 : b.', 'timecreated' => $now, 'timemodified' => $now,
+    ]);
+    $plein = redaction_get_or_create_submission($r7, 0, $a);
+    repondre($plein, \mod_redaction\sujets::de_soumission($r7, $plein), 'Ma réponse écrite.', FORMAT_PLAIN);
+    $vide7 = redaction_get_or_create_submission($r7, 0, $b);
+    \mod_redaction\sujets::de_soumission($r7, $vide7);
+    $tache = new \mod_redaction\task\auto_submit_deadline();
+    ob_start();
+    $tache->execute();
+    ob_end_clean();
+    $check('no deadline: nothing handed in', (int) $DB->get_field('redaction_submission', 'status', ['id' => $plein->id]) === 0);
+    $DB->set_field('redaction_correction', 'deadline_date', time() - 60, ['redactionid' => $r7->id]);
+    ob_start();
+    $tache->execute();
+    ob_end_clean();
+    $p7 = $DB->get_record('redaction_submission', ['id' => $plein->id]);
+    $f7 = $DB->get_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'finale' => 1]);
+    $check('deadline passed: the draft is handed in and its final correction queued', (int) $p7->status === 1 && count($f7) === 1
+        && reset($f7)->status === 'pending');
+    foreach ($f7 as $ev7) {
+        retirer_tache((int) $ev7->id);
+    }
+    $v7 = $DB->get_record('redaction_submission', ['id' => $vide7->id]);
+    $check('deadline passed, empty copy: locked, no correction, no grade', (int) $v7->status === 1
+        && !$DB->record_exists('redaction_ai_evaluations', ['submissionid' => $vide7->id]) && $v7->grade === null);
+
+    // Retries: a failed final (429) gets a new one; a permanent error does not; 12 failures stop the retries.
+    $ev7 = reset($f7);
+    $DB->update_record('redaction_ai_evaluations', (object) ['id' => $ev7->id, 'status' => 'failed',
+        'error_message' => 'HTTP 429: Request limit per minute exceeded', 'timemodified' => time() - 700]);
+    $relance = new \mod_redaction\task\relancer_finales();
+    ob_start();
+    $relance->execute();
+    ob_end_clean();
+    $nouvelles = $DB->get_records_select('redaction_ai_evaluations', 'submissionid = ? AND finale = 1 AND id <> ?', [$plein->id, $ev7->id]);
+    $check('failed final (429): a new final correction is queued, the failed one kept', count($nouvelles) === 1
+        && reset($nouvelles)->status === 'pending' && $DB->get_field('redaction_ai_evaluations', 'status', ['id' => $ev7->id]) === 'failed');
+    foreach ($nouvelles as $n) {
+        retirer_tache((int) $n->id);
+    }
+    ob_start();
+    $relance->execute();
+    ob_end_clean();
+    $check('a final still pending: no second one', $DB->count_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'finale' => 1]) === 2);
+    $DB->set_field('redaction_ai_evaluations', 'status', 'failed', ['submissionid' => $plein->id]);
+    $DB->set_field('redaction_ai_evaluations', 'error_message', get_string('sujets_corrige_vide', 'mod_redaction'), ['submissionid' => $plein->id]);
+    ob_start();
+    $relance->execute();
+    ob_end_clean();
+    $check('permanent error: no retry', $DB->count_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'finale' => 1]) === 2);
+    $DB->set_field('redaction_ai_evaluations', 'error_message', 'HTTP 429', ['submissionid' => $plein->id]);
+    for ($i = 0; $i < 10; $i++) {
+        $DB->insert_record('redaction_ai_evaluations', (object) ['redactionid' => $r7->id, 'submissionid' => $plein->id, 'groupid' => 0,
+            'userid' => $a, 'provider' => 'simule', 'model' => 'simule', 'status' => 'failed', 'finale' => 1, 'error_message' => 'HTTP 429',
+            'timecreated' => time() - 700, 'timemodified' => time() - 700]);
+    }
+    ob_start();
+    $relance->execute();
+    ob_end_clean();
+    $check('12 failed finals: no more retry', $DB->count_records('redaction_ai_evaluations', ['submissionid' => $plein->id, 'finale' => 1]) === 12);
 } catch (Throwable $ex) {
     $check('no exception: ' . $ex->getMessage() . ' ' . $ex->getFile() . ':' . $ex->getLine(), false);
 } finally {

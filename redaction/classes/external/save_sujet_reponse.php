@@ -87,6 +87,14 @@ class save_sujet_reponse extends sujets_base {
             if (\mod_redaction\ai_evaluator::has_pending_evaluation($submission->id)) {
                 return ['success' => false, 'message' => get_string('sujets_ecriture_bloquee', 'mod_redaction')];
             }
+            // Request 16: a copy handed in, or past its deadline, is locked; read again under the lock.
+            $submission = $DB->get_record('redaction_submission', ['id' => $submission->id], '*', MUST_EXIST);
+            if ((int) $submission->status === 1) {
+                return ['success' => false, 'message' => get_string('training_error_already_submitted', 'mod_redaction')];
+            }
+            if (redaction_deadline_passed($redaction, $submission)) {
+                return ['success' => false, 'message' => get_string('training_error_deadline_passed', 'mod_redaction')];
+            }
 
             $texte = \core_text::substr(str_replace("\r\n", "\n", $params['contenu']), 0, self::MAX_LENGTH);
             $now = time();

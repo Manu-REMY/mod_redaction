@@ -124,7 +124,75 @@ class auto_submit_deadline extends \core\task\scheduled_task {
             }
         }
 
+        // Assigned subjects mode (request 16): the copies still in draft are handed in as their final version.
+        [$sujetstraites, $sujetsfinales, $sujetserreurs] = $this->soumettre_sujets();
+        $totalprocessed += $sujetstraites;
+        $totalevaluations += $sujetsfinales;
+        $totalerrors += $sujetserreurs;
+
         mtrace("Auto-submit deadline task completed. Processed: {$totalprocessed}, AI evaluations queued: {$totalevaluations}, Errors: {$totalerrors}");
+    }
+
+    /**
+     * Hands in, as their final version, the draft copies of the assigned subjects mode whose deadline is passed.
+     *
+     * The copy is locked; its final correction is queued when at least one subject has an answer (an empty subject is
+     * worth 0), never for a copy without any answer, which stays without a grade.
+     *
+     * @return int[] [copies handed in, final corrections queued, errors]
+     */
+    protected function soumettre_sujets(): array {
+        global $DB;
+
+        $traites = 0;
+        $finales = 0;
+        $erreurs = 0;
+        $redactions = $DB->get_records('redaction', ['sujets_enabled' => 1]);
+        if (!$redactions) {
+            return [0, 0, 0];
+        }
+        [$insql, $params] = $DB->get_in_or_equal(array_keys($redactions));
+        $brouillons = $DB->get_records_select('redaction_submission', "status = 0 AND redactionid $insql", $params);
+        $factory = \core\lock\lock_config::get_lock_factory('mod_redaction');
+        foreach ($brouillons as $brouillon) {
+            $redaction = $redactions[$brouillon->redactionid];
+            if (!redaction_deadline_passed($redaction, $brouillon)) {
+                continue;
+            }
+            // Same lock as the student's own final submission: never two finals.
+            $lock = $factory->get_lock('redaction_submit_' . $brouillon->id, 10);
+            if (!$lock) {
+                $erreurs++;
+                continue;
+            }
+            try {
+                $submission = $DB->get_record('redaction_submission', ['id' => $brouillon->id], '*', MUST_EXIST);
+                if ((int) $submission->status !== 0) {
+                    continue;
+                }
+                $ecrit = false;
+                foreach ($DB->get_records('redaction_sujet_reponse', ['submissionid' => $submission->id], '', 'id, contenu, contenuformat') as $r) {
+                    $ecrit = $ecrit || \mod_redaction\notes_sujets::texte_reponse($r->contenu, (int) $r->contenuformat) !== '';
+                }
+                $DB->update_record('redaction_submission', (object) [
+                    'id' => $submission->id, 'status' => 1, 'timesubmitted' => time(), 'timemodified' => time(),
+                ]);
+                if ($ecrit) {
+                    \mod_redaction\ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid,
+                        (int) $submission->userid, true, true);
+                    $finales++;
+                }
+                $traites++;
+                mtrace("  Final version handed in by the deadline: submission {$submission->id} on redaction {$redaction->id}"
+                    . ($ecrit ? '' : ' (no answer, no correction)'));
+            } catch (\Throwable $e) {
+                mtrace("  ERROR on submission {$brouillon->id}: " . $e->getMessage());
+                $erreurs++;
+            } finally {
+                $lock->release();
+            }
+        }
+        return [$traites, $finales, $erreurs];
     }
 
     /**

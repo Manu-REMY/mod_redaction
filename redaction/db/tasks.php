@@ -36,6 +36,16 @@ $tasks = [
         'disabled' => 0,
     ],
     [
+        'classname' => 'mod_redaction\task\relancer_finales',
+        'blocking' => 0,
+        'minute' => '*/10',
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+        'disabled' => 0,
+    ],
+    [
         'classname' => 'mod_redaction\task\apply_ai_grade',
         'blocking' => 0,
         'minute' => '*',
