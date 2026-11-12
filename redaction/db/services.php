@@ -175,4 +175,12 @@ $functions = [
         'ajax' => true,
         'capabilities' => 'mod/redaction:submit',
     ],
+    'mod_redaction_submit_final' => [
+        'classname' => 'mod_redaction\external\submit_final',
+        'methodname' => 'execute',
+        'description' => 'Hand in the final version of the copy, once, and queue its final correction',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/redaction:submit',
+    ],
 ];

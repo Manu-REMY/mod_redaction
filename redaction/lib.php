@@ -985,22 +985,15 @@ function redaction_can_submit_attempt($redaction, $submission, $correction = nul
         return ['allowed' => false, 'reason' => 'training_not_enabled'];
     }
 
-    // In the assigned subjects mode there is no final version and the date only informs.
+    // Request 16: in the assigned subjects mode too, a final version ends the attempts, and so does the date.
     $sujetsenabled = !empty($redaction->sujets_enabled);
 
-    if (!$sujetsenabled && (int) $submission->status === 1) {
+    if ((int) $submission->status === 1) {
         return ['allowed' => false, 'reason' => 'already_submitted'];
     }
 
-    if (!$sujetsenabled) {
-        $effectivedeadline = redaction_get_effective_deadline(
-            $redaction,
-            (int) ($submission->userid ?? 0),
-            (int) ($submission->groupid ?? 0)
-        );
-        if (!empty($effectivedeadline) && time() > $effectivedeadline) {
-            return ['allowed' => false, 'reason' => 'deadline_passed'];
-        }
+    if (redaction_deadline_passed($redaction, $submission)) {
+        return ['allowed' => false, 'reason' => 'deadline_passed'];
     }
 
     $maxeffective = redaction_effective_max_attempts($redaction);
@@ -1022,6 +1015,47 @@ function redaction_can_submit_attempt($redaction, $submission, $correction = nul
         return ['allowed' => false, 'reason' => 'empty_answer'];
     }
 
+    return ['allowed' => true, 'reason' => ''];
+}
+
+/**
+ * Whether the effective deadline of a submission is passed (activity date, or an override of its group or student).
+ *
+ * @param stdClass $redaction
+ * @param stdClass $submission
+ * @return bool
+ */
+function redaction_deadline_passed($redaction, $submission): bool {
+    $deadline = redaction_get_effective_deadline($redaction, (int) ($submission->userid ?? 0), (int) ($submission->groupid ?? 0));
+    return !empty($deadline) && time() > $deadline;
+}
+
+/**
+ * Whether the final version of a copy can be submitted (assigned subjects mode, request 16).
+ *
+ * Unlike an attempt it needs no attempt left: a student who used every attempt still hands in.
+ *
+ * @param stdClass $redaction
+ * @param stdClass $submission
+ * @return array ['allowed' => bool, 'reason' => string] reason: already_submitted, deadline_passed, evaluation_pending,
+ *               empty_answer.
+ */
+function redaction_can_submit_final($redaction, $submission): array {
+    global $DB;
+
+    if ((int) $submission->status === 1) {
+        return ['allowed' => false, 'reason' => 'already_submitted'];
+    }
+    if (redaction_deadline_passed($redaction, $submission)) {
+        return ['allowed' => false, 'reason' => 'deadline_passed'];
+    }
+    if ($DB->record_exists_select('redaction_ai_evaluations', 'submissionid = ? AND status IN (?, ?)',
+            [$submission->id, 'pending', 'processing'])) {
+        return ['allowed' => false, 'reason' => 'evaluation_pending'];
+    }
+    if (!redaction_sujets_answered($redaction, $submission)) {
+        return ['allowed' => false, 'reason' => 'empty_answer'];
+    }
     return ['allowed' => true, 'reason' => ''];
 }
 

@@ -314,9 +314,10 @@ try {
     repondre($submission, $sujets, '<p>Le <b>gouvernail</b> tourne</p>');
     $check('all answered: allowed', $raison() === '');
     $DB->set_field('redaction_correction', 'deadline_date', $now - 86400, ['redactionid' => $redaction->id]);
-    $check('date passed: still allowed', $raison() === '');
+    $check('date passed: refused (request 16)', $raison() === 'deadline_passed');
+    $DB->set_field('redaction_correction', 'deadline_date', null, ['redactionid' => $redaction->id]);
     $DB->set_field('redaction_submission', 'status', 1, ['id' => $submission->id]);
-    $check('already validated: still allowed', $raison() === '');
+    $check('final version handed in: no more attempt (request 16)', $raison() === 'already_submitted');
     $DB->set_field('redaction_submission', 'status', 0, ['id' => $submission->id]);
     $DB->set_field('redaction_submission', 'training_count', 5, ['id' => $submission->id]);
     $check('limit reached: max_attempts_reached', $raison() === 'max_attempts_reached');

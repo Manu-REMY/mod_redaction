@@ -793,6 +793,7 @@ $string['sujets_meilleure_note'] = 'Meilleure note : {$a}/20';
 $string['sujets_pas_de_note'] = 'Pas encore de note';
 $string['sujets_essais_restants'] = 'Essais restants : {$a}';
 $string['sujets_correction_en_cours'] = 'Correction en cours';
+$string['sujets_finale_en_cours'] = 'Ta version finale est en cours de correction.';
 $string['sujets_correction_patience'] = 'Correction en cours, environ une minute. Reste sur cette page : ta note s’affichera toute seule.';
 $string['sujets_correction_attente'] = 'Correction en attente : le dernier essai n\'a pas pu être corrigé et n\'a pas été compté. Soumets à nouveau.';
 $string['sujets_soumettre'] = 'Soumettre';

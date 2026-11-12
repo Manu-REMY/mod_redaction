@@ -793,6 +793,7 @@ $string['sujets_meilleure_note'] = 'Best grade: {$a}/20';
 $string['sujets_pas_de_note'] = 'No grade yet';
 $string['sujets_essais_restants'] = 'Attempts left: {$a}';
 $string['sujets_correction_en_cours'] = 'Correction in progress';
+$string['sujets_finale_en_cours'] = 'Your final version is being corrected.';
 $string['sujets_correction_patience'] = 'Correction in progress, about a minute. Stay on this page: your grade will appear on its own.';
 $string['sujets_correction_attente'] = 'Correction pending: the last attempt could not be corrected and was not counted. Submit again.';
 $string['sujets_soumettre'] = 'Submit';

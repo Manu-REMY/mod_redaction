@@ -52,6 +52,21 @@ require_once($CFG->libdir . '/enrollib.php');
 use mod_redaction\ai_evaluator;
 use mod_redaction\ai_provider\provider_interface;
 
+// Worker mode: php verif_finale.php worker-finale <cmid> <userid> <start>: submits the final version at the given instant.
+if (($argv[1] ?? '') === 'worker-finale') {
+    \core\session\manager::set_user($DB->get_record('user', ['id' => (int) $argv[3]], '*', MUST_EXIST));
+    while (microtime(true) < (float) $argv[4]) {
+        usleep(200);
+    }
+    try {
+        $r = \mod_redaction\external\submit_final::execute((int) $argv[2]);
+        echo json_encode($r) . "\n";
+    } catch (\Throwable $e) {
+        echo 'EXC ' . $e->getMessage() . "\n";
+    }
+    exit(0);
+}
+
 /** Provider that plays back prepared answers and keeps every prompt. */
 class fournisseur_simule implements provider_interface {
     /** @var array Answers to play back. */
@@ -293,6 +308,65 @@ try {
     $check('group final: the grade goes to both members', carnet($r3, $a) !== null && carnet($r3, $a) === carnet($r3, $b));
     $check('an attempt with an empty subject is still refused',
         redaction_can_submit_attempt($r3, $DB->get_record('redaction_submission', ['id' => $s3->id]))['reason'] === 'empty_answer');
+
+    // 6. Request 16, the services: final submission locks, once; attempts and final refused after it or after the date.
+    $r6 = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 1, 'training_max_attempts' => 2,
+        'sujets_enabled' => 1, 'sujets_par_groupe' => 1, 'sujets_seuil' => 12]);
+    $DB->insert_record('redaction_sujet', (object) [
+        'redactionid' => $r6->id, 'sortorder' => 1, 'titre' => 'Seul', 'contenu' => 'Enonce', 'contenuformat' => FORMAT_HTML,
+        'corrige' => 'E1 : a. E2 : b.', 'timecreated' => $now, 'timemodified' => $now,
+    ]);
+    $cm6 = get_coursemodule_from_instance('redaction', $r6->id, $course->id, false, MUST_EXIST);
+    $s6 = redaction_get_or_create_submission($r6, $g1, $a);
+    $su6 = \mod_redaction\sujets::de_soumission($r6, $s6);
+    \core\session\manager::set_user($DB->get_record('user', ['id' => $a]));
+    $vide = \mod_redaction\external\submit_final::execute($cm6->id);
+    $check('final with an empty subject: refused', !$vide['success'] && $vide['message'] === get_string('training_error_empty_answer', 'mod_redaction'));
+    repondre($s6, $su6, 'Ma réponse complète.', FORMAT_PLAIN);
+    $DB->set_field('redaction_submission', 'training_count', 2, ['id' => $s6->id]);
+    $essai = \mod_redaction\external\submit_sujets::execute($cm6->id);
+    $check('no attempt left: an attempt is refused', !$essai['success']);
+    // Two processes at the same instant: a single final.
+    $start = microtime(true) + 3;
+    $procs = [];
+    $pipes = [];
+    foreach ([$a, $b] as $k => $uid) {
+        $procs[$k] = proc_open([PHP_BINARY, __FILE__, 'worker-finale', (string) $cm6->id, (string) $uid, sprintf('%.4F', $start)],
+            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes[$k]);
+    }
+    $sorties = [];
+    foreach ($procs as $k => $proc) {
+        $sorties[$k] = trim(stream_get_contents($pipes[$k][1]) . stream_get_contents($pipes[$k][2]));
+        proc_close($proc);
+    }
+    $ok = array_filter($sorties, fn($o) => str_contains($o, '"success":true'));
+    $finales = $DB->count_records('redaction_ai_evaluations', ['submissionid' => $s6->id, 'finale' => 1]);
+    $check('no attempt left, two members at once: one final only (' . $finales . ', ' . implode(' | ', $sorties) . ')',
+        count($ok) === 1 && $finales === 1);
+    $sub6 = $DB->get_record('redaction_submission', ['id' => $s6->id]);
+    $check('final: the copy is locked', (int) $sub6->status === 1 && (int) $sub6->timesubmitted > 0);
+    $check('final: no attempt spent', (int) $sub6->training_count === 2);
+    foreach ($DB->get_records('redaction_ai_evaluations', ['submissionid' => $s6->id]) as $ev6) {
+        retirer_tache((int) $ev6->id);
+    }
+    $DB->set_field('redaction_ai_evaluations', 'status', 'failed', ['submissionid' => $s6->id]);
+    $encore = \mod_redaction\external\submit_final::execute($cm6->id);
+    $check('a second final is refused', !$encore['success']
+        && $encore['message'] === get_string('training_error_already_submitted', 'mod_redaction'));
+    $DB->set_field('redaction_submission', 'training_count', 0, ['id' => $s6->id]);
+    $apres = \mod_redaction\external\submit_sujets::execute($cm6->id);
+    $check('an attempt after the final is refused', !$apres['success']
+        && $apres['message'] === get_string('training_error_already_submitted', 'mod_redaction'));
+    // After the deadline: neither attempt nor final.
+    $DB->set_field('redaction_submission', 'status', 0, ['id' => $s6->id]);
+    $DB->delete_records('redaction_ai_evaluations', ['submissionid' => $s6->id]);
+    $DB->set_field('redaction_correction', 'deadline_date', time() - 60, ['redactionid' => $r6->id]);
+    $tard = \mod_redaction\external\submit_final::execute($cm6->id);
+    $tardessai = \mod_redaction\external\submit_sujets::execute($cm6->id);
+    $check('after the deadline: final refused', !$tard['success'] && $tard['message'] === get_string('training_error_deadline_passed', 'mod_redaction'));
+    $check('after the deadline: attempt refused', !$tardessai['success']
+        && $tardessai['message'] === get_string('training_error_deadline_passed', 'mod_redaction'));
+    \core\session\manager::set_user(get_admin());
 } catch (Throwable $ex) {
     $check('no exception: ' . $ex->getMessage() . ' ' . $ex->getFile() . ':' . $ex->getLine(), false);
 } finally {
