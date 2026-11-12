@@ -61,6 +61,9 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'langue_enabled',
             'langue_points',
             'sujets_phrases',
+            'sujets_theme',
+            'sujets_aide_partiel',
+            'sujets_aide_rien',
             'timecreated',
             'timemodified',
         ]);

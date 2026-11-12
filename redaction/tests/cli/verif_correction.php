@@ -773,7 +773,8 @@ try {
     repondre($s6, \mod_redaction\sujets::du_groupe($phrases, $g6), 'Une reponse', FORMAT_PLAIN);
     foreach ([
         ['note' => 12, 'attendus' => ['E1'], 'commentaire' => 'Tu as cité les rails. Si absent : il manque la pièce qui dirige.',
-            'attendu' => 'Tu as cité les rails. ' . get_string('sujets_commentaire_fonctionnement', 'mod_redaction'), 'label' => 'part named, sentence from the plugin'],
+            'attendu' => 'Tu as cité les rails. ' . get_string('sujets_commentaire_partiel_defaut', 'mod_redaction'),
+            'label' => 'part named, neutral sentence from the plugin (no help sentence set)'],
         ['note' => 18, 'attendus' => ['E1', 'E2'], 'commentaire' => 'Bien vu. Il manque un détail.',
             'attendu' => 'Bien vu.', 'label' => 'validated, nothing missing'],
     ] as $cas) {
@@ -785,6 +786,21 @@ try {
         $details6 = json_decode($DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $id6]), true);
         $check('comment: ' . $cas['label'], $details6[0]['commentaire'] === $cas['attendu']);
     }
+
+    // Request 14: the grader text of the activity, what the student explains and its own help sentence.
+    $DB->update_record('redaction', (object) ['id' => $phrases->id, 'sujets_theme' => 'pourquoi le profil de sa poutre résiste',
+        'sujets_aide_partiel' => 'Dis aussi ce que fait la matière.']);
+    $phrases = $DB->get_record('redaction', ['id' => $phrases->id], '*', MUST_EXIST);
+    $DB->set_field('redaction_submission', 'training_count', 1, ['id' => $s6->id]);
+    $id6 = ai_evaluator::queue_evaluation($phrases->id, $s6->id, $g6, $a, true);
+    retirer_tache($id6);
+    $sim->appels = [];
+    $sim->reponses = [json_encode(['attendus' => ['E1'], 'erreurs' => [], 'note' => 12, 'commentaire' => 'Tu as cité la section.'])];
+    ai_evaluator::process_evaluation($id6);
+    $details6 = json_decode($DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $id6]), true);
+    $check('comment: the help sentence of the activity', $details6[0]['commentaire'] === 'Tu as cité la section. Dis aussi ce que fait la matière.');
+    $check('prompt: what the student explains in this activity, nothing about steering',
+        str_contains($sim->appels[0]['system'] ?? '', 'pourquoi le profil de sa poutre résiste') && !str_contains($sim->appels[0]['system'] ?? '', 'dirige'));
 
     // Locks set by the teacher in the gradebook are not failures.
     $itemnote = grade_item::fetch(['courseid' => $course->id, 'itemtype' => 'mod', 'itemmodule' => 'redaction',

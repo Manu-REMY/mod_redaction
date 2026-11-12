@@ -23,6 +23,7 @@
     * actionurl - Form target
     * sesskey - Session key
     * backurl - Back to the activity
+    * sujets_theme, sujets_aide_partiel, sujets_aide_rien - Grader text of the activity (what the student explains, help sentences)
     * rows - List of subject rows: index, number, id, titre, contenu, corrige, lexique, isexisting
 
     Example context (json):
@@ -30,6 +31,7 @@
         "actionurl": "/mod/redaction/view.php?id=1&page=sujets",
         "sesskey": "abc",
         "backurl": "/mod/redaction/view.php?id=1",
+        "sujets_theme": "la manière dont un système se dirige", "sujets_aide_partiel": "", "sujets_aide_rien": "",
         "rows": [
             {"index": 0, "number": 1, "id": 5, "titre": "Pont", "contenu": "Expliquer", "corrige": "Attendu", "lexique": "actionneur, liaison", "isexisting": true}
         ]
@@ -39,6 +41,24 @@
     <p class="mod_redaction-sujets-help">{{#str}}sujets_help, mod_redaction{{/str}}</p>
     <form method="post" action="{{actionurl}}">
         <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <fieldset class="mod_redaction-sujet-row mod_redaction-sujets-correcteur">
+            <legend>{{#str}}sujets_correcteur, mod_redaction{{/str}}</legend>
+            <div class="mod_redaction-sujet-field">
+                <label for="sujets-theme">{{#str}}sujets_theme, mod_redaction{{/str}}</label>
+                <input type="text" id="sujets-theme" name="sujets_theme" value="{{sujets_theme}}" class="form-control">
+                <small class="form-text text-muted">{{#str}}sujets_theme_help, mod_redaction{{/str}}</small>
+            </div>
+            <div class="mod_redaction-sujet-field">
+                <label for="sujets-aide-partiel">{{#str}}sujets_aide_partiel, mod_redaction{{/str}}</label>
+                <input type="text" id="sujets-aide-partiel" name="sujets_aide_partiel" value="{{sujets_aide_partiel}}" class="form-control">
+                <small class="form-text text-muted">{{#str}}sujets_aide_partiel_help, mod_redaction{{/str}}</small>
+            </div>
+            <div class="mod_redaction-sujet-field">
+                <label for="sujets-aide-rien">{{#str}}sujets_aide_rien, mod_redaction{{/str}}</label>
+                <input type="text" id="sujets-aide-rien" name="sujets_aide_rien" value="{{sujets_aide_rien}}" class="form-control">
+                <small class="form-text text-muted">{{#str}}sujets_aide_rien_help, mod_redaction{{/str}}</small>
+            </div>
+        </fieldset>
         {{#rows}}
         <fieldset class="mod_redaction-sujet-row">
             <legend>{{#str}}sujet_number, mod_redaction, {{number}}{{/str}}</legend>

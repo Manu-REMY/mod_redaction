@@ -31,7 +31,7 @@ defined('MOODLE_INTERNAL') || die();
  * @return bool
  */
 function xmldb_redaction_upgrade($oldversion) {
-    global $DB;
+    global $CFG, $DB;
 
     $dbman = $DB->get_manager();
 
@@ -413,6 +413,34 @@ function xmldb_redaction_upgrade($oldversion) {
         }
 
         upgrade_mod_savepoint(true, 2026111201, 'redaction');
+    }
+
+    if ($oldversion < 2026111202) {
+        // Grader text of each activity (request 14): what the student explains and the two help sentences.
+        $table = new xmldb_table('redaction');
+        foreach (['sujets_theme' => 'sujets_phrases', 'sujets_aide_partiel' => 'sujets_theme', 'sujets_aide_rien' => 'sujets_aide_partiel'] as $nom => $apres) {
+            $field = new xmldb_field($nom, XMLDB_TYPE_TEXT, null, null, null, null, null, $apres);
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        // The activities already in the assigned subjects mode were written for "how a system steers" (ROB4):
+        // they keep that wording, word for word, in the site language.
+        $strings = get_string_manager();
+        $lang = $CFG->lang ?? 'en';
+        $textes = [
+            'sujets_theme' => $strings->get_string('sujets_migration_theme', 'mod_redaction', null, $lang),
+            'sujets_aide_partiel' => $strings->get_string('sujets_commentaire_fonctionnement', 'mod_redaction', null, $lang),
+            'sujets_aide_rien' => $strings->get_string('sujets_commentaire_les_deux', 'mod_redaction', null, $lang),
+        ];
+        foreach ($DB->get_fieldset_select('redaction', 'id', 'sujets_enabled = 1') as $redactionid) {
+            foreach ($textes as $champ => $texte) {
+                $DB->set_field('redaction', $champ, $texte, ['id' => $redactionid]);
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026111202, 'redaction');
     }
 
     return true;

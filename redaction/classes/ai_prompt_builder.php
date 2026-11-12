@@ -55,12 +55,19 @@ class ai_prompt_builder {
      * @param object $sujet The subject (titre, corrige)
      * @param string $reponse The student's answer as stored
      * @param int $format Format of the answer, plain text by default
+     * @param string $theme What the student explains in this activity ("la manière dont un système se dirige"),
+     *     set by the teacher; empty gives a neutral wording (request 14).
      * @return array ['system' => string, 'user' => string]
      */
-    public static function build_sujet_prompt(object $sujet, string $reponse, int $format = notes_sujets::FORMAT_TEXTE): array {
-        $system = get_string('ai_prompt_sujet_intro', 'mod_redaction') . "\n\n";
+    public static function build_sujet_prompt(object $sujet, string $reponse, int $format = notes_sujets::FORMAT_TEXTE,
+            string $theme = ''): array {
+        $theme = trim($theme);
+        if ($theme === '') {
+            $theme = get_string('ai_prompt_sujet_theme_defaut', 'mod_redaction');
+        }
+        $system = get_string('ai_prompt_sujet_intro', 'mod_redaction', $theme) . "\n\n";
         foreach (['bareme', 'mots', 'tolerance', 'copie', 'donnees', 'commentaire', 'secret'] as $regle) {
-            $system .= '- ' . get_string('ai_prompt_sujet_' . $regle, 'mod_redaction') . "\n";
+            $system .= '- ' . get_string('ai_prompt_sujet_' . $regle, 'mod_redaction', $regle === 'bareme' ? $theme : null) . "\n";
         }
         $system .= "\n## " . get_string('ai_prompt_response_format', 'mod_redaction') . "\n";
         $system .= get_string('ai_prompt_sujet_format', 'mod_redaction') . "\n";

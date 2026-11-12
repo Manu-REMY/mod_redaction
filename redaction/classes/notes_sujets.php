@@ -278,6 +278,25 @@ class notes_sujets {
     }
 
     /**
+     * Sentences the plugin adds to a comment: the help sentences of the activity, or neutral ones (request 14).
+     *
+     * fonctionnement: E1 found but not E2; les_deux: E1 missing; precision and juste are the same for every activity.
+     *
+     * @param \stdClass $redaction Activity record (sujets_aide_partiel, sujets_aide_rien).
+     * @return array
+     */
+    public static function phrases_aide(\stdClass $redaction): array {
+        $partiel = trim((string) ($redaction->sujets_aide_partiel ?? ''));
+        $rien = trim((string) ($redaction->sujets_aide_rien ?? ''));
+        return [
+            'fonctionnement' => $partiel !== '' ? $partiel : get_string('sujets_commentaire_partiel_defaut', 'mod_redaction'),
+            'les_deux' => $rien !== '' ? $rien : get_string('sujets_commentaire_rien_defaut', 'mod_redaction'),
+            'precision' => get_string('sujets_commentaire_precision', 'mod_redaction'),
+            'juste' => get_string('sujets_commentaire_juste', 'mod_redaction'),
+        ];
+    }
+
+    /**
      * Answer key with the words of the discipline expected, which belong to it (request 7).
      *
      * The words go first: what follows "X :" in the key lists wrong ideas a comment may name, they must not fall there.

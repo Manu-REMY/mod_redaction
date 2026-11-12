@@ -26,6 +26,9 @@
         <FIELD NAME="langue_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1=language mastery assessed (assigned subjects mode)"/>
         <FIELD NAME="langue_points" TYPE="number" LENGTH="5" NOTNULL="true" DEFAULT="2" SEQUENCE="false" DECIMALS="2" COMMENT="Points of the language part out of 20"/>
         <FIELD NAME="sujets_phrases" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="2" SEQUENCE="false" COMMENT="Sentences expected in each answer, 0 = no warning"/>
+        <FIELD NAME="sujets_theme" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="What the student explains, inserted in the grader prompt"/>
+        <FIELD NAME="sujets_aide_partiel" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Help sentence when E1 is found but not E2"/>
+        <FIELD NAME="sujets_aide_rien" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Help sentence when E1 is missing"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>

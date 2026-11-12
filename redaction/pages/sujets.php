@@ -45,6 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lexiques = optional_param_array('lexique', [], PARAM_TEXT);
     $deletes = optional_param_array('delete', [], PARAM_INT);
 
+    // What the student explains and the help sentences of this activity (request 14): empty gives neutral wording.
+    $DB->update_record('redaction', (object) [
+        'id' => $redaction->id,
+        'sujets_theme' => trim(optional_param('sujets_theme', '', PARAM_TEXT)),
+        'sujets_aide_partiel' => trim(optional_param('sujets_aide_partiel', '', PARAM_TEXT)),
+        'sujets_aide_rien' => trim(optional_param('sujets_aide_rien', '', PARAM_TEXT)),
+    ]);
+
     $now = time();
     $order = 0;
     $refused = [];
@@ -126,6 +134,9 @@ if ($number < $maxsujets) {
 }
 
 $data = [
+    'sujets_theme' => (string) ($redaction->sujets_theme ?? ''),
+    'sujets_aide_partiel' => (string) ($redaction->sujets_aide_partiel ?? ''),
+    'sujets_aide_rien' => (string) ($redaction->sujets_aide_rien ?? ''),
     'actionurl' => $pageurl->out(false),
     'sesskey' => sesskey(),
     'rows' => $rows,

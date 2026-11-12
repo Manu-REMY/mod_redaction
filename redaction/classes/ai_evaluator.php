@@ -367,7 +367,8 @@ class ai_evaluator {
                 if (!$reponse || notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat) === '') {
                     throw new \moodle_exception('sujets_reponse_vide', 'mod_redaction');
                 }
-                $prompts = ai_prompt_builder::build_sujet_prompt($sujet, $reponse->contenu, (int) $reponse->contenuformat);
+                $prompts = ai_prompt_builder::build_sujet_prompt($sujet, $reponse->contenu, (int) $reponse->contenuformat,
+                    (string) ($redaction->sujets_theme ?? ''));
                 $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::MAX_TOKENS);
                 $bruts[] = $response['content'];
                 $prompttokens += $response['prompt_tokens'];
@@ -376,7 +377,7 @@ class ai_evaluator {
                 $lu = notes_sujets::lire_reponse_ia($response['content']);
                 // The words of the discipline expected belong to the answer key: the comment never gives them either.
                 // They go first: what follows "X :" in the key is allowed (wrong ideas), they must not fall there.
-                $lu['commentaire'] = notes_sujets::commentaire_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire(),
+                $lu['commentaire'] = notes_sujets::commentaire_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire($redaction),
                     notes_sujets::avec_lexique(notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE), $sujet->lexique ?? ''),
                     notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat), $sujet->titre);
                 $notes[] = $lu['note'];
@@ -711,16 +712,13 @@ class ai_evaluator {
     }
 
     /**
-     * Sentences the plugin adds to a comment in the assigned subjects mode.
+     * Sentences the plugin adds to a comment in the assigned subjects mode: those of the activity.
      *
+     * @param \stdClass $redaction Activity record.
      * @return array
      */
-    public static function phrases_commentaire(): array {
-        $phrases = [];
-        foreach (['fonctionnement', 'les_deux', 'precision', 'juste'] as $cle) {
-            $phrases[$cle] = get_string('sujets_commentaire_' . $cle, 'mod_redaction');
-        }
-        return $phrases;
+    public static function phrases_commentaire(\stdClass $redaction): array {
+        return notes_sujets::phrases_aide($redaction);
     }
 
     /**
