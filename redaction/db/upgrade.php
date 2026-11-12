@@ -484,7 +484,10 @@ function xmldb_redaction_upgrade($oldversion) {
                 $DB->set_field('redaction_submission', 'grade', \mod_redaction\notes_sujets::meilleure($notes, $enseignant),
                     ['id' => $submission->id]);
             }
-            redaction_update_grades($redaction);
+            // The gradebook cannot be written during an upgrade: the task does it right after.
+            $tache = new \mod_redaction\task\mettre_a_jour_carnet();
+            $tache->set_custom_data(['redactionid' => (int) $redaction->id]);
+            \core\task\manager::queue_adhoc_task($tache);
         }
 
         upgrade_mod_savepoint(true, 2026111204, 'redaction');
