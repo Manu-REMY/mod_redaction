@@ -50,7 +50,8 @@ class notes_sujets {
         if (!$notes || in_array(null, $notes, true)) {
             return null;
         }
-        return round(array_sum($notes) / count($notes), 2);
+        // To the tenth, as shown: the grade that counts is the grade the student sees.
+        return round(array_sum($notes) / count($notes), 1);
     }
 
     /**
@@ -59,7 +60,7 @@ class notes_sujets {
      * @param array $notes Grade of each answer out of 20, null when an answer has none.
      * @param float|null $pointslangue Points of the language part, null when the language is not assessed.
      * @param float $p Points of the language part in the grade out of 20.
-     * @return float|null Rounded to two decimals, null when a grade is missing or there is none.
+     * @return float|null Rounded to the tenth, null when a grade is missing or there is none.
      */
     public static function note_totale(array $notes, ?float $pointslangue, float $p): ?float {
         if ($pointslangue === null) {
@@ -68,7 +69,8 @@ class notes_sujets {
         if (!$notes || in_array(null, $notes, true)) {
             return null;
         }
-        return round(array_sum($notes) / count($notes) * (self::NOTE_MAX - $p) / self::NOTE_MAX + $pointslangue, 2);
+        // To the tenth, as shown: 11.97 shown as 12 must validate a threshold of 12.
+        return round(array_sum($notes) / count($notes) * (self::NOTE_MAX - $p) / self::NOTE_MAX + $pointslangue, 1);
     }
 
     /**
