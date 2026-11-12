@@ -281,6 +281,33 @@ test('note_finale : rien', fn() => notes_sujets::note_finale(null, null) === nul
 test('finale_remplace_prof : finale rendue après la note du professeur', fn() => notes_sujets::finale_remplace_prof(1000, 999) === true);
 test('finale_remplace_prof : finale rendue avant (corrigée après)', fn() => notes_sujets::finale_remplace_prof(998, 999) === false);
 test('finale_remplace_prof : même seconde, le professeur garde la main', fn() => notes_sujets::finale_remplace_prof(999, 999) === false);
+// D-050: only spelling, accents, punctuation, case or spaces changed: the content grade is kept.
+test('texte_normalise : accents, ponctuation, majuscules et espaces ignorés',
+    fn() => notes_sujets::texte_normalise('Ma poutre doit résister a cet effort   . Cette forme')
+        === notes_sujets::texte_normalise("ma poutre doit resister à cet effort, cette forme!"));
+test('texte_normalise : apostrophes et œ', fn() => notes_sujets::texte_normalise("L’effort du cœur") === 'l effort du coeur');
+test('texte_normalise : un mot changé compte', fn() => notes_sujets::texte_normalise('la poutre plie')
+    !== notes_sujets::texte_normalise('la poutre casse'));
+test('texte_normalise : une lettre ajoutée compte', fn() => notes_sujets::texte_normalise('rsister')
+    !== notes_sujets::texte_normalise('résister'));
+$ctx = ['corrige' => 'E1 : la semelle.', 'lexique' => 'semelle', 'contenu' => 'Explique', 'theme' => '', 'seuil' => 12.0];
+test('empreinte_fond : même texte normalisé, même empreinte',
+    fn() => notes_sujets::empreinte_fond('Résister a cet effort.', $ctx) === notes_sujets::empreinte_fond('resister à cet effort', $ctx));
+test('empreinte_fond : corrigé changé, autre empreinte',
+    fn() => notes_sujets::empreinte_fond('Résister', $ctx) !== notes_sujets::empreinte_fond('Résister', ['corrige' => 'E1 : autre.'] + $ctx));
+test('empreinte_fond : seuil changé, autre empreinte',
+    fn() => notes_sujets::empreinte_fond('Résister', $ctx) !== notes_sujets::empreinte_fond('Résister', ['seuil' => 14.0] + $ctx));
+$precedents = [
+    [['sujetid' => 11, 'note' => 10.0, 'empreinte_fond' => 'bbb']],
+    [['sujetid' => 11, 'note' => 12.0, 'empreinte_fond' => 'aaa'], ['sujetid' => 12, 'note' => 8.0, 'empreinte_fond' => 'ccc']],
+    [['sujetid' => 11, 'note' => 4.0, 'empreinte_fond' => 'aaa']],
+];
+test('fond_repris : la plus récente évaluation du même sujet et de même empreinte',
+    fn() => (notes_sujets::fond_repris($precedents, 11, 'aaa')['note'] ?? null) === 12.0);
+test('fond_repris : autre sujet, pas de reprise', fn() => notes_sujets::fond_repris($precedents, 13, 'aaa') === null);
+test('fond_repris : empreinte inconnue, pas de reprise', fn() => notes_sujets::fond_repris($precedents, 11, 'zzz') === null);
+test('fond_repris : sujet vide jamais repris',
+    fn() => notes_sujets::fond_repris([[['sujetid' => 11, 'note' => 0.0, 'vide' => true, 'empreinte_fond' => 'aaa']]], 11, 'aaa') === null);
 
 test('retour en trois parties lu', function () {
     $lu = notes_sujets::lire_reponse_ia('{"attendus":["E1"],"erreurs":[],"note":12,"juste":"J.","a_preciser":"P.","piste":"Q ?"}');

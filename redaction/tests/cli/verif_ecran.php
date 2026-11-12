@@ -102,6 +102,23 @@ $check = function (string $label, bool $ok) use (&$failures): void {
 };
 
 /** JSON answer of the simulated AI for one subject. */
+
+/**
+ * These checks grade the same text again on purpose: each correction stands for a new text, so the content grade of an
+ * earlier one is never taken over (D-050 has its own checks in verif_finale.php).
+ */
+function oublier_fond(int $evaluationid): void {
+    global $DB;
+    $submissionid = (int) $DB->get_field('redaction_ai_evaluations', 'submissionid', ['id' => $evaluationid]);
+    foreach ($DB->get_records('redaction_ai_evaluations', ['submissionid' => $submissionid], '', 'id, sujets_json') as $e) {
+        $details = json_decode((string) $e->sujets_json, true);
+        if (is_array($details)) {
+            $DB->set_field('redaction_ai_evaluations', 'sujets_json',
+                json_encode(array_map(fn($d) => is_array($d) ? array_diff_key($d, ['empreinte_fond' => 1]) : $d, $details),
+                    JSON_UNESCAPED_UNICODE), ['id' => $e->id]);
+        }
+    }
+}
 function ia(float $note, string $commentaire): string {
     return json_encode(['attendus' => ['E1', 'E2'], 'note' => $note, 'commentaire' => $commentaire]);
 }
@@ -324,6 +341,7 @@ try {
     // Correction: 12 and 10, not validated.
     retirer_taches($sub->id);
     $sim->reponses = [ia(12, 'Tu as vu la roue.'), ia(10, 'Il manque le role du moteur.')];
+    oublier_fond((int) $eval->id);
     ai_evaluator::process_evaluation((int) $eval->id);
     $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $eval->id]);
     $check("correction applied (found {$eval->status} {$eval->error_message})", $eval->status === 'applied');
@@ -346,6 +364,7 @@ try {
     $check('second attempt counted', is_array($r) && $r['success'] && (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sub->id]) === 2);
     retirer_taches($sub->id);
     $sim->reponses = [new \RuntimeException('Provider down')];
+    oublier_fond((int) $r['evaluationid']);
     ai_evaluator::process_evaluation((int) $r['evaluationid']);
     [$da, $ha] = $rendre($a);
     $check('failed: attempt given back, "correction en attente" shown, indication kept', $da['echec'] && !$da['pending'] && $da['restants'] === 4
@@ -356,6 +375,7 @@ try {
     $r = $submit($a);
     retirer_taches($sub->id);
     $sim->reponses = [ia(18, 'Parfait.'), ia(17, 'Presque parfait.')];
+    oublier_fond((int) $r['evaluationid']);
     ai_evaluator::process_evaluation((int) $r['evaluationid']);
     [$da, $ha] = $rendre($b);
     $check('threshold reached on this feedback: blue banner, said to be validated only by the final version', $da['atteint'] && !$da['valide']
@@ -404,6 +424,7 @@ try {
         ['cite' => 'resisté', 'correction' => 'résisté', 'type' => 'lexicale', 'fois' => 1]];
     $remarques = [['cite' => 'le moteur et la roue tourne', 'type' => 'phrase_mal_construite']];
     $sim->reponses = [ia(17, 'Bien vu.'), ia(18, 'Juste.'), langue_ia(['I', 'S', 'S', 'TS'], $fautes, $remarques)];
+    oublier_fond((int) $r['evaluationid']);
     ai_evaluator::process_evaluation((int) $r['evaluationid']);
     [$da, $ha] = $rendre($a);
     $enregistrer('8-langue', $ha);
@@ -426,6 +447,7 @@ try {
     $r = $submit($a);
     retirer_taches($sub->id);
     $sim->reponses = [ia(17, 'Bien vu.'), ia(17, 'Juste.'), langue_ia(['I', 'I', 'TI', 'TI'], $fautes, $remarques)];
+    oublier_fond((int) $r['evaluationid']);
     ai_evaluator::process_evaluation((int) $r['evaluationid']);
     [$da, $ha] = $rendre($a);
     $enregistrer('9-langue-empeche', $ha);

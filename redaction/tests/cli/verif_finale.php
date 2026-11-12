@@ -285,11 +285,11 @@ try {
     repondre($sub2, $sujets2, 'Premier texte de ma poutre.', FORMAT_PLAIN);
     $sim->reponses = [ia3(10), ia3(10), langue_ia(['S', 'S', 'S', 'S'])];
     passer($redaction, $sub2, $b, false);
-    repondre($sub2, $sujets2, 'Premier texte de ma poutre!', FORMAT_PLAIN);
+    repondre($sub2, $sujets2, 'Premier texte de la poutre.', FORMAT_PLAIN);
     $sim->appels = [];
     $sim->reponses = [ia3(16), ia3(16), langue_ia(['TS', 'TS', 'TS', 'TS'])];
     $f2 = passer($redaction, $sub2, $b, true);
-    $check('final, one character changed: a new correction (' . count($sim->appels) . ' calls)', count($sim->appels) === 3);
+    $check('final, one word changed: a new correction (' . count($sim->appels) . ' calls)', count($sim->appels) === 3);
     $check('final, changed text: its own grade', (float) $DB->get_field('redaction_ai_evaluations', 'parsed_grade', ['id' => $f2]) === 16.4);
 
     // 4. Teacher grade wins; a change of language setting after the final keeps the grade.
@@ -570,6 +570,45 @@ try {
         && $DB->record_exists('redaction_overrides', ['redactionid' => $r7->id, 'userid' => $a]) && carnet($r7, $a) === null);
     $l = $lignes();
     $check('state: draft again (' . ($l[$a]['etat'] ?? '?') . ')', ($l[$a]['etat'] ?? '') === 'brouillon');
+
+    // 9. D-050: only spelling or punctuation changed, the content grade is kept; the language is graded again.
+    $r9 = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 0, 'training_max_attempts' => 9,
+        'sujets_enabled' => 1, 'sujets_par_groupe' => 1, 'sujets_seuil' => 12]);
+    $DB->insert_record('redaction_sujet', (object) [
+        'redactionid' => $r9->id, 'sortorder' => 1, 'titre' => 'Flexion', 'contenu' => 'Explique ta poutre',
+        'contenuformat' => FORMAT_HTML, 'corrige' => 'E1 : la semelle. E2 : la hauteur.', 'timecreated' => $now, 'timemodified' => $now,
+    ]);
+    $s9 = redaction_get_or_create_submission($r9, 0, $a);
+    $sujets9 = \mod_redaction\sujets::de_soumission($r9, $s9);
+    repondre($s9, $sujets9, 'cet effort plie ma poutre . Ma poutre doit résister a cet effort', FORMAT_PLAIN);
+    $sim->reponses = [ia3(12), langue_ia(['I', 'S', 'S', 'S'])];
+    $e91 = passer($r9, $s9, $a, false);
+    repondre($s9, $sujets9, 'Cet effort plie ma poutre. Ma poutre doit résister à cet effort.', FORMAT_PLAIN);
+    $sim->appels = [];
+    $sim->reponses = [langue_ia(['S', 'S', 'S', 'S'])];
+    $e92 = passer($r9, $s9, $a, false);
+    $d92 = json_decode((string) $DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $e92]), true);
+    $check('D-050: spelling only, one call (language) (' . count($sim->appels) . ')', count($sim->appels) === 1);
+    $ev92 = $DB->get_record('redaction_ai_evaluations', ['id' => $e92]);
+    $check('D-050: spelling only, content grade kept (' . ($d92[0]['note'] ?? '?') . ", {$ev92->status} {$ev92->error_message})", (float) ($d92[0]['note'] ?? -1) === 12.0);
+    $check('D-050: the language graded again', str_contains((string) $DB->get_field('redaction_ai_evaluations', 'langue_json', ['id' => $e92]), '"orthographe":"S"'));
+    // A word changed: the content is graded again.
+    repondre($s9, $sujets9, 'Cet effort plie ma poutre. Ma poutre doit résister à cet effort grâce à sa hauteur.', FORMAT_PLAIN);
+    $sim->appels = [];
+    $sim->reponses = [ia3(15), langue_ia(['S', 'S', 'S', 'S'])];
+    $e93 = passer($r9, $s9, $a, false);
+    $d93 = json_decode((string) $DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $e93]), true);
+    $check('D-050: a word added, content graded again (' . count($sim->appels) . ' calls, ' . ($d93[0]['note'] ?? '?') . ')',
+        count($sim->appels) === 2 && (float) ($d93[0]['note'] ?? -1) === 15.0);
+    // The answer key corrected: never the old grade.
+    $DB->set_field('redaction_sujet', 'corrige', 'E1 : la semelle. E2 : la hauteur. E3 : le poids.', ['redactionid' => $r9->id]);
+    repondre($s9, $sujets9, 'Cet effort plie ma poutre ; ma poutre doit résister à cet effort grâce à sa hauteur', FORMAT_PLAIN);
+    $sim->appels = [];
+    $sim->reponses = [ia3(9), langue_ia(['S', 'S', 'S', 'S'])];
+    $e94 = passer($r9, $s9, $a, false);
+    $d94 = json_decode((string) $DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $e94]), true);
+    $check('D-050: answer key changed, content graded again (' . count($sim->appels) . ' calls)',
+        count($sim->appels) === 2 && (float) ($d94[0]['note'] ?? -1) === 9.0);
 } catch (Throwable $ex) {
     $check('no exception: ' . $ex->getMessage() . ' ' . $ex->getFile() . ':' . $ex->getLine(), false);
 } finally {

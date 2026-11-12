@@ -95,6 +95,23 @@ $check = function (string $label, bool $ok) use (&$failures): void {
 };
 
 /** JSON answer of the simulated AI for one subject. */
+
+/**
+ * These checks grade the same text again on purpose: each correction stands for a new text, so the content grade of an
+ * earlier one is never taken over (D-050 has its own checks in verif_finale.php).
+ */
+function oublier_fond(int $evaluationid): void {
+    global $DB;
+    $submissionid = (int) $DB->get_field('redaction_ai_evaluations', 'submissionid', ['id' => $evaluationid]);
+    foreach ($DB->get_records('redaction_ai_evaluations', ['submissionid' => $submissionid], '', 'id, sujets_json') as $e) {
+        $details = json_decode((string) $e->sujets_json, true);
+        if (is_array($details)) {
+            $DB->set_field('redaction_ai_evaluations', 'sujets_json',
+                json_encode(array_map(fn($d) => is_array($d) ? array_diff_key($d, ['empreinte_fond' => 1]) : $d, $details),
+                    JSON_UNESCAPED_UNICODE), ['id' => $e->id]);
+        }
+    }
+}
 function ia(float $note): string {
     return json_encode(['attendus' => ['E1', 'E2'], 'note' => $note, 'commentaire' => 'Tu as vu juste.']);
 }
@@ -122,6 +139,7 @@ function corriger(stdClass $redaction, stdClass $submission, int $userid, float 
     $sim->reponses = [ia($note), ia($note)];
     $id = ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid, $userid, true, true);
     retirer_tache($id);
+    oublier_fond($id);
     ai_evaluator::process_evaluation($id);
     if ($DB->get_field('redaction_ai_evaluations', 'status', ['id' => $id]) === 'completed') {
         ai_evaluator::apply_evaluation($id, 0);
@@ -301,6 +319,7 @@ try {
     $sim->reponses = [ia(19), ia(19)];
     $e3 = ai_evaluator::queue_evaluation($redaction->id, $submission->id, $g1, $a, true, true);
     retirer_tache($e3);
+    oublier_fond($e3);
     ai_evaluator::process_evaluation($e3);
     $DB->set_field('redaction_ai_evaluations', 'status', 'completed', ['id' => $e3]);
     $r = \mod_redaction\external\apply_ai_grade::execute($cm->id, $e3);
@@ -425,6 +444,7 @@ try {
     $sim->reponses = [ia(18), ia(17), $langueia];
     $idl = ai_evaluator::queue_evaluation($lang->id, $sublang->id, (int) $g1, $a, true, true);
     retirer_tache($idl);
+    oublier_fond($idl);
     ai_evaluator::process_evaluation($idl);
     $detail = (new \mod_redaction\output\grading_sujets($lang, $cml, context_module::instance($cml->id), $g1))->export_for_template($sortie);
     $html = $sortie->render_from_template('mod_redaction/grading_sujets_detail', $detail);

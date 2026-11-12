@@ -118,6 +118,23 @@ class db_en_panne {
 }
 
 /** True for the read that opens the gradebook update, after the grade and the status have been written. */
+
+/**
+ * These checks grade the same text again on purpose: each correction stands for a new text, so the content grade of an
+ * earlier one is never taken over (D-050 has its own checks in verif_finale.php).
+ */
+function oublier_fond(int $evaluationid): void {
+    global $DB;
+    $submissionid = (int) $DB->get_field('redaction_ai_evaluations', 'submissionid', ['id' => $evaluationid]);
+    foreach ($DB->get_records('redaction_ai_evaluations', ['submissionid' => $submissionid], '', 'id, sujets_json') as $e) {
+        $details = json_decode((string) $e->sujets_json, true);
+        if (is_array($details)) {
+            $DB->set_field('redaction_ai_evaluations', 'sujets_json',
+                json_encode(array_map(fn($d) => is_array($d) ? array_diff_key($d, ['empreinte_fond' => 1]) : $d, $details),
+                    JSON_UNESCAPED_UNICODE), ['id' => $e->id]);
+        }
+    }
+}
 function lecture_carnet(string $nom, array $args): bool {
     return $nom === 'get_records' && ($args[0] ?? '') === 'redaction_submission';
 }
@@ -237,6 +254,7 @@ function corriger(stdClass $redaction, stdClass $submission, int $userid, bool $
     }
     $id = ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid, $userid, true, $finale);
     retirer_tache($id);
+    oublier_fond($id);
     ai_evaluator::process_evaluation($id);
     return $id;
 }
@@ -573,6 +591,7 @@ try {
         $sim->reponses = [$legacy($note)];
         $id = ai_evaluator::queue_evaluation($ordinaire->id, $sord->id, 0, $a, true);
         retirer_tache($id);
+        oublier_fond($id);
         ai_evaluator::process_evaluation($id);
         return $id;
     };
@@ -768,6 +787,7 @@ try {
     $DB->insert_record('redaction_sujet_membre', (object) ['evaluationid' => $id5, 'userid' => 0]);
     $check('the code is really GRADE_UPDATE_FAILED', redaction_grade_item_update($autre, [0 => (object) ['userid' => 0, 'rawgrade' => 1]]) === GRADE_UPDATE_FAILED);
     $sim->reponses = [ia(15)];
+    oublier_fond($id5);
     ai_evaluator::process_evaluation($id5);
     $eval = $DB->get_record('redaction_ai_evaluations', ['id' => $id5]);
     $sub5 = $DB->get_record('redaction_submission', ['id' => $s5->id]);
@@ -796,6 +816,7 @@ try {
         $id6 = ai_evaluator::queue_evaluation($phrases->id, $s6->id, $g6, $a, true, true);
         retirer_tache($id6);
         $sim->reponses = [json_encode(['attendus' => $cas['attendus'], 'erreurs' => [], 'note' => $cas['note'], 'commentaire' => $cas['commentaire']])];
+        oublier_fond($id6);
         ai_evaluator::process_evaluation($id6);
         $details6 = json_decode($DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $id6]), true);
         $check('comment: ' . $cas['label'], $details6[0]['commentaire'] === $cas['attendu']);
@@ -810,6 +831,7 @@ try {
     retirer_tache($id6);
     $sim->appels = [];
     $sim->reponses = [json_encode(['attendus' => ['E1'], 'erreurs' => [], 'note' => 12, 'commentaire' => 'Tu as cité la section.'])];
+    oublier_fond($id6);
     ai_evaluator::process_evaluation($id6);
     $details6 = json_decode($DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $id6]), true);
     $check('comment: the help sentence of the activity', $details6[0]['commentaire'] === 'Tu as cité la section. Dis aussi ce que fait la matière.');

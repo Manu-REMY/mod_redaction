@@ -381,6 +381,56 @@ class notes_sujets {
         return $finalecreee > $noteprof;
     }
 
+    /**
+     * Text of an answer as the content grade sees it (D-050): no case, accents, punctuation or extra spaces.
+     *
+     * A student who only corrects spelling or punctuation keeps the content grade; any other letter changed counts.
+     *
+     * @param string $texte Plain text of the answer.
+     * @return string Lower case letters and digits, words separated by one space.
+     */
+    public static function texte_normalise(string $texte): string {
+        $texte = strtr(mb_strtolower($texte, 'UTF-8'), ['œ' => 'oe', 'æ' => 'ae']);
+        $texte = preg_replace('/\p{Mn}+/u', '', \Normalizer::normalize($texte, \Normalizer::FORM_D));
+        return trim(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $texte));
+    }
+
+    /**
+     * Fingerprint of the content of one answer and of everything its content grade depends on (D-050).
+     *
+     * @param string $texte Plain text of the answer.
+     * @param array $contexte corrige, lexique, contenu (statement), theme, seuil, and optionally phrases, modele.
+     * @return string sha1, 40 characters.
+     */
+    public static function empreinte_fond(string $texte, array $contexte): string {
+        return sha1(json_encode([
+            self::texte_normalise($texte),
+            (string) ($contexte['corrige'] ?? ''), (string) ($contexte['lexique'] ?? ''), (string) ($contexte['contenu'] ?? ''),
+            (string) ($contexte['theme'] ?? ''), round((float) ($contexte['seuil'] ?? 0), 2),
+            (string) ($contexte['phrases'] ?? ''), (string) ($contexte['modele'] ?? ''),
+        ], JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * Content feedback of an earlier evaluation of the same subject on the same content (D-050), if any.
+     *
+     * @param array[] $precedents Decoded sujets_json of the earlier successful evaluations of the copy, newest first.
+     * @param int $sujetid Subject id.
+     * @param string $empreinte Fingerprint from empreinte_fond().
+     * @return array|null The detail of the subject (note, juste, a_preciser, piste, commentaire…), null when none.
+     */
+    public static function fond_repris(array $precedents, int $sujetid, string $empreinte): ?array {
+        foreach ($precedents as $details) {
+            foreach ((array) $details as $detail) {
+                if ((int) ($detail['sujetid'] ?? 0) === $sujetid && ($detail['empreinte_fond'] ?? null) === $empreinte
+                        && empty($detail['vide'])) {
+                    return $detail;
+                }
+            }
+        }
+        return null;
+    }
+
     /** @var string[] Levels the threshold may validate, those of PRONOTE but INS, in their order. */
     const NIVEAUX = ['DM', 'F', 'PM', 'S', 'TS'];
 

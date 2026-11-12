@@ -390,6 +390,12 @@ class ai_evaluator {
                 $evaluation->prompt_tokens = 0;
                 $evaluation->completion_tokens = 0;
             } else {
+                // D-050: the content feedback of an earlier evaluation of the same content, newest first.
+                $precedents = array_map(fn($e) => json_decode((string) $e->sujets_json, true) ?: [],
+                    $DB->get_records_select('redaction_ai_evaluations',
+                        "submissionid = ? AND id <> ? AND status IN ('completed', 'applied') AND sujets_json IS NOT NULL",
+                        [$submission->id, $evaluation->id], 'id DESC', 'id, sujets_json'));
+                $phrases = json_encode(self::phrases_commentaire($redaction), JSON_UNESCAPED_UNICODE);
                 foreach ($sujets as $i => $sujet) {
                     if (notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE) === '') {
                         throw new \moodle_exception('sujets_corrige_vide', 'mod_redaction');
@@ -403,6 +409,24 @@ class ai_evaluator {
                         $notes[] = 0.0;
                         $details[] = ['sujetid' => (int) $sujet->id, 'titre' => $sujet->titre, 'note' => 0.0, 'vide' => true,
                             'juste' => '', 'a_preciser' => '', 'piste' => '', 'commentaire' => ''];
+                        continue;
+                    }
+                    // D-050: only spelling, accents or punctuation changed since an earlier evaluation: its content grade stays,
+                    // no call for this subject (Quentin, 12/11: 12 then 10 for "a" corrected to "à"). The language is graded again.
+                    $empreintefond = notes_sujets::empreinte_fond($texte, [
+                        'corrige' => notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE),
+                        'lexique' => (string) ($sujet->lexique ?? ''), 'contenu' => (string) $sujet->contenu,
+                        'theme' => (string) ($redaction->sujets_theme ?? ''), 'seuil' => (float) $redaction->sujets_seuil,
+                        'phrases' => $phrases, 'modele' => (string) $evaluation->model,
+                    ]);
+                    $repris = notes_sujets::fond_repris($precedents, (int) $sujet->id, $empreintefond);
+                    if ($repris) {
+                        $notes[] = (float) $repris['note'];
+                        $titres[] = $sujet->titre;
+                        $lexiques[] = (string) ($sujet->lexique ?? '');
+                        $textes[] = $texte;
+                        $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . (string) ($repris['commentaire'] ?? '');
+                        $details[] = ['titre' => $sujet->titre, 'repris' => true] + $repris;
                         continue;
                     }
                     $reponse = $reponses[$sujet->id];
@@ -424,7 +448,8 @@ class ai_evaluator {
                     $lexiques[] = (string) ($sujet->lexique ?? '');
                     $textes[] = $texte;
                     $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . $retour['commentaire'];
-                    $details[] = ['sujetid' => (int) $sujet->id, 'titre' => $sujet->titre, 'note' => $lu['note']] + $retour;
+                    $details[] = ['sujetid' => (int) $sujet->id, 'titre' => $sujet->titre, 'note' => $lu['note'],
+                        'empreinte_fond' => $empreintefond] + $retour;
                 }
 
                 // The language of every answer written, in one separate call: its points come from the levels, never from the AI.
