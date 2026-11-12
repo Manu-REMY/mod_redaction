@@ -171,6 +171,16 @@ class mod_redaction_mod_form extends moodleform_mod {
         $mform->addHelpButton('sujets_seuil', 'sujets_seuil', 'redaction');
         $mform->hideIf('sujets_seuil', 'sujets_enabled', 'eq', 0);
 
+        // Level the threshold validates, recalled to the student and the teacher (request 15).
+        $niveaux = [];
+        foreach (\mod_redaction\notes_sujets::NIVEAUX as $code) {
+            $niveaux[$code] = get_string('sujets_niveau_' . strtolower($code) . '_label', 'redaction');
+        }
+        $mform->addElement('select', 'sujets_niveau', get_string('sujets_niveau', 'redaction'), $niveaux);
+        $mform->setDefault('sujets_niveau', 'F');
+        $mform->addHelpButton('sujets_niveau', 'sujets_niveau', 'redaction');
+        $mform->hideIf('sujets_niveau', 'sujets_enabled', 'eq', 0);
+
         // Language mastery: only the assigned subjects mode assesses it for now.
         $mform->addElement('selectyesno', 'langue_enabled', get_string('langue_enabled', 'redaction'));
         $mform->setDefault('langue_enabled', 1);
@@ -239,6 +249,9 @@ class mod_redaction_mod_form extends moodleform_mod {
         if (!empty($data['sujets_enabled'])) {
             if (empty($data['ai_enabled'])) {
                 $errors['sujets_enabled'] = get_string('sujets_requires_ai', 'redaction');
+            }
+            if (!in_array($data['sujets_niveau'] ?? 'F', \mod_redaction\notes_sujets::NIVEAUX, true)) {
+                $errors['sujets_niveau'] = get_string('sujets_niveau_invalid', 'redaction');
             }
             if (!isset($data['sujets_seuil']) || $data['sujets_seuil'] < 0 || $data['sujets_seuil'] > 20) {
                 $errors['sujets_seuil'] = get_string('sujets_seuil_invalid', 'redaction');

@@ -277,6 +277,24 @@ class notes_sujets {
         return trim($texte . ' ' . $ajout);
     }
 
+    /** @var string[] Levels the threshold may validate, those of PRONOTE but INS, in their order. */
+    const NIVEAUX = ['DM', 'F', 'PM', 'S', 'TS'];
+
+    /**
+     * Name of the level the threshold validates in this activity, for "Level … validated" (request 15).
+     *
+     * @param \stdClass $redaction Activity record (sujets_niveau, F when absent).
+     * @return string
+     * @throws \InvalidArgumentException When the stored level is not one of NIVEAUX: never another level instead.
+     */
+    public static function niveau(\stdClass $redaction): string {
+        $code = (string) ($redaction->sujets_niveau ?? 'F');
+        if (!in_array($code, self::NIVEAUX, true)) {
+            throw new \InvalidArgumentException('Unknown level: ' . $code);
+        }
+        return get_string('sujets_niveau_' . strtolower($code), 'mod_redaction');
+    }
+
     /**
      * Sentences the plugin adds to a comment: the help sentences of the activity, or neutral ones (request 14).
      *

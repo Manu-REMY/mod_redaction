@@ -272,6 +272,7 @@ class grading_sujets implements renderable, templatable {
         return [
             'cmid' => (int) $this->cm->id,
             'seuil' => $this->note($seuil),
+            'niveau' => notes_sujets::niveau($redaction),
             'individuel' => $individuel,
             'groupes' => $lignes,
             'hasgroupes' => !empty($lignes),
@@ -431,6 +432,7 @@ class grading_sujets implements renderable, templatable {
             'hasnote' => $note !== null,
             'note' => $note !== null ? $this->note($note) : '',
             'seuil' => $this->note($seuil),
+            'niveau' => notes_sujets::niveau($redaction),
             'valide' => $note !== null && (float) $note >= $seuil,
             'pasvalide' => $note !== null && (float) $note < $seuil,
             'aucunenote' => $note === null,

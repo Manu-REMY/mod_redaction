@@ -66,5 +66,28 @@ test('activité sans phrases d\'aide : les phrases neutres', fn() => $aides['fon
 test('les deux autres phrases du plugin restent', fn() => $aides['precision'] === '[sujets_commentaire_precision]'
     && $aides['juste'] === '[sujets_commentaire_juste]');
 
+// Request 15: the level the threshold validates, set per activity, Fragile by default.
+test('niveau : celui de l\'activité', fn() => notes_sujets::niveau((object) ['sujets_niveau' => 'S']) === '[sujets_niveau_s]');
+test('niveau : très satisfaisant', fn() => notes_sujets::niveau((object) ['sujets_niveau' => 'TS']) === '[sujets_niveau_ts]');
+test('niveau : début de maîtrise et presque maîtrisé', fn() => notes_sujets::niveau((object) ['sujets_niveau' => 'DM']) === '[sujets_niveau_dm]'
+    && notes_sujets::niveau((object) ['sujets_niveau' => 'PM']) === '[sujets_niveau_pm]');
+test('niveau INS : refusé (un seuil ne valide pas une maîtrise insuffisante)', function () {
+    try {
+        notes_sujets::niveau((object) ['sujets_niveau' => 'INS']);
+    } catch (\InvalidArgumentException $e) {
+        return true;
+    }
+    return false;
+});
+test('niveau : fragile par défaut', fn() => notes_sujets::niveau((object) []) === '[sujets_niveau_f]');
+test('niveau inconnu : refusé, jamais un autre niveau à la place', function () {
+    try {
+        notes_sujets::niveau((object) ['sujets_niveau' => 'X']);
+    } catch (\InvalidArgumentException $e) {
+        return true;
+    }
+    return false;
+});
+
 echo $failures ? "\n{$failures} échec(s)\n" : "\nTout est vert\n";
 exit($failures ? 1 : 0);

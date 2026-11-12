@@ -20,6 +20,7 @@
     subjects, answers, corrections, grade, change of subjects.
 
     Context variables required for this template:
+    * niveau - Name of the level the threshold validates (fragile, satisfaisant…)
     * individuel - The activity is individual: the detail is a student's
     * nom, retour, action, sesskey - Group or student name, link back to the overview, form target, session key
     * membres - nom
@@ -37,7 +38,7 @@
         "membres": [{"nom": "Eleve A"}], "hasmembres": true,
         "hassystemes": true,
         "systemes": [{"numero": 1, "titre": "Train", "contenu": "<p>Enonce</p>", "corrige": "Expected", "hasreponse": true, "reponse": "Answer"}],
-        "hassubmission": true, "used": 1, "max": 5, "hasnote": true, "note": "12", "seuil": "16", "valide": false, "pasvalide": true,
+        "hassubmission": true, "used": 1, "max": 5, "hasnote": true, "note": "12", "seuil": "16", "niveau": "fragile", "valide": false, "pasvalide": true,
         "aucunenote": false, "prof": false, "noteprof": "", "commentaireprof": "", "hasalerte": false, "alerte": "",
         "hasevaluations": true,
         "evaluations": [{"id": 1, "hasnumero": true, "numero": 1, "necompteplus": false, "date": "6 Nov", "statut": "Done", "ispending": false, "isfailed": false, "age": "",
@@ -67,8 +68,8 @@
             {{^hasnote}}{{#str}}sujets_pas_de_note, mod_redaction{{/str}}{{/hasnote}}
         </li>
         <li>
-            {{#valide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ok"><span aria-hidden="true">&#10003;</span> {{#str}}sujets_valide, mod_redaction{{/str}}</span>{{/valide}}
-            {{#pasvalide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_pas_valide, mod_redaction{{/str}}</span>{{/pasvalide}}
+            {{#valide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ok"><span aria-hidden="true">&#10003;</span> {{#str}}sujets_valide, mod_redaction, {{niveau}}{{/str}}</span>{{/valide}}
+            {{#pasvalide}}<span class="mod_redaction-ens-etat mod_redaction-ens-ko"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_pas_valide, mod_redaction, {{niveau}}{{/str}}</span>{{/pasvalide}}
             {{#aucunenote}}<span class="mod_redaction-ens-etat">{{#str}}sujets_pas_de_note, mod_redaction{{/str}}</span>{{/aucunenote}}
             {{#str}}sujets_seuil_rappel, mod_redaction, {{seuil}}{{/str}}
         </li>

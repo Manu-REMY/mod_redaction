@@ -178,6 +178,7 @@ class sujets_eleve implements renderable, templatable {
             'items' => $items,
             'valide' => $valide,
             'seuil' => format_float($seuil, 0, true, true),
+            'niveau' => \mod_redaction\notes_sujets::niveau($redaction),
             'hasnote' => $note !== null,
             'note' => $note !== null ? format_float($note, 1, true, true) : '',
             'restants' => $restants,

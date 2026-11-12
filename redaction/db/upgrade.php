@@ -443,5 +443,16 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111202, 'redaction');
     }
 
+    if ($oldversion < 2026111203) {
+        // Level the threshold validates, per activity (request 15): Fragile, as every activity said until now.
+        $table = new xmldb_table('redaction');
+        $field = new xmldb_field('sujets_niveau', XMLDB_TYPE_CHAR, '2', null, XMLDB_NOTNULL, null, 'F', 'sujets_phrases');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026111203, 'redaction');
+    }
+
     return true;
 }

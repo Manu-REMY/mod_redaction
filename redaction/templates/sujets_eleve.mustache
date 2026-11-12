@@ -21,6 +21,7 @@
     the submit button, the attempts left, the best grade and the last comments.
 
     Context variables required for this template:
+    * niveau - Name of the level the threshold validates (fragile, satisfaisant…)
     * cmid, submissionid - Identifiers used by the script
     * groupname - Name of the group
     * hasphrases, phrases - Sentences expected in each answer, recalled under each answer box
@@ -38,7 +39,7 @@
     {
         "cmid": 1, "submissionid": 2, "groupname": "4A-GRP01", "hasphrases": true, "phrases": 2,
         "items": [{"id": 5, "number": 1, "titre": "Pont", "contenu": "<p>Explique</p>", "reponse": "", "readonly": false}],
-        "valide": false, "seuil": "16", "hasnote": true, "note": "12",
+        "valide": false, "seuil": "16", "niveau": "fragile", "hasnote": true, "note": "12",
         "restants": 3, "pending": false, "echec": false, "disabled": false, "raison": "",
         "hascommentaireprof": true, "commentaireprof": "Bien vu.",
         "hascommentaires": true,
@@ -54,7 +55,7 @@
     <div class="mod_redaction-se-banner {{#valide}}mod_redaction-se-ok{{/valide}}{{^valide}}mod_redaction-se-ko{{/valide}}" role="status">
         <span class="mod_redaction-se-mark" aria-hidden="true">{{#valide}}&#10003;{{/valide}}{{^valide}}&#10007;{{/valide}}</span>
         <span class="mod_redaction-se-banner-text">
-            <strong>{{#valide}}{{#str}}sujets_valide, mod_redaction{{/str}}{{/valide}}{{^valide}}{{#str}}sujets_pas_valide, mod_redaction{{/str}}{{/valide}}</strong>
+            <strong>{{#valide}}{{#str}}sujets_valide, mod_redaction, {{niveau}}{{/str}}{{/valide}}{{^valide}}{{#str}}sujets_pas_valide, mod_redaction, {{niveau}}{{/str}}{{/valide}}</strong>
             <span class="mod_redaction-se-seuil">{{#str}}sujets_seuil_rappel, mod_redaction, {{seuil}}{{/str}}</span>
         </span>
     </div>
