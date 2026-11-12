@@ -364,7 +364,9 @@ function redaction_get_or_create_submission($redaction, $groupid, $userid) {
             $record->timecreated = time();
             $record->timemodified = time();
 
-            $record->id = $DB->insert_record('redaction_submission', $record);
+            $id = $DB->insert_record('redaction_submission', $record);
+            // Read back: the caller gets every field with its default, not only the ones set above.
+            $record = $DB->get_record('redaction_submission', ['id' => $id], '*', MUST_EXIST);
         }
     } finally {
         if ($lock) {

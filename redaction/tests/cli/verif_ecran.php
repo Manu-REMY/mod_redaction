@@ -260,6 +260,12 @@ try {
     $check('no group: the page message exists', get_string_manager()->string_exists('group_required', 'mod_redaction'));
 
     // First screen, as two members.
+    // The copy created on the first visit carries every field of the table (no "undefined property" on that visit).
+    $neuve = redaction_get_or_create_submission($redaction, $g1, $a);
+    $check('first visit: the new copy has every field', property_exists($neuve, 'grade_enseignant')
+        && property_exists($neuve, 'training_count') && property_exists($neuve, 'grade'));
+    $DB->delete_records('redaction_submission', ['id' => $neuve->id]);
+
     [$da, $ha] = $rendre($a);
     [$db, $hb] = $rendre($b);
     $check('screen: two subjects with their titles and statements', count($da['items']) === 2
