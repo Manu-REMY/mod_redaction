@@ -30,20 +30,28 @@ defined('MOODLE_INTERNAL') || die();
 use mod_redaction\output\grading_sujets;
 use mod_redaction\sujets;
 
-$groupid = optional_param('groupid', 0, PARAM_INT);
-$groupes = redaction_get_grading_filter_groups($cm, $course->id);
-if ($groupid && !isset($groupes[$groupid])) {
-    throw new \moodle_exception('sujets_ens_groupe_invalide', 'mod_redaction');
+// An individual activity is graded student by student, a group activity group by group.
+$individuel = sujets::individuel($redaction);
+$groupid = $individuel ? 0 : optional_param('groupid', 0, PARAM_INT);
+$userid = $individuel ? optional_param('userid', 0, PARAM_INT) : 0;
+if ($groupid) {
+    $groupes = redaction_get_grading_filter_groups($cm, $course->id);
+    if (!isset($groupes[$groupid])) {
+        throw new \moodle_exception('sujets_ens_groupe_invalide', 'mod_redaction');
+    }
+}
+if ($userid && !is_enrolled($context, $userid, 'mod/redaction:submit')) {
+    throw new \moodle_exception('sujets_ens_eleve_invalide', 'mod_redaction');
 }
 
-$pageurl = grading_sujets::url($cm, $groupid);
+$pageurl = grading_sujets::url($cm, $groupid, $userid);
 $PAGE->set_url($pageurl);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
-    // An action always names its group: a form without one would otherwise be ignored without a word.
-    if (!$groupid) {
-        throw new \moodle_exception('sujets_ens_groupe_invalide', 'mod_redaction');
+    // An action always names its group or student: a form without one would otherwise be ignored without a word.
+    if (!$groupid && !$userid) {
+        throw new \moodle_exception($individuel ? 'sujets_ens_eleve_invalide' : 'sujets_ens_groupe_invalide', 'mod_redaction');
     }
 
     $action = required_param('action', PARAM_ALPHA);
@@ -58,7 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'feedback' => optional_param('feedback', '', PARAM_TEXT),
             'sujetid' => optional_param_array('sujetid', [], PARAM_INT),
             'confirme' => (bool) optional_param('confirme', 0, PARAM_BOOL),
-        ]
+        ],
+        $userid
     );
     redirect($pageurl, $message, null, $type);
 }
@@ -74,9 +83,9 @@ echo html_writer::link(
     ['class' => 'btn btn-secondary mb-3']
 );
 
-$vue = new grading_sujets($redaction, $cm, $context, $groupid);
+$vue = new grading_sujets($redaction, $cm, $context, $groupid, $userid);
 echo $OUTPUT->render_from_template(
-    $groupid ? 'mod_redaction/grading_sujets_detail' : 'mod_redaction/grading_sujets_overview',
+    ($groupid || $userid) ? 'mod_redaction/grading_sujets_detail' : 'mod_redaction/grading_sujets_overview',
     $vue->export_for_template($OUTPUT)
 );
 

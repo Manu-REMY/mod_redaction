@@ -63,6 +63,7 @@ $expectedfields = [
     'redaction_sujet' => ['id', 'redactionid', 'sortorder', 'titre', 'contenu', 'contenuformat', 'corrige',
         'timecreated', 'timemodified'],
     'redaction_sujet_groupe' => ['id', 'redactionid', 'groupid', 'sujetid', 'rang', 'timecreated'],
+    'redaction_sujet_eleve' => ['id', 'redactionid', 'userid', 'sujetid', 'rang', 'timecreated'],
     'redaction_sujet_reponse' => ['id', 'submissionid', 'sujetid', 'contenu', 'contenuformat', 'userid', 'timemodified'],
     'redaction_sujet_membre' => ['id', 'evaluationid', 'userid'],
 ];
@@ -94,7 +95,7 @@ if ($dbman->field_exists(new xmldb_table('redaction'), new xmldb_field('sujets_e
 
 // Round trip on a throw-away activity: defaults, unique keys, cleanup on delete.
 $allthere = true;
-foreach (['redaction_sujet', 'redaction_sujet_groupe', 'redaction_sujet_reponse', 'redaction_sujet_membre'] as $t) {
+foreach (['redaction_sujet', 'redaction_sujet_groupe', 'redaction_sujet_eleve', 'redaction_sujet_reponse', 'redaction_sujet_membre'] as $t) {
     $allthere = $allthere && $dbman->table_exists(new xmldb_table($t));
 }
 if ($allthere && $dbman->field_exists(new xmldb_table('redaction'), new xmldb_field('sujets_enabled'))) {
@@ -178,6 +179,9 @@ if ($allthere && $dbman->field_exists(new xmldb_table('redaction'), new xmldb_fi
             $DB->insert_record('redaction_sujet_groupe', (object) [
                 'redactionid' => $rid, 'groupid' => 1, 'sujetid' => $sid, 'rang' => 1, 'timecreated' => $now,
             ]);
+            $DB->insert_record('redaction_sujet_eleve', (object) [
+                'redactionid' => $rid, 'userid' => 2, 'sujetid' => $sid, 'rang' => 1, 'timecreated' => $now,
+            ]);
             $DB->insert_record('redaction_sujet_reponse', (object) [
                 'submissionid' => $subid, 'sujetid' => $sid, 'contenu' => 'r', 'contenuformat' => 1,
                 'userid' => 0, 'timemodified' => $now,
@@ -189,8 +193,8 @@ if ($allthere && $dbman->field_exists(new xmldb_table('redaction'), new xmldb_fi
         // sujets_enabled is left alone by an update that does not mention it.
         $upd = (object) ['sujets_enabled' => 1];
         redaction_force_sujets_settings($upd);
-        $check('enabled forces training, auto-apply and group submission',
-            $upd->training_enabled == 1 && $upd->ai_auto_apply == 1 && $upd->group_submission == 1);
+        $check('enabled forces training and auto-apply, leaves group submission to the teacher',
+            $upd->training_enabled == 1 && $upd->ai_auto_apply == 1 && !isset($upd->group_submission));
         $upd = (object) ['name' => 'x'];
         redaction_force_sujets_settings($upd);
         $check('absent sujets_enabled stays absent', !isset($upd->sujets_enabled));
@@ -198,6 +202,7 @@ if ($allthere && $dbman->field_exists(new xmldb_table('redaction'), new xmldb_fi
         redaction_delete_instance($rid);
         $check('delete_instance removes sujets', !$DB->record_exists('redaction_sujet', ['redactionid' => $rid]));
         $check('delete_instance removes sujet_groupe', !$DB->record_exists('redaction_sujet_groupe', ['redactionid' => $rid]));
+        $check('delete_instance removes sujet_eleve', !$DB->record_exists('redaction_sujet_eleve', ['redactionid' => $rid]));
         $check('delete_instance removes sujet_reponse', !$DB->record_exists('redaction_sujet_reponse', ['submissionid' => $subid]));
         $check('delete_instance removes sujet_membre', !$DB->record_exists('redaction_sujet_membre', ['evaluationid' => $evalid]));
         $check('delete_instance removes the activity', !$DB->record_exists('redaction', ['id' => $rid]));

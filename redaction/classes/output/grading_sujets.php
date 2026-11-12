@@ -34,6 +34,7 @@ use templatable;
 
 /**
  * Data of the teacher screens. With no group it is the overview (key groupes), with a group its detail.
+ * In an individual activity the rows and the detail are those of the students.
  *
  * Student texts are plain text and are only ever exported as such: the templates escape them.
  */
@@ -50,6 +51,8 @@ class grading_sujets implements renderable, templatable {
     protected $context;
     /** @var int 0 for the overview. */
     protected $groupid;
+    /** @var int Student of the detail in an individual activity, 0 for the overview. */
+    protected $userid;
 
     /**
      * Constructor.
@@ -58,12 +61,14 @@ class grading_sujets implements renderable, templatable {
      * @param \stdClass $cm Course module.
      * @param \context_module $context Module context.
      * @param int $groupid Group id, 0 for the overview.
+     * @param int $userid Student id in an individual activity, 0 for the overview.
      */
-    public function __construct(\stdClass $redaction, \stdClass $cm, \context_module $context, int $groupid = 0) {
+    public function __construct(\stdClass $redaction, \stdClass $cm, \context_module $context, int $groupid = 0, int $userid = 0) {
         $this->redaction = $redaction;
         $this->cm = $cm;
         $this->context = $context;
         $this->groupid = $groupid;
+        $this->userid = $userid;
     }
 
     /**
@@ -73,6 +78,9 @@ class grading_sujets implements renderable, templatable {
      * @return array
      */
     public function export_for_template(renderer_base $output): array {
+        if (sujets::individuel($this->redaction)) {
+            return $this->userid ? $this->detail() : $this->apercu();
+        }
         return $this->groupid ? $this->detail() : $this->apercu();
     }
 
@@ -80,28 +88,59 @@ class grading_sujets implements renderable, templatable {
      * URL of the grading page.
      *
      * @param int $groupid Group id, 0 for the overview.
+     * @param int $userid Student id in an individual activity, 0 for the overview.
      * @return \moodle_url
      */
-    public static function url(\stdClass $cm, int $groupid = 0): \moodle_url {
+    public static function url(\stdClass $cm, int $groupid = 0, int $userid = 0): \moodle_url {
         $params = ['id' => $cm->id, 'page' => 'grading'];
         if ($groupid) {
             $params['groupid'] = $groupid;
+        }
+        if ($userid) {
+            $params['userid'] = $userid;
         }
         return new \moodle_url('/mod/redaction/view.php', $params);
     }
 
     /**
-     * Submission of a group, null if the group never opened the activity.
+     * Submission of a group or a student, null if never opened.
      *
-     * @param int $groupid Group id.
+     * @param int $groupid Group id, 0 for a student.
+     * @param int $userid Student id, 0 for a group.
      * @return \stdClass|null
      */
-    protected function soumission(int $groupid): ?\stdClass {
+    protected function soumission(int $groupid, int $userid = 0): ?\stdClass {
         global $DB;
         $submission = $DB->get_record('redaction_submission', [
-            'redactionid' => $this->redaction->id, 'groupid' => $groupid, 'userid' => 0,
+            'redactionid' => $this->redaction->id, 'groupid' => $userid ? 0 : $groupid, 'userid' => $userid,
         ]);
         return $submission ?: null;
+    }
+
+    /**
+     * Students who can submit, sorted by class then name, keyed by user id.
+     *
+     * @return \stdClass[] Records with the user fields and classe.
+     */
+    protected function eleves(): array {
+        $classes = sujets::classes_des_eleves((int) $this->redaction->course);
+        $eleves = get_enrolled_users($this->context, 'mod/redaction:submit', 0, 'u.*', 'u.lastname, u.firstname');
+        foreach ($eleves as $eleve) {
+            $eleve->classe = $classes[(int) $eleve->id] ?? '';
+        }
+        // Stable sort: within a class the order of the names stays.
+        uasort($eleves, fn($a, $b) => strnatcasecmp($a->classe, $b->classe));
+        return $eleves;
+    }
+
+    /**
+     * Name of a student shown to the teacher, with the class.
+     *
+     * @param \stdClass $eleve Record from eleves().
+     * @return string
+     */
+    protected function nom_eleve(\stdClass $eleve): string {
+        return $eleve->classe === '' ? fullname($eleve) : fullname($eleve) . ' (' . format_string($eleve->classe) . ')';
     }
 
     /**
@@ -166,9 +205,11 @@ class grading_sujets implements renderable, templatable {
         $max = redaction_effective_max_attempts($redaction);
 
         // Three queries for the whole list, not three per group.
+        $individuel = sujets::individuel($redaction);
         $soumissions = [];
-        foreach ($DB->get_records('redaction_submission', ['redactionid' => $redaction->id, 'userid' => 0]) as $s) {
-            $soumissions[$s->groupid] = $s;
+        $conditions = $individuel ? ['redactionid' => $redaction->id, 'groupid' => 0] : ['redactionid' => $redaction->id, 'userid' => 0];
+        foreach ($DB->get_records('redaction_submission', $conditions) as $s) {
+            $soumissions[$individuel ? $s->userid : $s->groupid] = $s;
         }
         $evaluations = [];
         if ($soumissions) {
@@ -179,27 +220,40 @@ class grading_sujets implements renderable, templatable {
             }
         }
         $titres = [];
+        [$table, $champ] = $individuel ? ['redaction_sujet_eleve', 'userid'] : ['redaction_sujet_groupe', 'groupid'];
         foreach ($DB->get_records_sql(
-            'SELECT sg.id, sg.groupid, s.titre
-               FROM {redaction_sujet_groupe} sg
+            "SELECT sg.id, sg.$champ AS cible, s.titre
+               FROM {{$table}} sg
                JOIN {redaction_sujet} s ON s.id = sg.sujetid
               WHERE sg.redactionid = ?
-           ORDER BY sg.rang, sg.id',
+           ORDER BY sg.rang, sg.id",
             [$redaction->id]
         ) as $t) {
-            $titres[$t->groupid][] = format_string($t->titre);
+            $titres[$t->cible][] = format_string($t->titre);
+        }
+
+        // One row per student in an individual activity, per group otherwise.
+        $cibles = [];
+        if ($individuel) {
+            foreach ($this->eleves() as $eleve) {
+                $cibles[] = ['id' => (int) $eleve->id, 'nom' => $this->nom_eleve($eleve), 'url' => self::url($this->cm, 0, $eleve->id)];
+            }
+        } else {
+            foreach (redaction_get_grading_filter_groups($this->cm, $redaction->course) as $groupe) {
+                $cibles[] = ['id' => (int) $groupe->id, 'nom' => format_string($groupe->name), 'url' => self::url($this->cm, $groupe->id)];
+            }
         }
 
         $lignes = [];
-        foreach (redaction_get_grading_filter_groups($this->cm, $redaction->course) as $groupe) {
-            $attribues = $titres[$groupe->id] ?? [];
-            $submission = $soumissions[$groupe->id] ?? null;
+        foreach ($cibles as $cible) {
+            $attribues = $titres[$cible['id']] ?? [];
+            $submission = $soumissions[$cible['id']] ?? null;
             $note = $submission ? $submission->grade : null;
             $alerte = $submission ? $this->alerte($evaluations[$submission->id] ?? []) : '';
             $lignes[] = [
-                'groupid' => (int) $groupe->id,
-                'nom' => format_string($groupe->name),
-                'url' => self::url($this->cm, $groupe->id)->out(false),
+                'groupid' => $cible['id'],
+                'nom' => $cible['nom'],
+                'url' => $cible['url']->out(false),
                 'hassystemes' => !empty($attribues),
                 'systemes' => implode(' / ', $attribues),
                 'used' => $submission ? (int) $submission->training_count : 0,
@@ -218,13 +272,14 @@ class grading_sujets implements renderable, templatable {
         return [
             'cmid' => (int) $this->cm->id,
             'seuil' => $this->note($seuil),
+            'individuel' => $individuel,
             'groupes' => $lignes,
             'hasgroupes' => !empty($lignes),
         ];
     }
 
     /**
-     * Detail of one group.
+     * Detail of one group, or of one student in an individual activity.
      *
      * @return array
      */
@@ -232,9 +287,23 @@ class grading_sujets implements renderable, templatable {
         global $DB;
 
         $redaction = $this->redaction;
-        $groupe = $DB->get_record('groups', ['id' => $this->groupid, 'courseid' => $redaction->course], '*', MUST_EXIST);
-        $attribues = sujets::lire($redaction->id, $groupe->id);
-        $submission = $this->soumission($groupe->id);
+        $individuel = sujets::individuel($redaction);
+        if ($individuel) {
+            $eleves = $this->eleves();
+            if (!isset($eleves[$this->userid])) {
+                throw new \moodle_exception('sujets_ens_eleve_invalide', 'mod_redaction');
+            }
+            $nom = $this->nom_eleve($eleves[$this->userid]);
+            $attribues = sujets::lire($redaction->id, 0, $this->userid);
+            $submission = $this->soumission(0, $this->userid);
+            $action = self::url($this->cm, 0, $this->userid);
+        } else {
+            $groupe = $DB->get_record('groups', ['id' => $this->groupid, 'courseid' => $redaction->course], '*', MUST_EXIST);
+            $nom = format_string($groupe->name);
+            $attribues = sujets::lire($redaction->id, $groupe->id);
+            $submission = $this->soumission($groupe->id);
+            $action = self::url($this->cm, $groupe->id);
+        }
         $seuil = (float) $redaction->sujets_seuil;
 
         $reponses = $submission
@@ -335,8 +404,10 @@ class grading_sujets implements renderable, templatable {
         }
 
         $membres = [];
-        foreach (groups_get_members($groupe->id, 'u.*', 'u.lastname, u.firstname') as $membre) {
-            $membres[] = ['nom' => fullname($membre)];
+        if (!$individuel) {
+            foreach (groups_get_members($groupe->id, 'u.*', 'u.lastname, u.firstname') as $membre) {
+                $membres[] = ['nom' => fullname($membre)];
+            }
         }
 
         $note = $submission ? $submission->grade : null;
@@ -344,10 +415,11 @@ class grading_sujets implements renderable, templatable {
 
         return [
             'cmid' => (int) $this->cm->id,
-            'groupid' => (int) $groupe->id,
-            'nom' => format_string($groupe->name),
+            'groupid' => $individuel ? 0 : (int) $groupe->id,
+            'individuel' => $individuel,
+            'nom' => $nom,
             'retour' => self::url($this->cm)->out(false),
-            'action' => self::url($this->cm, $groupe->id)->out(false),
+            'action' => $action->out(false),
             'sesskey' => sesskey(),
             'membres' => $membres,
             'hasmembres' => !empty($membres),

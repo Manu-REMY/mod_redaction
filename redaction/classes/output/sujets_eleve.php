@@ -77,7 +77,7 @@ class sujets_eleve implements renderable, templatable {
         $redaction = $this->redaction;
         $submission = $this->submission;
 
-        $sujets = \mod_redaction\sujets::du_groupe($redaction, $this->groupid);
+        $sujets = \mod_redaction\sujets::de_soumission($redaction, $submission);
         $reponses = $DB->get_records_menu('redaction_sujet_reponse', ['submissionid' => $submission->id], '', 'sujetid, contenu');
 
         $check = redaction_can_submit_attempt($redaction, $submission);

@@ -154,7 +154,11 @@ class ai_evaluator {
         $evaluationid = $DB->insert_record('redaction_ai_evaluations', $evaluation);
 
         // The grade goes to the members of the group at this moment, whatever happens to the group later.
-        if (!empty($redaction->sujets_enabled)) {
+        // In an individual activity it goes to the student of the submission.
+        if (sujets::individuel($redaction)) {
+            $eleve = (int) $DB->get_field('redaction_submission', 'userid', ['id' => $submissionid], MUST_EXIST);
+            $DB->insert_record('redaction_sujet_membre', (object) ['evaluationid' => $evaluationid, 'userid' => $eleve]);
+        } else if (!empty($redaction->sujets_enabled)) {
             foreach (groups_get_members($groupid, 'u.id') as $membre) {
                 $DB->insert_record('redaction_sujet_membre', (object) ['evaluationid' => $evaluationid, 'userid' => $membre->id]);
             }
@@ -354,7 +358,7 @@ class ai_evaluator {
             $textes = [];
             $prompttokens = 0;
             $completiontokens = 0;
-            foreach (sujets::du_groupe($redaction, (int) $submission->groupid) as $sujet) {
+            foreach (sujets::de_soumission($redaction, $submission) as $sujet) {
                 if (notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE) === '') {
                     throw new \moodle_exception('sujets_corrige_vide', 'mod_redaction');
                 }

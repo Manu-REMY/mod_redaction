@@ -20,12 +20,13 @@
 
     Context variables required for this template:
     * seuil - Validation threshold
+    * individuel - The activity is individual: one row per student
     * hasgroupes, groupes - Rows: nom, url, hassystemes, systemes, used, max, hasnote, note, prof, valide,
       pasvalide, aucunenote, hasalerte, alerte
 
     Example context (json):
     {
-        "seuil": "16", "hasgroupes": true,
+        "seuil": "16", "individuel": false, "hasgroupes": true,
         "groupes": [{"nom": "4A-GRP01", "url": "#", "hassystemes": true, "systemes": "Train / Barque", "used": 2, "max": 5,
             "hasnote": true, "note": "12", "prof": false, "valide": false, "pasvalide": true, "aucunenote": false,
             "hasalerte": true, "alerte": "The last correction failed."}]
@@ -33,14 +34,14 @@
 }}
 <div class="mod_redaction mod_redaction-sujets-ens" id="mod_redaction-sujets-ens">
     {{^hasgroupes}}
-    <p class="mod_redaction-ens-vide">{{#str}}sujets_ens_aucun_groupe, mod_redaction{{/str}}</p>
+    <p class="mod_redaction-ens-vide">{{#individuel}}{{#str}}sujets_ens_aucun_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_aucun_groupe, mod_redaction{{/str}}{{/individuel}}</p>
     {{/hasgroupes}}
     {{#hasgroupes}}
     <table class="mod_redaction-ens-table table table-sm">
         <thead>
             <tr>
-                <th scope="col">{{#str}}group_label, mod_redaction{{/str}}</th>
-                <th scope="col">{{#str}}sujets_ens_systemes, mod_redaction{{/str}}</th>
+                <th scope="col">{{#individuel}}{{#str}}sujets_ens_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}group_label, mod_redaction{{/str}}{{/individuel}}</th>
+                <th scope="col">{{#individuel}}{{#str}}sujets_ens_sujets, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_systemes, mod_redaction{{/str}}{{/individuel}}</th>
                 <th scope="col">{{#str}}sujets_ens_essais, mod_redaction{{/str}}</th>
                 <th scope="col">{{#str}}sujets_ens_meilleure, mod_redaction{{/str}}</th>
                 <th scope="col">{{#str}}sujets_ens_etat, mod_redaction{{/str}}</th>

@@ -16,10 +16,12 @@
 {{!
     @template mod_redaction/grading_sujets_detail
 
-    Teacher detail of one group in the assigned subjects mode: systems, answers, corrections, grade, change of systems.
+    Teacher detail of one group, or one student when the activity is individual, in the assigned subjects mode:
+    subjects, answers, corrections, grade, change of subjects.
 
     Context variables required for this template:
-    * nom, retour, action, sesskey - Group name, link back to the overview, form target, session key
+    * individuel - The activity is individual: the detail is a student's
+    * nom, retour, action, sesskey - Group or student name, link back to the overview, form target, session key
     * membres - nom
     * systemes - numero, titre, contenu (HTML), corrige, hasreponse, reponse (plain text)
     * used, max, hasnote, note, seuil, valide, pasvalide, aucunenote, prof, noteprof, commentaireprof (current teacher comment, prefilled)
@@ -31,7 +33,7 @@
 
     Example context (json):
     {
-        "nom": "4A-GRP01", "retour": "#", "action": "#", "sesskey": "abc",
+        "individuel": false, "nom": "4A-GRP01", "retour": "#", "action": "#", "sesskey": "abc",
         "membres": [{"nom": "Eleve A"}], "hasmembres": true,
         "hassystemes": true,
         "systemes": [{"numero": 1, "titre": "Train", "contenu": "<p>Enonce</p>", "corrige": "Expected", "hasreponse": true, "reponse": "Answer"}],
@@ -46,7 +48,7 @@
     }
 }}
 <div class="mod_redaction mod_redaction-sujets-ens" id="mod_redaction-sujets-ens-detail">
-    <p><a href="{{retour}}">&larr; {{#str}}sujets_ens_retour, mod_redaction{{/str}}</a></p>
+    <p><a href="{{retour}}">&larr; {{#individuel}}{{#str}}sujets_ens_retour_eleves, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_retour, mod_redaction{{/str}}{{/individuel}}</a></p>
     <h3>{{nom}}</h3>
     {{#hasmembres}}
     <p class="mod_redaction-ens-membres">{{#str}}sujets_ens_membres, mod_redaction{{/str}}
@@ -72,13 +74,13 @@
         </li>
     </ul>
 
-    <h4>{{#str}}sujets_ens_systemes_reponses, mod_redaction{{/str}}</h4>
+    <h4>{{#individuel}}{{#str}}sujets_ens_sujets_reponses, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_systemes_reponses, mod_redaction{{/str}}{{/individuel}}</h4>
     {{^hassystemes}}<p><em>{{#str}}sujets_ens_pas_ouvert, mod_redaction{{/str}}</em></p>{{/hassystemes}}
     {{#systemes}}
     <div class="mod_redaction-ens-systeme">
         <h5>{{numero}}. {{titre}}</h5>
         <div class="mod_redaction-ens-enonce">{{{contenu}}}</div>
-        <p class="mod_redaction-ens-label">{{#str}}sujets_ens_reponse_groupe, mod_redaction{{/str}}</p>
+        <p class="mod_redaction-ens-label">{{#individuel}}{{#str}}sujets_ens_reponse_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_reponse_groupe, mod_redaction{{/str}}{{/individuel}}</p>
         {{#hasreponse}}<div class="mod_redaction-ens-texte">{{reponse}}</div>{{/hasreponse}}
         {{^hasreponse}}<p><em>{{#str}}sujets_ens_pas_de_reponse, mod_redaction{{/str}}</em></p>{{/hasreponse}}
         <details class="mod_redaction-ens-corrige">
@@ -141,13 +143,13 @@
     </form>
     {{/prof}}
     {{/hassubmission}}
-    {{^hassubmission}}<p><em>{{#str}}sujets_ens_pas_de_travail, mod_redaction{{/str}}</em></p>{{/hassubmission}}
+    {{^hassubmission}}<p><em>{{#individuel}}{{#str}}sujets_ens_pas_de_travail_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_pas_de_travail, mod_redaction{{/str}}{{/individuel}}</em></p>{{/hassubmission}}
 
-    <h4>{{#str}}sujets_ens_changer_titre, mod_redaction{{/str}}</h4>
+    <h4>{{#individuel}}{{#str}}sujets_ens_changer_titre_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_changer_titre, mod_redaction{{/str}}{{/individuel}}</h4>
     <form method="post" action="{{action}}" class="mod_redaction-ens-form">
         <input type="hidden" name="sesskey" value="{{sesskey}}">
         <input type="hidden" name="action" value="systemes">
-        <p>{{#str}}sujets_ens_changer_aide, mod_redaction{{/str}}</p>
+        <p>{{#individuel}}{{#str}}sujets_ens_changer_aide_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_changer_aide, mod_redaction{{/str}}{{/individuel}}</p>
         {{#choix}}
         <label for="mod_redaction_ens_sujet_{{rang}}">{{#str}}sujets_ens_systeme_numero, mod_redaction, {{rang}}{{/str}}</label>
         <select id="mod_redaction_ens_sujet_{{rang}}" name="sujetid[]">
@@ -157,7 +159,7 @@
         {{#confirmer}}
         <p class="mod_redaction-ens-confirmer">
             <input type="checkbox" id="mod_redaction_ens_confirme" name="confirme" value="1">
-            <label for="mod_redaction_ens_confirme">{{#str}}sujets_ens_changer_confirmer, mod_redaction{{/str}}</label>
+            <label for="mod_redaction_ens_confirme">{{#individuel}}{{#str}}sujets_ens_changer_confirmer_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_changer_confirmer, mod_redaction{{/str}}{{/individuel}}</label>
         </p>
         {{/confirmer}}
         <button type="submit" class="btn btn-secondary">{{#str}}sujets_ens_changer, mod_redaction{{/str}}</button>

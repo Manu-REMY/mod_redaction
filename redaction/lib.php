@@ -190,6 +190,7 @@ function redaction_delete_instance($id) {
     $DB->delete_records_select('redaction_sujet_reponse',
         'submissionid IN (SELECT id FROM {redaction_submission} WHERE redactionid = :rid)', ['rid' => $id]);
     $DB->delete_records('redaction_sujet_groupe', ['redactionid' => $id]);
+    $DB->delete_records('redaction_sujet_eleve', ['redactionid' => $id]);
     $DB->delete_records('redaction_sujet', ['redactionid' => $id]);
 
     // Delete all related data.
@@ -229,6 +230,7 @@ function redaction_delete_sujet(int $redactionid, int $sujetid): bool {
     }
     if (
         $DB->record_exists('redaction_sujet_groupe', ['sujetid' => $sujetid])
+        || $DB->record_exists('redaction_sujet_eleve', ['sujetid' => $sujetid])
         || $DB->record_exists('redaction_sujet_reponse', ['sujetid' => $sujetid])
     ) {
         return false;
@@ -240,8 +242,9 @@ function redaction_delete_sujet(int $redactionid, int $sujetid): bool {
 /**
  * Apply the settings the assigned subjects mode imposes.
  *
- * Subjects are answered by the whole group, with training attempts and an
- * AI grade applied automatically, so those options cannot be turned off.
+ * Subjects are answered with training attempts and an AI grade applied automatically, so those options
+ * cannot be turned off. Group submission stays the teacher's choice: without it each student gets
+ * their own subjects.
  *
  * @param stdClass $data Instance data coming from the settings form.
  */
@@ -256,7 +259,6 @@ function redaction_force_sujets_settings($data) {
     }
     $data->training_enabled = 1;
     $data->ai_auto_apply = 1;
-    $data->group_submission = 1;
 }
 
 /**
@@ -801,7 +803,10 @@ function redaction_get_user_grades_sujets($redaction, $userid = 0, $pourcarnet =
             }
         }
 
-        $courants = array_keys(groups_get_members($submission->groupid, 'u.id'));
+        // The student of an individual submission, or the current members of the group.
+        $courants = \mod_redaction\sujets::individuel($redaction)
+            ? ($submission->userid ? [(int) $submission->userid] : [])
+            : array_keys(groups_get_members($submission->groupid, 'u.id'));
         $enseignant = [];
         if ($submission->grade_enseignant !== null) {
             $enseignant = array_fill_keys(array_merge($courants, ...array_values($membres)), (float) $submission->grade_enseignant);
@@ -1035,12 +1040,12 @@ function redaction_can_submit_attempt($redaction, $submission, $correction = nul
 function redaction_sujets_answered($redaction, $submission) {
     global $DB;
 
-    if (empty($submission->groupid)) {
+    if (empty($submission->groupid) && !\mod_redaction\sujets::individuel($redaction)) {
         return false;
     }
 
     $reponses = $DB->get_records('redaction_sujet_reponse', ['submissionid' => $submission->id], '', 'sujetid, contenu, contenuformat');
-    foreach (\mod_redaction\sujets::du_groupe($redaction, (int) $submission->groupid) as $sujet) {
+    foreach (\mod_redaction\sujets::de_soumission($redaction, $submission) as $sujet) {
         $reponse = $reponses[$sujet->id] ?? null;
         if (!$reponse || \mod_redaction\notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat) === '') {
             return false;

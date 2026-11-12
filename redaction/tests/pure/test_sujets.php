@@ -96,5 +96,31 @@ test('hasard injecté : résultat déterministe', fn() =>
 
 test('classe_du_groupe', fn() => sujets::classe_du_groupe('4A-GRP01') === '4A' && sujets::classe_du_groupe('Autre') === 'Autre');
 
+// Un sujet par élève : la classe de l'élève se déduit de ses groupes du cours.
+test('classe_eleve : un groupe de travail donne sa classe', fn() =>
+    sujets::classe_eleve(['TIERS TEMPS', '4A-GRP03', '4A']) === '4A');
+test('classe_eleve : sans groupe de travail, le groupe classe (qui commence par un chiffre)', fn() =>
+    sujets::classe_eleve(['TIERS TEMPS', '5C']) === '5C');
+test('classe_eleve : sinon le premier nom par ordre alphabétique', fn() =>
+    sujets::classe_eleve(['Rouges', 'Bleus']) === 'Bleus');
+test('classe_eleve : aucun groupe, chaîne vide (toute l\'activité)', fn() =>
+    sujets::classe_eleve([]) === '');
+test('classe_eleve : deux groupes de travail, le premier par ordre alphabétique', fn() =>
+    sujets::classe_eleve(['4B-GRP01', '4A-GRP02']) === '4A');
+
+test('un sujet par élève : 3 sujets répartis à parts égales sur 25 élèves', function () {
+    for ($essai = 0; $essai < 30; $essai++) {
+        $deja = [];
+        for ($e = 0; $e < 25; $e++) {
+            $deja[] = sujets::choisir([1, 2, 3], $deja, 1, 'mt_rand');
+        }
+        $c = compter([1, 2, 3], $deja);
+        if (max($c) - min($c) > 1) {
+            return false;
+        }
+    }
+    return true;
+});
+
 echo $failures ? "\n$failures échec(s)\n" : "\nTout est vert\n";
 exit($failures ? 1 : 0);

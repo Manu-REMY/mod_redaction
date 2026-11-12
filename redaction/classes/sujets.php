@@ -19,7 +19,8 @@ namespace mod_redaction;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Balanced and stable attribution of subjects to groups (assigned subjects mode).
+ * Balanced and stable attribution of subjects to groups, or to students when the activity is individual
+ * (assigned subjects mode).
  *
  * @package    mod_redaction
  * @copyright  2026 Emmanuel REMY
@@ -94,6 +95,57 @@ class sujets {
     }
 
     /**
+     * Whether the subjects go to each student rather than to each group: the activity is not a group submission.
+     *
+     * @param \stdClass $redaction The activity record.
+     * @return bool
+     */
+    public static function individuel(\stdClass $redaction): bool {
+        return !empty($redaction->sujets_enabled) && empty($redaction->group_submission);
+    }
+
+    /**
+     * Class of a student, from the names of the groups the student belongs to in the course.
+     *
+     * The class part of a work group ("4A-GRP03" gives "4A") first, then a group whose name starts with a digit
+     * ("5C"), then the first name in alphabetical order. No group gives an empty string: the whole activity.
+     * Pure function: it touches neither Moodle nor the database.
+     *
+     * @param string[] $noms Names of the groups of the student.
+     * @return string
+     */
+    public static function classe_eleve(array $noms): string {
+        $noms = array_values(array_unique(array_map('strval', $noms)));
+        sort($noms, SORT_STRING);
+        foreach ($noms as $nom) {
+            if (preg_match('/^(.+)-GRP\d+$/', $nom, $m)) {
+                return $m[1];
+            }
+        }
+        foreach ($noms as $nom) {
+            if (preg_match('/^\d/', $nom)) {
+                return $nom;
+            }
+        }
+        return $noms[0] ?? '';
+    }
+
+    /**
+     * Subjects of a submission: of its student when the activity is individual, of its group otherwise.
+     *
+     * @param \stdClass $redaction The activity record.
+     * @param \stdClass $submission The submission record (groupid, userid).
+     * @return \stdClass[] Subject records, ordered by rank.
+     * @throws \moodle_exception When there is no subject or the lock cannot be obtained.
+     */
+    public static function de_soumission(\stdClass $redaction, \stdClass $submission): array {
+        if (self::individuel($redaction)) {
+            return self::de_eleve($redaction, (int) $submission->userid);
+        }
+        return self::du_groupe($redaction, (int) $submission->groupid);
+    }
+
+    /**
      * Subjects of a group, in the order of their rank. Reads the attribution, or creates it on first call.
      *
      * Creation is serialised per activity and class by a lock, and the group is read again once the
@@ -110,33 +162,11 @@ class sujets {
         $groupe = $DB->get_record('groups', ['id' => $groupid], 'id, courseid, name', MUST_EXIST);
         $classe = self::classe_du_groupe($groupe->name);
 
-        $existants = self::lire($redaction->id, $groupid);
-        if ($existants) {
-            return $existants;
-        }
-
-        $factory = \core\lock\lock_config::get_lock_factory('mod_redaction');
-        $lock = $factory->get_lock('redaction_sujets_' . $redaction->id . '_' . $classe, self::LOCK_TIMEOUT);
-        if (!$lock) {
-            throw new \moodle_exception('sujets_verrou', 'mod_redaction');
-        }
-
-        try {
-            // Read again: another process may have written while we waited for the lock.
-            $existants = self::lire($redaction->id, $groupid);
-            if ($existants) {
-                return $existants;
-            }
-
-            $sujets = $DB->get_records('redaction_sujet', ['redactionid' => $redaction->id], 'sortorder, id');
-            if (!$sujets) {
-                throw new \moodle_exception('sujets_aucun', 'mod_redaction');
-            }
-
-            // Pairs already given to the other groups of the same class.
+        // Subjects already given to the other groups of the same class.
+        $autres = function () use ($DB, $redaction, $groupe, $classe): array {
             $attributions = [];
             foreach ($DB->get_records('groups', ['courseid' => $groupe->courseid], '', 'id, name') as $autre) {
-                if ($autre->id == $groupid || self::classe_du_groupe($autre->name) !== $classe) {
+                if ($autre->id == $groupe->id || self::classe_du_groupe($autre->name) !== $classe) {
                     continue;
                 }
                 $ids = $DB->get_fieldset_select(
@@ -149,45 +179,160 @@ class sujets {
                     $attributions[] = array_map('intval', $ids);
                 }
             }
+            return $attributions;
+        };
+
+        return self::attribuer($redaction, $groupid, 0, 'redaction_sujets_' . $redaction->id . '_' . $classe, $autres);
+    }
+
+    /**
+     * Subjects of a student in an individual activity, in the order of their rank. Reads the attribution,
+     * or creates it on first call, balanced among the students of the same class.
+     *
+     * @param \stdClass $redaction The activity record (id, course).
+     * @param int $userid User id.
+     * @return \stdClass[] Subject records, ordered by rank.
+     * @throws \moodle_exception When there is no subject or the lock cannot be obtained.
+     */
+    public static function de_eleve(\stdClass $redaction, int $userid): array {
+        global $DB;
+
+        $classes = self::classes_des_eleves((int) $redaction->course);
+        $classe = $classes[$userid] ?? '';
+
+        // Subjects already given to the other students of the same class.
+        $autres = function () use ($DB, $redaction, $userid, $classes, $classe): array {
+            $parEleve = [];
+            foreach ($DB->get_records('redaction_sujet_eleve', ['redactionid' => $redaction->id], '', 'id, userid, sujetid') as $ligne) {
+                if ((int) $ligne->userid !== $userid && ($classes[(int) $ligne->userid] ?? '') === $classe) {
+                    $parEleve[(int) $ligne->userid][] = (int) $ligne->sujetid;
+                }
+            }
+            return array_values($parEleve);
+        };
+
+        return self::attribuer($redaction, 0, $userid, 'redaction_sujets_eleve_' . $redaction->id . '_' . $classe, $autres);
+    }
+
+    /**
+     * Class of each student of a course who belongs to a group, keyed by user id (see classe_eleve()).
+     *
+     * @param int $courseid Course id.
+     * @return string[]
+     */
+    public static function classes_des_eleves(int $courseid): array {
+        global $DB;
+
+        $noms = [];
+        $lignes = $DB->get_recordset_sql(
+            'SELECT gm.id, gm.userid, g.name
+               FROM {groups_members} gm
+               JOIN {groups} g ON g.id = gm.groupid
+              WHERE g.courseid = ?',
+            [$courseid]
+        );
+        foreach ($lignes as $ligne) {
+            $noms[(int) $ligne->userid][] = $ligne->name;
+        }
+        $lignes->close();
+
+        return array_map([self::class, 'classe_eleve'], $noms);
+    }
+
+    /**
+     * Reads the attribution of a group or a student, or creates it on first call.
+     *
+     * Creation is serialised per activity and class by a lock, and the attribution is read again once the
+     * lock is held, so two simultaneous calls give the same subjects.
+     *
+     * @param \stdClass $redaction The activity record.
+     * @param int $groupid Group id, 0 for a student.
+     * @param int $userid User id, 0 for a group.
+     * @param string $verrou Name of the lock of the class.
+     * @param callable $autres Returns the subjects already given in the class, one list per group or student.
+     * @return \stdClass[] Subject records, ordered by rank.
+     * @throws \moodle_exception When there is no subject or the lock cannot be obtained.
+     */
+    protected static function attribuer(\stdClass $redaction, int $groupid, int $userid, string $verrou, callable $autres): array {
+        global $DB;
+
+        $existants = self::lire($redaction->id, $groupid, $userid);
+        if ($existants) {
+            return $existants;
+        }
+
+        $factory = \core\lock\lock_config::get_lock_factory('mod_redaction');
+        $lock = $factory->get_lock($verrou, self::LOCK_TIMEOUT);
+        if (!$lock) {
+            throw new \moodle_exception('sujets_verrou', 'mod_redaction');
+        }
+
+        try {
+            // Read again: another process may have written while we waited for the lock.
+            $existants = self::lire($redaction->id, $groupid, $userid);
+            if ($existants) {
+                return $existants;
+            }
+
+            $sujets = $DB->get_records('redaction_sujet', ['redactionid' => $redaction->id], 'sortorder, id');
+            if (!$sujets) {
+                throw new \moodle_exception('sujets_aucun', 'mod_redaction');
+            }
 
             $n = max(1, (int) ($redaction->sujets_par_groupe ?? 2));
-            $choisis = self::choisir(array_keys($sujets), $attributions, $n, 'mt_rand');
-
-            $transaction = $DB->start_delegated_transaction();
-            try {
-                foreach ($choisis as $rang => $sujetid) {
-                    $DB->insert_record('redaction_sujet_groupe', (object) [
-                        'redactionid' => $redaction->id,
-                        'groupid' => $groupid,
-                        'sujetid' => $sujetid,
-                        'rang' => $rang + 1,
-                        'timecreated' => time(),
-                    ]);
-                }
-            } catch (\Throwable $e) {
-                $transaction->rollback($e);
-            }
-            $transaction->allow_commit();
+            $choisis = self::choisir(array_keys($sujets), $autres(), $n, 'mt_rand');
+            self::ecrire($redaction->id, $groupid, $userid, $choisis);
         } finally {
             $lock->release();
         }
 
-        return self::lire($redaction->id, $groupid);
+        return self::lire($redaction->id, $groupid, $userid);
     }
 
     /**
-     * Replaces the subjects of a group (teacher action).
+     * Replaces the attribution of a group or a student, all or nothing.
+     *
+     * @param int $redactionid Activity id.
+     * @param int $groupid Group id, 0 for a student.
+     * @param int $userid User id, 0 for a group.
+     * @param int[] $idsujets Subject ids, in the order of their rank.
+     */
+    protected static function ecrire(int $redactionid, int $groupid, int $userid, array $idsujets): void {
+        global $DB;
+
+        [$table, $champ, $id] = $userid ? ['redaction_sujet_eleve', 'userid', $userid] : ['redaction_sujet_groupe', 'groupid', $groupid];
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $DB->delete_records($table, ['redactionid' => $redactionid, $champ => $id]);
+            foreach (array_values($idsujets) as $rang => $sujetid) {
+                $DB->insert_record($table, (object) [
+                    'redactionid' => $redactionid,
+                    $champ => $id,
+                    'sujetid' => $sujetid,
+                    'rang' => $rang + 1,
+                    'timecreated' => time(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            $transaction->rollback($e);
+        }
+        $transaction->allow_commit();
+    }
+
+    /**
+     * Replaces the subjects of a group, or of a student when the activity is individual (teacher action).
      *
      * The subjects must belong to the activity, be as many as the activity gives to each group and all
      * differ. Grades and evaluations are not touched. Answers of a removed subject stay in the table,
      * so that they reappear if the subject comes back. Serialised with the attribution by the same lock.
      *
      * @param \stdClass $redaction The activity record (id, course, sujets_par_groupe).
-     * @param int $groupid Group id.
+     * @param int $groupid Group id, 0 for a student.
      * @param int[] $idsujets Ids of the new subjects, in the order of their rank.
+     * @param int $userid User id of the student, 0 for a group.
      * @throws \moodle_exception When the list is not valid or the lock cannot be obtained.
      */
-    public static function changer(\stdClass $redaction, int $groupid, array $idsujets): void {
+    public static function changer(\stdClass $redaction, int $groupid, array $idsujets, int $userid = 0): void {
         global $DB;
 
         $idsujets = array_values(array_map('intval', $idsujets));
@@ -201,33 +346,28 @@ class sujets {
             throw new \moodle_exception('sujets_changer_invalide', 'mod_redaction', '', $n);
         }
 
-        // The group must belong to the course of the activity.
-        $groupe = $DB->get_record('groups', ['id' => $groupid, 'courseid' => $redaction->course], 'id, name', MUST_EXIST);
-        $classe = self::classe_du_groupe($groupe->name);
+        if ($userid) {
+            // The student must be enrolled in the course of the activity.
+            if (!is_enrolled(\context_course::instance($redaction->course), $userid)) {
+                throw new \moodle_exception('sujets_ens_eleve_invalide', 'mod_redaction');
+            }
+            $classes = self::classes_des_eleves((int) $redaction->course);
+            $verrou = 'redaction_sujets_eleve_' . $redaction->id . '_' . ($classes[$userid] ?? '');
+            $groupid = 0;
+        } else {
+            // The group must belong to the course of the activity.
+            $groupe = $DB->get_record('groups', ['id' => $groupid, 'courseid' => $redaction->course], 'id, name', MUST_EXIST);
+            $verrou = 'redaction_sujets_' . $redaction->id . '_' . self::classe_du_groupe($groupe->name);
+        }
 
         $factory = \core\lock\lock_config::get_lock_factory('mod_redaction');
-        $lock = $factory->get_lock('redaction_sujets_' . $redaction->id . '_' . $classe, self::LOCK_TIMEOUT);
+        $lock = $factory->get_lock($verrou, self::LOCK_TIMEOUT);
         if (!$lock) {
             throw new \moodle_exception('sujets_verrou', 'mod_redaction');
         }
 
         try {
-            $transaction = $DB->start_delegated_transaction();
-            try {
-                $DB->delete_records('redaction_sujet_groupe', ['redactionid' => $redaction->id, 'groupid' => $groupid]);
-                foreach ($idsujets as $rang => $sujetid) {
-                    $DB->insert_record('redaction_sujet_groupe', (object) [
-                        'redactionid' => $redaction->id,
-                        'groupid' => $groupid,
-                        'sujetid' => $sujetid,
-                        'rang' => $rang + 1,
-                        'timecreated' => time(),
-                    ]);
-                }
-            } catch (\Throwable $e) {
-                $transaction->rollback($e);
-            }
-            $transaction->allow_commit();
+            self::ecrire($redaction->id, $groupid, $userid, $idsujets);
         } finally {
             $lock->release();
         }
@@ -286,27 +426,31 @@ class sujets {
     }
 
     /**
-     * Carries out a teacher action of the grading screen on one group.
+     * Carries out a teacher action of the grading screen on one group, or one student when the activity is individual.
      *
      * The caller has checked the session key and the capability. A refusal comes back as an error
      * message, never as an exception, so that the screen can show it.
      *
      * @param \stdClass $redaction The activity record.
      * @param \context_module $context Module context.
-     * @param int $groupid Group id.
+     * @param int $groupid Group id, 0 for a student.
      * @param string $action note (set the teacher grade), retirer (remove it) or systemes (change the subjects).
      * @param array $donnees grade (float), feedback (string), sujetid (int[]), confirme (bool).
+     * @param int $userid User id of the student, 0 for a group.
      * @return array [message, notification type]
      */
-    public static function traiter_action(\stdClass $redaction, \context_module $context, int $groupid, string $action, array $donnees): array {
+    public static function traiter_action(\stdClass $redaction, \context_module $context, int $groupid, string $action, array $donnees,
+            int $userid = 0): array {
         global $DB, $USER;
 
-        $submission = $DB->get_record('redaction_submission', ['redactionid' => $redaction->id, 'groupid' => $groupid, 'userid' => 0]);
+        $submission = $DB->get_record('redaction_submission', $userid
+            ? ['redactionid' => $redaction->id, 'groupid' => 0, 'userid' => $userid]
+            : ['redactionid' => $redaction->id, 'groupid' => $groupid, 'userid' => 0]);
 
         try {
             if ($action === 'note' || $action === 'retirer') {
                 if (!$submission) {
-                    throw new \moodle_exception('sujets_ens_pas_de_travail', 'mod_redaction');
+                    throw new \moodle_exception('sujets_ens_pas_de_travail' . ($userid ? '_eleve' : ''), 'mod_redaction');
                 }
                 $ancienne = $submission->grade_enseignant;
                 $note = $action === 'note' ? (float) $donnees['grade'] : null;
@@ -326,10 +470,10 @@ class sujets {
                     [$submission->id]
                 );
                 if ($adecrit && empty($donnees['confirme'])) {
-                    throw new \moodle_exception('sujets_ens_changer_a_confirmer', 'mod_redaction');
+                    throw new \moodle_exception('sujets_ens_changer_a_confirmer' . ($userid ? '_eleve' : ''), 'mod_redaction');
                 }
-                self::changer($redaction, $groupid, $donnees['sujetid'] ?? []);
-                $message = get_string('sujets_ens_changes', 'mod_redaction');
+                self::changer($redaction, $groupid, $donnees['sujetid'] ?? [], $userid);
+                $message = get_string('sujets_ens_changes' . ($userid ? '_eleve' : ''), 'mod_redaction');
             } else {
                 throw new \moodle_exception('sujets_ens_action_invalide', 'mod_redaction');
             }
@@ -341,22 +485,24 @@ class sujets {
     }
 
     /**
-     * Subjects already attributed to a group, ordered by rank. Never creates an attribution.
+     * Subjects already attributed to a group or a student, ordered by rank. Never creates an attribution.
      *
      * @param int $redactionid Activity id.
-     * @param int $groupid Group id.
+     * @param int $groupid Group id, 0 for a student.
+     * @param int $userid User id of the student, 0 for a group.
      * @return \stdClass[] Subject records (empty if none attributed yet).
      */
-    public static function lire(int $redactionid, int $groupid): array {
+    public static function lire(int $redactionid, int $groupid, int $userid = 0): array {
         global $DB;
 
+        [$table, $champ, $id] = $userid ? ['redaction_sujet_eleve', 'userid', $userid] : ['redaction_sujet_groupe', 'groupid', $groupid];
         return $DB->get_records_sql(
-            'SELECT s.*
-               FROM {redaction_sujet_groupe} sg
+            "SELECT s.*
+               FROM {{$table}} sg
                JOIN {redaction_sujet} s ON s.id = sg.sujetid
-              WHERE sg.redactionid = :redactionid AND sg.groupid = :groupid
-           ORDER BY sg.rang, sg.id',
-            ['redactionid' => $redactionid, 'groupid' => $groupid]
+              WHERE sg.redactionid = :redactionid AND sg.$champ = :id
+           ORDER BY sg.rang, sg.id",
+            ['redactionid' => $redactionid, 'id' => $id]
         );
     }
 }

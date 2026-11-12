@@ -172,6 +172,14 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'timecreated',
         ]);
 
+        $sujeteleves = new backup_nested_element('sujet_eleves');
+        $sujeteleve = new backup_nested_element('sujet_eleve', ['id'], [
+            'userid',
+            'sujetid',
+            'rang',
+            'timecreated',
+        ]);
+
         $sujetreponses = new backup_nested_element('sujet_reponses');
         $sujetreponse = new backup_nested_element('sujet_reponse', ['id'], [
             'sujetid',
@@ -194,6 +202,8 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
         $sujets->add_child($sujet);
         $redaction->add_child($sujetgroupes);
         $sujetgroupes->add_child($sujetgroupe);
+        $redaction->add_child($sujeteleves);
+        $sujeteleves->add_child($sujeteleve);
         $redaction->add_child($submissions);
         $redaction->add_child($overrides);
         $overrides->add_child($override);
@@ -222,10 +232,13 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             $aievaluation->set_source_table('redaction_ai_evaluations', ['submissionid' => backup::VAR_PARENTID]);
             $sujetreponse->set_source_table('redaction_sujet_reponse', ['submissionid' => backup::VAR_PARENTID]);
             $sujetmembre->set_source_table('redaction_sujet_membre', ['evaluationid' => backup::VAR_PARENTID]);
+            // The subjects drawn for each student are user data.
+            $sujeteleve->set_source_table('redaction_sujet_eleve', ['redactionid' => backup::VAR_PARENTID]);
         }
 
         // Define ID annotations.
         $submission->annotate_ids('user', 'userid');
+        $sujeteleve->annotate_ids('user', 'userid');
         $submission->annotate_ids('group', 'groupid');
         $history->annotate_ids('user', 'userid');
         $history->annotate_ids('user', 'saved_by');

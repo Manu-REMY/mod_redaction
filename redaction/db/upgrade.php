@@ -376,5 +376,26 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111100, 'redaction');
     }
 
+    if ($oldversion < 2026111200) {
+        // One subject per student when the activity is individual (request 13).
+        $table = new xmldb_table('redaction_sujet_eleve');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('redactionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sujetid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('rang', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('redactionid', XMLDB_KEY_FOREIGN, ['redactionid'], 'redaction', ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_key('sujetid', XMLDB_KEY_FOREIGN, ['sujetid'], 'redaction_sujet', ['id']);
+        $table->add_key('redactionid_userid_sujetid', XMLDB_KEY_UNIQUE, ['redactionid', 'userid', 'sujetid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_mod_savepoint(true, 2026111200, 'redaction');
+    }
+
     return true;
 }

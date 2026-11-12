@@ -26,12 +26,14 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$usergroup = redaction_get_user_group($cm, $USER->id);
+// An individual activity has one submission per student, with no group: the subjects are the student's own.
+$individuel = \mod_redaction\sujets::individuel($redaction);
+$usergroup = $individuel ? 0 : redaction_get_user_group($cm, $USER->id);
 
 $PAGE->set_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'redaction']);
 $PAGE->set_title(format_string($redaction->name) . ' - ' . get_string('redaction', 'redaction'));
 
-if ($usergroup == 0) {
+if (!$individuel && $usergroup == 0) {
     echo $OUTPUT->header();
     echo $OUTPUT->notification(get_string('group_required', 'redaction'), 'error');
     echo $OUTPUT->footer();

@@ -66,7 +66,7 @@ class submit_sujets extends sujets_base {
         [$cm, $redaction, $context, $groupid, $submission] = self::contexte($params['cmid']);
 
         // The attribution is written (and its own lock taken) before the transaction below, never inside it.
-        \mod_redaction\sujets::du_groupe($redaction, $groupid);
+        \mod_redaction\sujets::de_soumission($redaction, $submission);
 
         $factory = \core\lock\lock_config::get_lock_factory('mod_redaction');
         $lock = $factory->get_lock('redaction_submit_' . $submission->id, self::LOCK_TIMEOUT);

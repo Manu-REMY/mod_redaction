@@ -70,7 +70,7 @@ class save_sujet_reponse extends sujets_base {
 
         [$cm, $redaction, $context, $groupid, $submission] = self::contexte($params['cmid']);
 
-        $sujets = \mod_redaction\sujets::du_groupe($redaction, $groupid);
+        $sujets = \mod_redaction\sujets::de_soumission($redaction, $submission);
         if (!isset($sujets[$params['sujetid']])) {
             throw new \moodle_exception('sujets_hors_groupe', 'mod_redaction');
         }

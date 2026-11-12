@@ -54,6 +54,7 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
             $paths[] = new restore_path_element('redaction_history', '/activity/redaction/submissions/submission/histories/history');
             $paths[] = new restore_path_element('redaction_ai_evaluation', '/activity/redaction/submissions/submission/ai_evaluations/ai_evaluation');
             $paths[] = new restore_path_element('redaction_sujet_reponse', '/activity/redaction/submissions/submission/sujet_reponses/sujet_reponse');
+            $paths[] = new restore_path_element('redaction_sujet_eleve', '/activity/redaction/sujet_eleves/sujet_eleve');
             $paths[] = new restore_path_element('redaction_sujet_membre', '/activity/redaction/submissions/submission/ai_evaluations/ai_evaluation/sujet_membres/sujet_membre');
         }
 
@@ -254,6 +255,27 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
 
         unset($data->id);
         $DB->insert_record('redaction_sujet_groupe', $data);
+    }
+
+    /**
+     * Process the subjects drawn for one student.
+     *
+     * @param array $data
+     */
+    protected function process_redaction_sujet_eleve($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $data->redactionid = $this->get_new_parentid('redaction');
+        $data->userid = $this->get_mappingid('user', $data->userid);
+        $data->sujetid = $this->get_mappingid('redaction_sujet', $data->sujetid);
+        if (!$data->userid || !$data->sujetid) {
+            return;
+        }
+        $data->timecreated = $this->apply_date_offset($data->timecreated);
+
+        unset($data->id);
+        $DB->insert_record('redaction_sujet_eleve', $data);
     }
 
     /**

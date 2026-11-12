@@ -140,6 +140,17 @@ class provider implements
             'privacy:metadata:redaction_sujet_membre'
         );
 
+        // Subjects drawn for a student when the activity is individual.
+        $collection->add_database_table(
+            'redaction_sujet_eleve',
+            [
+                'userid' => 'privacy:metadata:redaction_sujet_eleve:userid',
+                'sujetid' => 'privacy:metadata:redaction_sujet_eleve:sujetid',
+                'timecreated' => 'privacy:metadata:redaction_sujet_eleve:timecreated',
+            ],
+            'privacy:metadata:redaction_sujet_eleve'
+        );
+
         // External AI services that may process user data.
         $collection->add_external_location_link(
             'ai_provider',
@@ -254,6 +265,19 @@ class provider implements
             'userid' => $userid,
         ]);
 
+        $sql = "SELECT c.id
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid AND c.contextlevel = :contextlevel
+            INNER JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+            INNER JOIN {redaction} r ON r.id = cm.instance
+            INNER JOIN {redaction_sujet_eleve} rse ON rse.redactionid = r.id
+                 WHERE rse.userid = :userid";
+        $contextlist->add_from_sql($sql, [
+            'contextlevel' => CONTEXT_MODULE,
+            'modname' => 'redaction',
+            'userid' => $userid,
+        ]);
+
         return $contextlist;
     }
 
@@ -337,6 +361,14 @@ class provider implements
                   JOIN {redaction} r ON r.id = cm.instance
                   JOIN {redaction_ai_evaluations} rae ON rae.redactionid = r.id
                   JOIN {redaction_sujet_membre} rsm ON rsm.evaluationid = rae.id
+                 WHERE cm.id = :instanceid";
+        $userlist->add_from_sql('userid', $sql, $params);
+
+        $sql = "SELECT rse.userid
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modulename
+                  JOIN {redaction} r ON r.id = cm.instance
+                  JOIN {redaction_sujet_eleve} rse ON rse.redactionid = r.id
                  WHERE cm.id = :instanceid";
         $userlist->add_from_sql('userid', $sql, $params);
     }
@@ -587,6 +619,38 @@ class provider implements
                 (object) ['evaluations' => $data]
             );
         }
+
+        // Subjects drawn for this user in an individual activity.
+        $sql = "SELECT rse.id,
+                       cm.id AS cmid,
+                       rsj.titre,
+                       rse.timecreated
+                  FROM {context} c
+            INNER JOIN {course_modules} cm ON cm.id = c.instanceid
+            INNER JOIN {redaction} r ON r.id = cm.instance
+            INNER JOIN {redaction_sujet_eleve} rse ON rse.redactionid = r.id
+            INNER JOIN {redaction_sujet} rsj ON rsj.id = rse.sujetid
+                 WHERE c.id {$contextsql}
+                   AND rse.userid = :userid
+              ORDER BY cm.id, rse.rang";
+        $drawn = $DB->get_recordset_sql($sql, $params);
+
+        $drawnbycontext = [];
+        foreach ($drawn as $ligne) {
+            $drawnbycontext[$ligne->cmid][] = [
+                'subject' => $ligne->titre,
+                'timecreated' => transform::datetime($ligne->timecreated),
+            ];
+        }
+        $drawn->close();
+
+        foreach ($drawnbycontext as $cmid => $data) {
+            $context = \context_module::instance($cmid);
+            writer::with_context($context)->export_data(
+                [get_string('sujets_drawn', 'mod_redaction')],
+                (object) ['subjects' => $data]
+            );
+        }
     }
 
     /**
@@ -611,6 +675,7 @@ class provider implements
         // Delete assigned subjects answers and credited members.
         $DB->delete_records_select('redaction_sujet_membre',
             'evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE redactionid = :rid)', ['rid' => $redactionid]);
+        $DB->delete_records('redaction_sujet_eleve', ['redactionid' => $redactionid]);
         $DB->delete_records_select('redaction_sujet_reponse',
             'submissionid IN (SELECT id FROM {redaction_submission} WHERE redactionid = :rid)', ['rid' => $redactionid]);
 
@@ -662,6 +727,7 @@ class provider implements
             $DB->delete_records_select('redaction_sujet_membre',
                 'userid = :uid AND evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE redactionid = :rid)',
                 ['uid' => $userid, 'rid' => $redactionid]);
+            $DB->delete_records('redaction_sujet_eleve', ['redactionid' => $redactionid, 'userid' => $userid]);
 
             // Group answers stay (they belong to the group): only detach the author.
             $DB->set_field_select('redaction_sujet_reponse', 'userid', 0,
@@ -752,6 +818,9 @@ class provider implements
         // Credited-member rows of these users, and detach them as authors of group answers.
         $DB->delete_records_select('redaction_sujet_membre',
             "userid {$usersql} AND evaluationid IN (SELECT id FROM {redaction_ai_evaluations} WHERE redactionid = :rid)",
+            $userparams + ['rid' => $redactionid]);
+        $DB->delete_records_select('redaction_sujet_eleve',
+            "userid {$usersql} AND redactionid = :rid",
             $userparams + ['rid' => $redactionid]);
         $DB->set_field_select('redaction_sujet_reponse', 'userid', 0,
             "userid {$usersql} AND submissionid IN (SELECT id FROM {redaction_submission} WHERE redactionid = :rid)",

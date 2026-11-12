@@ -39,10 +39,11 @@ abstract class sujets_base extends external_api {
      * Resolves and checks everything a student service needs.
      *
      * The group is the one of the current user: a student never names it, so cannot act on another group.
+     * When the activity is individual the submission is the student's own, with no group (groupid 0).
      *
      * @param int $cmid Course module ID.
      * @return array [$cm, $redaction, $context, $groupid, $submission]
-     * @throws \moodle_exception When the mode is off or the user has no group.
+     * @throws \moodle_exception When the mode is off or, in a group activity, the user has no group.
      */
     protected static function contexte(int $cmid): array {
         global $DB, $USER;
@@ -58,9 +59,13 @@ abstract class sujets_base extends external_api {
             throw new \moodle_exception('sujets_disabled', 'mod_redaction');
         }
 
-        $groupid = (int) redaction_get_user_group($cm, $USER->id);
-        if ($groupid === 0) {
-            throw new \moodle_exception('group_required', 'mod_redaction');
+        if (\mod_redaction\sujets::individuel($redaction)) {
+            $groupid = 0;
+        } else {
+            $groupid = (int) redaction_get_user_group($cm, $USER->id);
+            if ($groupid === 0) {
+                throw new \moodle_exception('group_required', 'mod_redaction');
+            }
         }
 
         $submission = redaction_get_or_create_submission($redaction, $groupid, $USER->id);
