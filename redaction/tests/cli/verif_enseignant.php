@@ -342,6 +342,16 @@ try {
     $check('overview: a failed correction is flagged', $lignes[$g1]['alerte'] !== '');
     $check('overview: a group that never opened has no grade and no systems claimed',
         !$lignes[$g2]['hasnote'] && $lignes[$g2]['used'] === 0);
+    // The results list shows every correction of the copy, oldest first, like the attempts of a quiz (13/11).
+    $evals1 = $DB->get_records('redaction_ai_evaluations', ['submissionid' => $submission->id], 'id ASC', 'id, status, finale, parsed_grade');
+    $tentatives = $lignes[$g1]['tentatives'] ?? [];
+    $check('overview: one chip per correction, oldest first (' . count($tentatives) . ' for ' . count($evals1) . ')',
+        $lignes[$g1]['hastentatives'] && count($tentatives) === count($evals1)
+        && array_column($tentatives, 'id') == array_map('intval', array_keys($evals1)));
+    $echecs = array_filter($tentatives, fn($t) => $t['echec']);
+    $check('overview: a failed correction is a chip without grade', count($echecs) === count(array_filter($evals1, fn($e) => $e->status === 'failed'))
+        && !array_filter($echecs, fn($t) => $t['note'] !== ''));
+    $check('overview: a never opened copy has no chip', !$lignes[$g2]['hastentatives']);
     $html = $sortie->render_from_template('mod_redaction/grading_sujets_overview', $apercu);
     $check('overview renders with the group name and a link to the detail', strpos($html, '9Y-GRP01') !== false && strpos($html, 'groupid=' . $g1) !== false);
 

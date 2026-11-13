@@ -24,13 +24,15 @@
     * individuel - The activity is individual: one row per student
     * filtre - HTML of the group selector of Moodle (the classes of the grouping of the activity), empty without a group mode
     * hasgroupes, groupes - Rows: etat, etatlibelle (state of the copy, request 16), nom, url, hasmembres, membres (members of a
-      group that hands in), hassystemes, systemes, used, max, hasnote, note, prof, valide, pasvalide, aucunenote, hasalerte, alerte
+      group that hands in), hastentatives, tentatives (chips: libelle, note, hasnote, finale, echec, encours, url), hassystemes, systemes, used, max, hasnote, note, prof, valide, pasvalide, aucunenote, hasalerte, alerte
 
     Example context (json):
     {
         "seuil": "16", "niveau": "fragile", "individuel": false, "hasgroupes": true, "filtre": "",
         "groupes": [{"etat": "notee", "etatlibelle": "Rendue, notée", "nom": "4A-GRP01", "url": "#", "hasmembres": true,
-            "membres": "Lana ALONSO, Raphaël ANGLADE", "hassystemes": true, "systemes": "Train / Barque", "used": 2, "max": 5,
+            "membres": "Lana ALONSO, Raphaël ANGLADE", "hastentatives": true,
+            "tentatives": [{"libelle": "1", "note": "8", "hasnote": true, "url": "#"}, {"libelle": "2", "echec": true, "url": "#"},
+                {"libelle": "F", "note": "12", "hasnote": true, "finale": true, "url": "#"}], "hassystemes": true, "systemes": "Train / Barque", "used": 2, "max": 5,
             "hasnote": true, "note": "12", "prof": false, "valide": false, "pasvalide": true, "aucunenote": false,
             "hasalerte": true, "alerte": "The last correction failed."}]
     }
@@ -46,7 +48,7 @@
             <tr>
                 <th scope="col">{{#individuel}}{{#str}}sujets_ens_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}group_label, mod_redaction{{/str}}{{/individuel}}</th>
                 <th scope="col">{{#individuel}}{{#str}}sujets_ens_sujets, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_systemes, mod_redaction{{/str}}{{/individuel}}</th>
-                <th scope="col">{{#str}}sujets_ens_essais, mod_redaction{{/str}}</th>
+                <th scope="col">{{#str}}sujets_ens_tentatives, mod_redaction{{/str}}</th>
                 <th scope="col">{{#str}}sujets_ens_meilleure, mod_redaction{{/str}}</th>
                 <th scope="col">{{#str}}sujets_ens_etat, mod_redaction{{/str}}</th>
             </tr>
@@ -56,7 +58,10 @@
             <tr>
                 <th scope="row"><a href="{{url}}">{{nom}}</a>{{#hasmembres}}<div class="mod_redaction-ens-membres">{{membres}}</div>{{/hasmembres}}</th>
                 <td>{{#hassystemes}}{{systemes}}{{/hassystemes}}{{^hassystemes}}<em>{{#str}}sujets_ens_pas_ouvert, mod_redaction{{/str}}</em>{{/hassystemes}}</td>
-                <td>{{used}} / {{max}}</td>
+                <td>
+                    {{#hastentatives}}<div class="mod_redaction-ens-chips">{{#tentatives}}<a href="{{url}}" class="mod_redaction-ens-chip{{#finale}} mod_redaction-ens-chip-finale{{/finale}}{{#echec}} mod_redaction-ens-chip-echec{{/echec}}{{#encours}} mod_redaction-ens-chip-encours{{/encours}}">{{libelle}}{{#hasnote}} &middot; {{note}}{{/hasnote}}{{#echec}} <span aria-hidden="true">&#10007;</span><span class="sr-only">{{#str}}sujets_ens_tentative_echec, mod_redaction{{/str}}</span>{{/echec}}{{#encours}} <span aria-hidden="true">&hellip;</span><span class="sr-only">{{#str}}sujets_ens_tentative_encours, mod_redaction{{/str}}</span>{{/encours}}</a>{{/tentatives}}</div>{{/hastentatives}}
+                    <div class="mod_redaction-ens-essais">{{#str}}sujets_ens_essais, mod_redaction{{/str}} : {{used}} / {{max}}</div>
+                </td>
                 <td>
                     {{#hasnote}}{{note}}/20{{#prof}} <span class="mod_redaction-ens-tag">{{#str}}sujets_ens_note_prof, mod_redaction{{/str}}</span>{{/prof}}{{/hasnote}}
                     {{^hasnote}}&ndash;{{/hasnote}}

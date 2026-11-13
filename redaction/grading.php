@@ -26,7 +26,8 @@ defined('MOODLE_INTERNAL') || die();
 
 // Page setup.
 $PAGE->set_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading']);
-$PAGE->set_title(format_string($redaction->name) . ' - ' . get_string('grading', 'redaction'));
+$PAGE->set_secondary_active_tab('mod_redaction_results');
+$PAGE->set_title(format_string($redaction->name) . ' - ' . get_string('results', 'mod_redaction'));
 
 // The assigned subjects mode has its own screens: its grades go through the teacher grade.
 if (!empty($redaction->sujets_enabled)) {
@@ -174,7 +175,7 @@ $PAGE->requires->js_call_amd('mod_redaction/grading', 'init', [[
 $renderer = $PAGE->get_renderer('mod_redaction');
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('grading', 'redaction'));
+echo $OUTPUT->heading(get_string('results', 'mod_redaction'));
 
 // Back button.
 $homeurl = new moodle_url('/mod/redaction/view.php', ['id' => $cm->id]);

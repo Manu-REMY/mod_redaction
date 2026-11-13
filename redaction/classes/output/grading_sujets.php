@@ -248,7 +248,7 @@ class grading_sujets implements renderable, templatable {
         if ($soumissions) {
             [$insql, $inparams] = $DB->get_in_or_equal(array_column($soumissions, 'id'));
             foreach ($DB->get_records_select('redaction_ai_evaluations', "submissionid $insql", $inparams, 'timecreated DESC, id DESC',
-                    'id, submissionid, status, finale, timecreated') as $e) {
+                    'id, submissionid, status, finale, timecreated, parsed_grade') as $e) {
                 $evaluations[$e->submissionid][] = $e;
             }
         }
@@ -292,7 +292,10 @@ class grading_sujets implements renderable, templatable {
             $note = $submission ? $submission->grade : null;
             $alerte = $submission ? $this->alerte($evaluations[$submission->id] ?? []) : '';
             $etat = self::etat($submission, $evaluations[$submission->id ?? 0] ?? []);
+            $tentatives = $this->tentatives($evaluations[$submission->id ?? 0] ?? [], $cible['url']);
             $lignes[] = [
+                'hastentatives' => !empty($tentatives),
+                'tentatives' => $tentatives,
                 'etat' => $etat,
                 'etatlibelle' => get_string('sujets_ens_etat_' . $etat, 'mod_redaction'),
                 'groupid' => $cible['id'],
@@ -325,6 +328,38 @@ class grading_sujets implements renderable, templatable {
             // The group selector of Moodle, shown when the activity has a group mode (its grouping: the classes).
             'filtre' => groups_print_activity_menu($this->cm, self::url($this->cm), true),
         ];
+    }
+
+    /**
+     * Chips of the corrections of a copy, oldest first, like the attempts of a quiz: attempt number or F for the final
+     * version, with its grade, or failed, or running.
+     *
+     * @param \stdClass[] $evaluations Corrections of the copy, newest first (status, finale, parsed_grade).
+     * @param \moodle_url $url Detail of the copy.
+     * @return array
+     */
+    protected function tentatives(array $evaluations, \moodle_url $url): array {
+        $chips = [];
+        $numero = 0;
+        foreach (array_reverse($evaluations) as $e) {
+            $finale = !empty($e->finale);
+            if (!$finale) {
+                $numero++;
+            }
+            $note = in_array($e->status, ['completed', 'applied'], true) && $e->parsed_grade !== null ? $this->note($e->parsed_grade) : '';
+            $echec = $e->status === 'failed';
+            $chips[] = [
+                'id' => (int) $e->id,
+                'libelle' => $finale ? get_string('sujets_ens_tentative_finale', 'mod_redaction') : (string) $numero,
+                'finale' => $finale,
+                'note' => $note,
+                'hasnote' => $note !== '',
+                'echec' => $echec,
+                'encours' => in_array($e->status, ['pending', 'processing'], true),
+                'url' => $url->out(false),
+            ];
+        }
+        return $chips;
     }
 
     /**

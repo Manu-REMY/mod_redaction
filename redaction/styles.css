@@ -2918,3 +2918,53 @@
     font-size: 0.85rem;
     color: #495057;
 }
+
+/* Results list: one chip per correction, like the attempts of a quiz. The final version is framed, a failed one is
+   orange with a cross, a running one dashed with an ellipsis: never the colour alone. */
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.2rem;
+}
+
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-chip {
+    display: inline-block;
+    padding: 0.05rem 0.45rem;
+    border: 1px solid #adb5bd;
+    border-radius: 1rem;
+    background: #f1f3f5;
+    color: #212529;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-chip:hover,
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-chip:focus {
+    background: #e2e6ea;
+    text-decoration: none;
+}
+
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-chip-finale {
+    border: 2px solid #1a5596;
+    background: #e8f1fa;
+    color: #1a5596;
+    font-weight: 600;
+}
+
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-chip-echec {
+    border-color: #c25e00;
+    background: #fff1e0;
+    color: #8a4300;
+}
+
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-chip-encours {
+    border-style: dashed;
+}
+
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-essais {
+    font-size: 0.8rem;
+    color: #495057;
+}
+

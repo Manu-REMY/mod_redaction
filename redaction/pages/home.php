@@ -34,14 +34,12 @@ $consignes = $DB->get_record('redaction_consignes', ['redactionid' => $redaction
 // Build template data.
 $templatedata = [
     'isteacher' => $caneditconsignes,
-    'cangrade' => $cangrade,
     'consignescomplete' => $consignescomplete,
     'correctioncomplete' => $correctioncomplete,
     'consignesurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'consignes']))->out(false),
     'correctionurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'correction']))->out(false),
     'sujetsenabled' => !empty($redaction->sujets_enabled),
     'sujetsurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'sujets']))->out(false),
-    'gradingurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading']))->out(false),
     'redactionurl' => (new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'redaction']))->out(false),
     'haswarning' => false,
     'warningmessage' => '',
@@ -52,24 +50,9 @@ $templatedata = [
     'isgraded' => false,
     'hasdraft' => false,
     'gradeformatted' => '',
-    'submittedcount' => 0,
-    'submittedcountstr' => '',
     'consignestitle' => '',
     'buttonlabel' => get_string('work_on_it', 'redaction'),
 ];
-
-// Teacher-specific data.
-if ($caneditconsignes && $cangrade) {
-    // In the assigned subjects mode no submission is ever "handed in": count the groups that sent a correction.
-    $submittedcount = !empty($redaction->sujets_enabled)
-        ? $DB->count_records_select('redaction_submission', 'redactionid = ? AND training_count > 0', [$redaction->id])
-        : $DB->count_records('redaction_submission', [
-            'redactionid' => $redaction->id,
-            'status' => 1,
-        ]);
-    $templatedata['submittedcount'] = $submittedcount;
-    $templatedata['submittedcountstr'] = get_string('submissions_count', 'redaction', $submittedcount);
-}
 
 // Student-specific data.
 if (!$caneditconsignes) {

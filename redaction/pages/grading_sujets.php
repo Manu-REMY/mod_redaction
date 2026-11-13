@@ -75,11 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect($pageurl, $message, null, $type);
 }
 
-$PAGE->set_title(format_string($redaction->name) . ' - ' . get_string('grading', 'redaction'));
+$PAGE->set_title(format_string($redaction->name) . ' - ' . get_string('results', 'mod_redaction'));
 $PAGE->add_body_class('mod_redaction-grading-sujets');
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('grading', 'redaction'));
+echo $OUTPUT->heading(get_string('results', 'mod_redaction'));
 echo html_writer::link(
     new moodle_url('/mod/redaction/view.php', ['id' => $cm->id]),
     '← ' . get_string('back_to_home', 'redaction'),

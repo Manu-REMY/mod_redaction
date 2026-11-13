@@ -1363,6 +1363,17 @@ function redaction_extend_settings_navigation(settings_navigation $settings, nav
     }
     $context = context_module::instance($cm->id);
 
+    // Results tab, as in a quiz: the list of the copies with every attempt, for the teachers.
+    if (has_capability('mod/redaction:grade', $context)) {
+        $redactionnode->add(
+            get_string('results', 'mod_redaction'),
+            new moodle_url('/mod/redaction/view.php', ['id' => $cm->id, 'page' => 'grading']),
+            navigation_node::TYPE_SETTING,
+            null,
+            'mod_redaction_results'
+        );
+    }
+
     if (!has_capability('mod/redaction:manageoverrides', $context)) {
         return;
     }
