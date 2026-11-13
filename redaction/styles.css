@@ -2907,3 +2907,14 @@
 .mod_redaction-dashboard .mod_redaction-dash-no-summary {
     font-size: 14px;
 }
+
+/* Grading page of the assigned subjects mode: filter by class and members of each group that hands in. */
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-filtre {
+    margin-bottom: 1rem;
+}
+
+.mod_redaction.mod_redaction-sujets-ens .mod_redaction-ens-membres {
+    font-weight: normal;
+    font-size: 0.85rem;
+    color: #495057;
+}

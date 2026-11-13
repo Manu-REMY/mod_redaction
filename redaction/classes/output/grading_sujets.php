@@ -53,6 +53,8 @@ class grading_sujets implements renderable, templatable {
     protected $groupid;
     /** @var int Student of the detail in an individual activity, 0 for the overview. */
     protected $userid;
+    /** @var int Group of the grouping of the activity the overview is filtered by (a class), 0 for all. */
+    protected $filtre;
 
     /**
      * Constructor.
@@ -62,13 +64,16 @@ class grading_sujets implements renderable, templatable {
      * @param \context_module $context Module context.
      * @param int $groupid Group id, 0 for the overview.
      * @param int $userid Student id in an individual activity, 0 for the overview.
+     * @param int $filtre Group the overview is filtered by (a class of the grouping of the activity), 0 for all.
      */
-    public function __construct(\stdClass $redaction, \stdClass $cm, \context_module $context, int $groupid = 0, int $userid = 0) {
+    public function __construct(\stdClass $redaction, \stdClass $cm, \context_module $context, int $groupid = 0, int $userid = 0,
+            int $filtre = 0) {
         $this->redaction = $redaction;
         $this->cm = $cm;
         $this->context = $context;
         $this->groupid = $groupid;
         $this->userid = $userid;
+        $this->filtre = $filtre;
     }
 
     /**
@@ -260,15 +265,23 @@ class grading_sujets implements renderable, templatable {
             $titres[$t->cible][] = format_string($t->titre);
         }
 
-        // One row per student in an individual activity, per group otherwise.
+        // One row per student in an individual activity, per group that hands in otherwise (with its members), both
+        // limited to the filter group (a class) when one is chosen.
         $cibles = [];
         if ($individuel) {
+            $dufiltre = $this->filtre ? groups_get_members($this->filtre, 'u.id') : null;
             foreach ($this->eleves() as $eleve) {
-                $cibles[] = ['id' => (int) $eleve->id, 'nom' => $this->nom_eleve($eleve), 'url' => self::url($this->cm, 0, $eleve->id)];
+                if ($dufiltre !== null && !isset($dufiltre[$eleve->id])) {
+                    continue;
+                }
+                $cibles[] = ['id' => (int) $eleve->id, 'nom' => $this->nom_eleve($eleve), 'url' => self::url($this->cm, 0, $eleve->id),
+                    'membres' => ''];
             }
         } else {
-            foreach (redaction_get_grading_filter_groups($this->cm, $redaction->course) as $groupe) {
-                $cibles[] = ['id' => (int) $groupe->id, 'nom' => format_string($groupe->name), 'url' => self::url($this->cm, $groupe->id)];
+            foreach (redaction_filter_submission_groups(redaction_get_submission_groups($redaction), $this->filtre) as $groupe) {
+                $membres = array_map('fullname', groups_get_members($groupe->id, 'u.*', 'u.lastname, u.firstname'));
+                $cibles[] = ['id' => (int) $groupe->id, 'nom' => format_string($groupe->name), 'url' => self::url($this->cm, $groupe->id),
+                    'membres' => implode(', ', $membres)];
             }
         }
 
@@ -285,6 +298,8 @@ class grading_sujets implements renderable, templatable {
                 'groupid' => $cible['id'],
                 'nom' => $cible['nom'],
                 'url' => $cible['url']->out(false),
+                'hasmembres' => $cible['membres'] !== '',
+                'membres' => $cible['membres'],
                 'hassystemes' => !empty($attribues),
                 'systemes' => implode(' / ', $attribues),
                 'used' => $submission ? (int) $submission->training_count : 0,
@@ -307,6 +322,8 @@ class grading_sujets implements renderable, templatable {
             'individuel' => $individuel,
             'groupes' => $lignes,
             'hasgroupes' => !empty($lignes),
+            // The group selector of Moodle, shown when the activity has a group mode (its grouping: the classes).
+            'filtre' => groups_print_activity_menu($this->cm, self::url($this->cm), true),
         ];
     }
 

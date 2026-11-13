@@ -47,6 +47,8 @@ $string['autosave_interval_help'] = 'How often student work is automatically sav
 $string['submissionsettings'] = 'Submission settings';
 $string['groupsubmission'] = 'Group submission';
 $string['groupsubmission_help'] = 'If enabled, students submit their work as a group. All group members share the same writing and grade.';
+$string['submission_groupingid'] = 'Grouping for student groups';
+$string['submission_groupingid_help'] = 'The groups of this grouping hand in together (one copy per group). With "None", every group of the course counts. The grouping of the common module settings, with its group mode, only filters the grading page (for example by class).';
 
 // AI Settings.
 $string['ai_settings'] = 'AI Evaluation';

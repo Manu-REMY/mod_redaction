@@ -13,6 +13,7 @@
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Activity description"/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="group_submission" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1=group submission, 0=individual"/>
+        <FIELD NAME="submission_groupingid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Grouping whose groups hand in (group submission), 0 for every group of the course; the grouping of the activity only filters the grading page"/>
         <FIELD NAME="autosave_interval" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="30" SEQUENCE="false" COMMENT="Auto-save interval in seconds"/>
         <FIELD NAME="ai_enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1=AI evaluation enabled"/>
         <FIELD NAME="ai_provider" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="AI provider: openai, anthropic, mistral, albert"/>

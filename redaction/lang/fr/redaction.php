@@ -47,6 +47,8 @@ $string['autosave_interval_help'] = 'Fréquence de sauvegarde automatique du tra
 $string['submissionsettings'] = 'Paramètres de soumission';
 $string['groupsubmission'] = 'Soumission par groupe';
 $string['groupsubmission_help'] = 'Si activé, les élèves soumettent leur travail en tant que groupe. Tous les membres du groupe partagent la même rédaction et la même note.';
+$string['submission_groupingid'] = 'Groupement pour les groupes d\'élèves';
+$string['submission_groupingid_help'] = 'Les groupes de ce groupement rendent ensemble (une copie par groupe). Avec « Aucun », tous les groupes du cours comptent. Le groupement des réglages courants, avec son mode de groupe, sert seulement à filtrer la page de notation (par exemple par classe).';
 
 // AI Settings.
 $string['ai_settings'] = 'Évaluation par IA';

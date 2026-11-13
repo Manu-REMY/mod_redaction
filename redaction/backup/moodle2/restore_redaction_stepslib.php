@@ -74,6 +74,9 @@ class restore_redaction_activity_structure_step extends restore_activity_structu
         $data->course = $this->get_courseid();
         $data->timecreated = $this->apply_date_offset($data->timecreated);
         $data->timemodified = $this->apply_date_offset($data->timemodified);
+        // The grouping of the groups that hand in, when the groups come along; every group of the course otherwise.
+        $data->submission_groupingid = empty($data->submission_groupingid) ? 0
+            : (int) $this->get_mappingid('grouping', $data->submission_groupingid);
 
         // Insert the redaction record.
         $newitemid = $DB->insert_record('redaction', $data);

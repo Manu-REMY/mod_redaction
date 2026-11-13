@@ -84,6 +84,16 @@ class mod_redaction_mod_form extends moodleform_mod {
         $mform->setDefault('group_submission', 1);
         $mform->addHelpButton('group_submission', 'groupsubmission', 'redaction');
 
+        // As in an assignment: the groups that hand in come from this grouping; the grouping of the activity filters.
+        $groupements = [0 => get_string('none')];
+        foreach (groups_get_all_groupings($this->get_course()->id) as $groupement) {
+            $groupements[$groupement->id] = format_string($groupement->name);
+        }
+        $mform->addElement('select', 'submission_groupingid', get_string('submission_groupingid', 'redaction'), $groupements);
+        $mform->setDefault('submission_groupingid', 0);
+        $mform->addHelpButton('submission_groupingid', 'submission_groupingid', 'redaction');
+        $mform->hideIf('submission_groupingid', 'group_submission', 'eq', 0);
+
         // Training mode settings.
         $mform->addElement('header', 'training_settings', get_string('training_settings', 'redaction'));
         $mform->setExpanded('training_settings', false);

@@ -541,5 +541,31 @@ function xmldb_redaction_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026111303, 'redaction');
     }
 
+    if ($oldversion < 2026111311) {
+        // As in an assignment: a grouping for the groups that hand in, the grouping of the activity for the grading filter.
+        $table = new xmldb_table('redaction');
+        $field = new xmldb_field('submission_groupingid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'group_submission');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // A group activity kept its work groups in the grouping of the activity: that grouping now gives them.
+        $moduleid = $DB->get_field('modules', 'id', ['name' => 'redaction']);
+        if ($moduleid) {
+            $activites = $DB->get_records_sql(
+                "SELECT r.id, cm.groupingid
+                   FROM {redaction} r
+                   JOIN {course_modules} cm ON cm.instance = r.id AND cm.module = ?
+                  WHERE r.group_submission = 1 AND cm.groupingid > 0",
+                [$moduleid]
+            );
+            foreach ($activites as $activite) {
+                $DB->set_field('redaction', 'submission_groupingid', $activite->groupingid, ['id' => $activite->id]);
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026111311, 'redaction');
+    }
+
     return true;
 }

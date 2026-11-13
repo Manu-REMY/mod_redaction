@@ -53,11 +53,8 @@ $navitems = [];
 $currentid = optional_param('itemid', 0, PARAM_INT);
 
 if ($isGroupSubmission) {
-    if ($groupid > 0) {
-        $groups = [$DB->get_record('groups', ['id' => $groupid], '*', MUST_EXIST)];
-    } else {
-        $groups = groups_get_all_groups($course->id);
-    }
+    // The groups that hand in, those with a member in the filter group (a class) when one is chosen.
+    $groups = redaction_filter_submission_groups(redaction_get_submission_groups($redaction), (int) $groupid);
     foreach ($groups as $group) {
         $navitems[$group->id] = [
             'id' => $group->id,

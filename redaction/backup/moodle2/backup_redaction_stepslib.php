@@ -48,6 +48,7 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
             'intro',
             'introformat',
             'group_submission',
+            'submission_groupingid',
             'autosave_interval',
             'ai_enabled',
             'ai_provider',
@@ -246,6 +247,7 @@ class backup_redaction_activity_structure_step extends backup_activity_structure
         }
 
         // Define ID annotations.
+        $redaction->annotate_ids('grouping', 'submission_groupingid');
         $submission->annotate_ids('user', 'userid');
         $sujeteleve->annotate_ids('user', 'userid');
         $submission->annotate_ids('group', 'groupid');

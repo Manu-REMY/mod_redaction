@@ -35,7 +35,7 @@ $individuel = sujets::individuel($redaction);
 $groupid = $individuel ? 0 : optional_param('groupid', 0, PARAM_INT);
 $userid = $individuel ? optional_param('userid', 0, PARAM_INT) : 0;
 if ($groupid) {
-    $groupes = redaction_get_grading_filter_groups($cm, $course->id);
+    $groupes = redaction_get_submission_groups($redaction);
     if (!isset($groupes[$groupid])) {
         throw new \moodle_exception('sujets_ens_groupe_invalide', 'mod_redaction');
     }
@@ -86,7 +86,9 @@ echo html_writer::link(
     ['class' => 'btn btn-secondary mb-3']
 );
 
-$vue = new grading_sujets($redaction, $cm, $context, $groupid, $userid);
+// The class chosen in the group selector of Moodle (grouping of the activity), kept for the session.
+$filtre = (int) groups_get_activity_group($cm, true);
+$vue = new grading_sujets($redaction, $cm, $context, $groupid, $userid, $filtre);
 echo $OUTPUT->render_from_template(
     ($groupid || $userid) ? 'mod_redaction/grading_sujets_detail' : 'mod_redaction/grading_sujets_overview',
     $vue->export_for_template($OUTPUT)

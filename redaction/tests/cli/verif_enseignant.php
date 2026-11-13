@@ -487,6 +487,50 @@ try {
     }
     $so = $DB->get_record('redaction_submission', ['id' => $so->id]);
     $check('ordinary activity: apply_ai_grade writes the grade as before', (float) $so->grade === 14.0 && $so->grade_enseignant === null);
+
+    // As in an assignment (13/11): a grouping gives the groups that hand in, the grouping of the activity (with its group
+    // mode) gives the filter of the grading page, here by class.
+    $classe9y = groups_create_group((object) ['courseid' => $course->id, 'name' => '9Y']);
+    $classe9z = groups_create_group((object) ['courseid' => $course->id, 'name' => '9Z']);
+    groups_add_member($classe9y, $a);
+    groups_add_member($classe9y, $b);
+    groups_add_member($classe9z, $c);
+    $travail = groups_create_grouping((object) ['courseid' => $course->id, 'name' => 'Groupes de travail']);
+    groups_assign_grouping($travail, $g1);
+    groups_assign_grouping($travail, $g2);
+    $classes = groups_create_grouping((object) ['courseid' => $course->id, 'name' => 'Classes']);
+    groups_assign_grouping($classes, $classe9y);
+    groups_assign_grouping($classes, $classe9z);
+    $filtrer = function (stdClass $cmf) use ($DB, $classes) {
+        $DB->update_record('course_modules', (object) ['id' => $cmf->id, 'groupmode' => VISIBLEGROUPS, 'groupingid' => $classes]);
+        return get_coursemodule_from_id('redaction', $cmf->id, 0, false, MUST_EXIST);
+    };
+
+    [$rgroupe, $cmg] = $creeractivite(['group_submission' => 1, 'submission_groupingid' => $travail, 'sujets_enabled' => 1,
+        'sujets_par_groupe' => 1, 'sujets_seuil' => 12, 'training_enabled' => 1]);
+    $cmg = $filtrer($cmg);
+    $check('submission grouping: a member hands in with the work group, not the class',
+        (int) redaction_get_user_group($cmg, $a) === (int) $g1 && (int) redaction_get_user_group($cmg, $c) === (int) $g2);
+    $vue = fn(stdClass $r, stdClass $cmv, int $filtre) => (new \mod_redaction\output\grading_sujets($r, $cmv,
+        context_module::instance($cmv->id), 0, 0, $filtre))->export_for_template($sortie);
+    $tous = $vue($rgroupe, $cmg, 0);
+    $check('filter: all classes, every work group and no class group',
+        array_map('intval', array_column($tous['groupes'], 'groupid')) == [$g1, $g2]);
+    $de9y = $vue($rgroupe, $cmg, $classe9y);
+    $check('filter by class, group activity: its work groups with their members', count($de9y['groupes']) === 1
+        && (int) $de9y['groupes'][0]['groupid'] === (int) $g1 && $de9y['groupes'][0]['hasmembres']
+        && strpos($de9y['groupes'][0]['membres'], 'PrenomA NomA') !== false && strpos($de9y['groupes'][0]['membres'], 'PrenomB NomB') !== false);
+    $html = $sortie->render_from_template('mod_redaction/grading_sujets_overview', $de9y);
+    $check('filter: the members are shown under the work group', strpos($html, 'PrenomB NomB') !== false);
+
+    [$rindiv, $cmi] = $creeractivite(['group_submission' => 0, 'sujets_enabled' => 1, 'sujets_par_groupe' => 1,
+        'sujets_seuil' => 12, 'training_enabled' => 1]);
+    $cmi = $filtrer($cmi);
+    $de9z = $vue($rindiv, $cmi, $classe9z);
+    $check('filter by class, individual activity: its students only',
+        array_map('intval', array_column($de9z['groupes'], 'groupid')) == [$c]);
+    $check('filter: the activity offers its classes', strpos((string) $de9z['filtre'], '9Y') !== false
+        && strpos((string) $de9z['filtre'], '9Z') !== false && strpos((string) $de9z['filtre'], '9Y-GRP01') === false);
 } finally {
     ai_evaluator::$fournisseurtest = null;
     if ($olddelay === false) {

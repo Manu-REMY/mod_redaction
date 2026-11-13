@@ -22,18 +22,21 @@
     * niveau - Name of the level the threshold validates (fragile, satisfaisant…)
     * seuil - Validation threshold
     * individuel - The activity is individual: one row per student
-    * hasgroupes, groupes - Rows: etat, etatlibelle (state of the copy, request 16), nom, url, hassystemes, systemes, used, max, hasnote, note, prof, valide,
-      pasvalide, aucunenote, hasalerte, alerte
+    * filtre - HTML of the group selector of Moodle (the classes of the grouping of the activity), empty without a group mode
+    * hasgroupes, groupes - Rows: etat, etatlibelle (state of the copy, request 16), nom, url, hasmembres, membres (members of a
+      group that hands in), hassystemes, systemes, used, max, hasnote, note, prof, valide, pasvalide, aucunenote, hasalerte, alerte
 
     Example context (json):
     {
-        "seuil": "16", "niveau": "fragile", "individuel": false, "hasgroupes": true,
-        "groupes": [{"etat": "notee", "etatlibelle": "Rendue, notée", "nom": "4A-GRP01", "url": "#", "hassystemes": true, "systemes": "Train / Barque", "used": 2, "max": 5,
+        "seuil": "16", "niveau": "fragile", "individuel": false, "hasgroupes": true, "filtre": "",
+        "groupes": [{"etat": "notee", "etatlibelle": "Rendue, notée", "nom": "4A-GRP01", "url": "#", "hasmembres": true,
+            "membres": "Lana ALONSO, Raphaël ANGLADE", "hassystemes": true, "systemes": "Train / Barque", "used": 2, "max": 5,
             "hasnote": true, "note": "12", "prof": false, "valide": false, "pasvalide": true, "aucunenote": false,
             "hasalerte": true, "alerte": "The last correction failed."}]
     }
 }}
 <div class="mod_redaction mod_redaction-sujets-ens" id="mod_redaction-sujets-ens">
+    {{#filtre}}<div class="mod_redaction-ens-filtre">{{{filtre}}}</div>{{/filtre}}
     {{^hasgroupes}}
     <p class="mod_redaction-ens-vide">{{#individuel}}{{#str}}sujets_ens_aucun_eleve, mod_redaction{{/str}}{{/individuel}}{{^individuel}}{{#str}}sujets_ens_aucun_groupe, mod_redaction{{/str}}{{/individuel}}</p>
     {{/hasgroupes}}
@@ -51,7 +54,7 @@
         <tbody>
             {{#groupes}}
             <tr>
-                <th scope="row"><a href="{{url}}">{{nom}}</a></th>
+                <th scope="row"><a href="{{url}}">{{nom}}</a>{{#hasmembres}}<div class="mod_redaction-ens-membres">{{membres}}</div>{{/hasmembres}}</th>
                 <td>{{#hassystemes}}{{systemes}}{{/hassystemes}}{{^hassystemes}}<em>{{#str}}sujets_ens_pas_ouvert, mod_redaction{{/str}}</em>{{/hassystemes}}</td>
                 <td>{{used}} / {{max}}</td>
                 <td>

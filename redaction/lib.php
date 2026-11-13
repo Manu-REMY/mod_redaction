@@ -309,20 +309,28 @@ function redaction_create_correction($redactionid) {
 }
 
 /**
- * Get user's group for this activity.
+ * Group the user hands in with: their first group, by name, of the grouping for student groups (every group of the
+ * course when none is set). As in an assignment, the grouping of the activity does not count: it filters the grading page.
  *
  * @param stdClass $cm Course module object
  * @param int $userid User ID
- * @return int|false Group ID or 0 if no group
+ * @return int Group ID or 0 if no group
  */
 function redaction_get_user_group($cm, $userid) {
-    $groups = groups_get_activity_allowed_groups($cm, $userid);
+    global $DB;
+    $groupingid = (int) $DB->get_field('redaction', 'submission_groupingid', ['id' => $cm->instance]);
+    $groups = groups_get_all_groups($cm->course, $userid, $groupingid, 'g.id, g.name');
+    return $groups ? (int) array_key_first($groups) : 0;
+}
 
-    if (empty($groups)) {
-        return 0;
-    }
-
-    return $groups ? array_key_first($groups) : 0;
+/**
+ * Groups that hand in: those of the grouping for student groups, every group of the course when none is set.
+ *
+ * @param stdClass $redaction Activity record (course, submission_groupingid)
+ * @return array Group records keyed by id, sorted by name
+ */
+function redaction_get_submission_groups(stdClass $redaction): array {
+    return groups_get_all_groups($redaction->course, 0, (int) ($redaction->submission_groupingid ?? 0));
 }
 
 /**
@@ -1182,10 +1190,31 @@ function redaction_get_latest_training_evaluation($submissionid) {
 }
 
 /**
- * Returns the groups available for filtering on the grading page.
+ * Groups that hand in having at least one member in the filter group (a class), all of them when there is no filter.
  *
- * If the activity has a grouping assigned, only its groups are returned.
- * Otherwise all course groups are returned.
+ * @param array $groups Group records keyed by id (redaction_get_submission_groups())
+ * @param int $filtre Filter group id, 0 for none
+ * @return array Group records keyed by id
+ */
+function redaction_filter_submission_groups(array $groups, int $filtre): array {
+    if ($filtre <= 0 || !$groups) {
+        return $groups;
+    }
+    global $DB;
+    [$insql, $params] = $DB->get_in_or_equal(array_keys($groups));
+    $retenus = $DB->get_fieldset_sql(
+        "SELECT DISTINCT gm.groupid
+           FROM {groups_members} gm
+           JOIN {groups_members} f ON f.userid = gm.userid AND f.groupid = ?
+          WHERE gm.groupid $insql",
+        array_merge([$filtre], $params)
+    );
+    return array_intersect_key($groups, array_flip($retenus));
+}
+
+/**
+ * Returns the groups available for filtering on the grading page: those of the grouping of the activity, all course
+ * groups when it has none (the groups that hand in come from redaction_get_submission_groups()).
  *
  * @param stdClass $cm Course module record (with groupingid)
  * @param int $courseid
