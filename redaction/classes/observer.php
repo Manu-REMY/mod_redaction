@@ -14,11 +14,23 @@ defined('MOODLE_INTERNAL') || die();
  */
 class observer {
 
+    /**
+     * Removes the overrides of a deleted user.
+     *
+     * @param \core\event\user_deleted $event The event
+     * @return void
+     */
     public static function user_deleted(\core\event\user_deleted $event): void {
         global $DB;
         $DB->delete_records('redaction_overrides', ['userid' => (int) $event->objectid]);
     }
 
+    /**
+     * Removes the overrides of a deleted group.
+     *
+     * @param \core\event\group_deleted $event The event
+     * @return void
+     */
     public static function group_deleted(\core\event\group_deleted $event): void {
         global $DB;
         $DB->delete_records('redaction_overrides', ['groupid' => (int) $event->objectid]);

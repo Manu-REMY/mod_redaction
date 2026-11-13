@@ -41,7 +41,7 @@
         {{#issubmitted}}
             <div class="mod_redaction-status-bar mod_redaction-submitted">
                 &#9989; {{#str}}status_submitted, redaction{{/str}}
-                <span style="margin-left: auto; font-size: 13px;">
+                <span class="mod_redaction-status-bar-meta">
                     {{#str}}submitted_on, redaction, {{timesubmitted}}{{/str}}
                 </span>
                 {{#cangrade}}
@@ -54,7 +54,7 @@
         {{^issubmitted}}
             <div class="mod_redaction-status-bar mod_redaction-draft">
                 &#128221; {{#str}}status_draft, redaction{{/str}}
-                <span style="margin-left: auto; font-size: 13px;">
+                <span class="mod_redaction-status-bar-meta">
                     {{#str}}lastmodified, redaction{{/str}}: {{timemodified}}
                 </span>
             </div>
@@ -79,9 +79,9 @@
         </div>
 
         {{#hastraining}}
-        <div style="margin-top: 10px; padding: 8px 14px; background: linear-gradient(135deg, #ebf4ff 0%, #e8f0fe 100%); border: 1px solid #bee3f8; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+        <div class="mod_redaction-training-count">
             <span>&#127891;</span>
-            <span style="font-weight: 600; color: #2b6cb0;">
+            <span class="mod_redaction-training-count-label">
                 {{#str}}training_attempts_count, redaction, {{trainingcount}}{{/str}}
             </span>
         </div>

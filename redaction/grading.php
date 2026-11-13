@@ -225,11 +225,7 @@ if ($showDashboard) {
         'dashboard' => 0,
         'groupid' => $groupid,
     ]);
-    echo '<div class="mb-3">';
-    echo '<a href="' . $dashboardToggleUrl . '" class="btn btn-sm btn-outline-secondary">';
-    echo '<i class="fa fa-chevron-up mr-1"></i> ' . get_string('dashboard_hide', 'redaction');
-    echo '</a>';
-    echo '</div>';
+    echo $OUTPUT->render_from_template('mod_redaction/grading_dashboard_toggle', ['url' => $dashboardToggleUrl->out(false), 'shown' => true]);
     echo redaction_render_teacher_dashboard($cm, $redaction, $groupid);
 } else {
     $dashboardToggleUrl = new moodle_url('/mod/redaction/view.php', [
@@ -239,11 +235,7 @@ if ($showDashboard) {
         'dashboard' => 1,
         'groupid' => $groupid,
     ]);
-    echo '<div class="mb-3">';
-    echo '<a href="' . $dashboardToggleUrl . '" class="btn btn-sm btn-outline-primary">';
-    echo '<i class="fa fa-chart-bar mr-1"></i> ' . get_string('dashboard_show', 'redaction');
-    echo '</a>';
-    echo '</div>';
+    echo $OUTPUT->render_from_template('mod_redaction/grading_dashboard_toggle', ['url' => $dashboardToggleUrl->out(false), 'shown' => false]);
 }
 
 // Branch: progression overview.
@@ -271,15 +263,17 @@ foreach ($navitems as $item) {
     ];
 }
 
-echo '<div class="grading-container">';
+// The parts of the page, laid out by the grading_shell template.
+$shell = [
+    'navigation' => $renderer->render_grading_navigation($navdata),
+    'hassubmissions' => !empty($navitems),
+    'timeline' => '',
+    'submissionpanel' => '',
+    'aievaluation' => '',
+    'gradingform' => '',
+];
 
-// Render navigation.
-echo $renderer->render_grading_navigation($navdata);
-
-if (empty($navitems)) {
-    echo '<div class="alert alert-warning">' . get_string('no_submission', 'redaction') . '</div>';
-} else {
-    echo '<div class="submission-panel">';
+if (!empty($navitems)) {
 
     // Build submission data.
     $hascontent = ($submission && !empty($submission->contenu));
@@ -430,7 +424,7 @@ if (empty($navitems)) {
             'deadlinedatestr' => !empty($effectivedeadline) ? userdate($effectivedeadline) : '',
         ];
 
-        echo $renderer->render_training_timeline($timelinedata);
+        $shell['timeline'] = $renderer->render_training_timeline($timelinedata);
 
         // Pass attempt data to JS for interactive timeline.
         if (!empty($attemptdata)) {
@@ -443,10 +437,7 @@ if (empty($navitems)) {
         }
     }
 
-    echo $renderer->render_submission_panel($subdata);
-
-    // Grading sidebar.
-    echo '<div class="grading-sidebar">';
+    $shell['submissionpanel'] = $renderer->render_submission_panel($subdata);
 
     // AI evaluation data — build a list of all evaluations (newest first).
     if ($redaction->ai_enabled && $submission) {
@@ -610,7 +601,7 @@ if (empty($navitems)) {
             'totalevaluations' => count($evallist),
         ];
 
-        echo $renderer->render_ai_evaluation($aidata);
+        $shell['aievaluation'] = $renderer->render_ai_evaluation($aidata);
     }
 
     // Grading form data.
@@ -619,13 +610,10 @@ if (empty($navitems)) {
         'currentgrade' => $submission ? ($submission->grade ?? '') : '',
         'currentfeedback' => s($submission->feedback ?? ''),
     ];
-    echo $renderer->render_grading_form($formdata);
-
-    echo '</div>'; // .grading-sidebar
-    echo '</div>'; // .submission-panel
+    $shell['gradingform'] = $renderer->render_grading_form($formdata);
 }
 
-echo '</div>'; // .grading-container
+echo $OUTPUT->render_from_template('mod_redaction/grading_shell', $shell);
 
 // History modal.
 echo $renderer->render_history_modal([]);
@@ -642,8 +630,9 @@ $PAGE->requires->js_call_amd('mod_redaction/grading_actions', 'init', [[
         'characters' => get_string('js:characters', 'redaction'),
         'no_history' => get_string('js:no_history', 'redaction'),
         'loading_error' => get_string('js:loading_error', 'redaction'),
-        'connection_error' => get_string('js:connection_error', 'redaction'),
         'unlock_confirm' => get_string('unlock_confirm', 'redaction'),
+        'error' => get_string('error'),
+        'version' => get_string('version', 'redaction'),
     ],
 ]]);
 

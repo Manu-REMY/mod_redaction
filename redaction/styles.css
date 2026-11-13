@@ -1087,6 +1087,7 @@
 /* Deadline marker */
 .mod_redaction-timeline-deadline-marker {
     position: absolute;
+    left: 100%;
     top: 4px;
     transform: translateX(-50%);
     z-index: 2;
@@ -2555,4 +2556,295 @@
         padding: 8px 12px;
         z-index: 10;
     }
+}
+
+/* ===== Classes replacing former inline styles (CONTRIB-10280) ===== */
+
+/* Generic helpers */
+/* Hidden until JS sets element.style.display (not !important on purpose). */
+.mod_redaction-hidden {
+    display: none;
+}
+
+.mod_redaction-textarea-full {
+    width: 100%;
+}
+
+/* Version history items */
+.mod_redaction-history-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.mod_redaction-history-item-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.mod_redaction-history-item-meta {
+    color: #666;
+    font-size: 13px;
+}
+
+/* Submission panel */
+.mod_redaction-status-bar-meta {
+    margin-left: auto;
+    font-size: 13px;
+}
+
+.mod_redaction-training-count {
+    margin-top: 10px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #ebf4ff 0%, #e8f0fe 100%);
+    border: 1px solid #bee3f8;
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mod_redaction-training-count-label {
+    font-weight: 600;
+    color: #2b6cb0;
+}
+
+/* Training timeline */
+.mod_redaction-training-timeline-empty {
+    font-size: 13px;
+    font-style: italic;
+    margin: 0;
+}
+
+.mod_redaction-timeline-fallback-grade {
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+/* Student writing page */
+.mod_redaction-collapsible-header .mod_redaction-collapsible-title {
+    margin: 0;
+}
+
+.mod_redaction-criterion-badge-level {
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+.mod_redaction-training-history-empty {
+    padding: 12px;
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* Read-only (submitted or locked) content shown in place of the editor. */
+.mod_redaction-editor-container-locked {
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+/* Correction model: raw JSON of the criteria grid */
+.mod_redaction-form-control.mod_redaction-form-control-mono {
+    font-family: monospace;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+/* Home page: read-only card */
+.mod_redaction-card-readonly {
+    opacity: 0.9;
+}
+
+/* Grading form */
+.mod_redaction-grading-form-title {
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+/* ===== Teacher dashboard =====
+   Scoped under .mod_redaction-dashboard so these rules outrank the Bootstrap
+   ones (.card, .card-header:first-child, .progress, .btn-sm) loaded after the
+   plugin stylesheet. */
+.mod_redaction-dashboard .mod_redaction-dash-card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-card > .mod_redaction-dash-card-header {
+    border-radius: 12px 12px 0 0;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-card > .mod_redaction-dash-card-header-light {
+    background: #f7fafc;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-card > .mod_redaction-dash-card-header-ai {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-card-title {
+    font-size: 16px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-card-title-muted {
+    color: #4a5568;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-card-body {
+    gap: 16px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-row {
+    row-gap: 16px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-progress-label {
+    font-size: 14px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-progress {
+    height: 14px;
+    border-radius: 7px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-progress-bar {
+    border-radius: 7px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-ai-badges {
+    font-size: 13px;
+    gap: 6px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-average-circle {
+    width: 130px;
+    height: 130px;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    border: 4px solid #6366f1;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-average-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #1e1b4b;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-average-max {
+    font-size: 0.9rem;
+    color: #6366f1;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-average-label {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-no-grades {
+    font-size: 13px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-chart {
+    position: relative;
+    min-height: 200px;
+    width: 100%;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-token-list {
+    gap: 8px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-token-stat {
+    background: #edf2f7;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-token-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-token-label {
+    font-size: 11px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-refresh-btn {
+    font-size: 13px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-box {
+    border-radius: 8px;
+    border-left: 4px solid transparent;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-head {
+    border-bottom: 1px solid transparent;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-title {
+    font-size: 14px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-difficulties {
+    background: #fff5f5;
+    border-left-color: #e53e3e;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-difficulties .mod_redaction-dash-summary-head {
+    border-bottom-color: rgba(229, 62, 62, 0.2);
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-difficulties .mod_redaction-dash-summary-title {
+    color: #c53030;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-strengths {
+    background: #f0fff4;
+    border-left-color: #38a169;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-strengths .mod_redaction-dash-summary-head {
+    border-bottom-color: rgba(56, 161, 105, 0.2);
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-strengths .mod_redaction-dash-summary-title {
+    color: #276749;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-recommendations {
+    background: #ebf8ff;
+    border-left-color: #3182ce;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-recommendations .mod_redaction-dash-summary-head {
+    border-bottom-color: rgba(49, 130, 206, 0.2);
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-recommendations .mod_redaction-dash-summary-title {
+    color: #2c5282;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-list {
+    font-size: 13px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-summary-icon {
+    font-size: 11px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-observation {
+    background: #f7fafc;
+    font-size: 13px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-meta {
+    font-size: 12px;
+}
+
+.mod_redaction-dashboard .mod_redaction-dash-no-summary {
+    font-size: 14px;
 }

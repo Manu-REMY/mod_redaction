@@ -7,7 +7,7 @@ Plugin Moodle `mod_redaction` - Module d'activité de rédaction avec évaluatio
 - **Compatibilité** : Moodle 4.5+ (requires 2024100700)
 - **PHP minimum** : 8.1
 - **Maturité** : MATURITY_BETA
-- **Dépôt** : https://github.com/music-practice-tools/moodle-mod_redaction
+- **Dépôt** : https://github.com/Manu-REMY/mod_redaction
 - **JIRA** : https://moodle.atlassian.net/browse/CONTRIB-10280
 
 ## Commandes utiles
@@ -20,7 +20,7 @@ php -l redaction/fichier.php
 grunt amd --root=/mod/redaction
 
 # Créer le ZIP de distribution
-cd /Users/remyemmanuel/Documents/Claude\ code/mod_redaction && zip -r redaction.zip redaction/ -x "redaction/.git/*" "redaction/tests/cli/*" "redaction/tests/pure/*" "redaction/tests/js/*"
+cd "/Volumes/DONNEES/Claude code/mod_redaction" && zip -r redaction.zip redaction/ -x "redaction/.git/*" "redaction/tests/cli/*" "redaction/tests/pure/*" "redaction/tests/js/*" "*.DS_Store" "*/error_log"
 ```
 
 ---
@@ -114,7 +114,7 @@ $functions = [
 ### 5. Bug Tracker public
 
 - Le dépôt GitHub du plugin DOIT être public
-- URL : https://github.com/music-practice-tools/moodle-mod_redaction
+- URL : https://github.com/Manu-REMY/mod_redaction
 - Les issues doivent être activées pour que les utilisateurs puissent signaler des bugs
 
 ### 6. Fichier de langue anglais comme référence

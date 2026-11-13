@@ -142,12 +142,11 @@ if (!$islocked) {
     $editor = editors_get_preferred_editor($consignes->consignesformat ?? FORMAT_HTML);
     $editor->set_text($consignes->consignes_editor['text'] ?? '');
     $editor->use_editor('consignes_editor_text', $editoroptions, ['context' => $context]);
-    echo '<textarea id="consignes_editor_text"
-                    name="consignes_editor[text]"
-                    rows="15"
-                    style="width: 100%;">' . s($consignes->consignes_editor['text'] ?? '') . '</textarea>';
-    echo '<input type="hidden" name="consignes_editor[format]" value="' . ($consignes->consignesformat ?? FORMAT_HTML) . '">';
-    echo '<input type="hidden" name="consignes_editor[itemid]" value="' . ($consignes->consignes_editor['itemid'] ?? 0) . '">';
+    echo $OUTPUT->render_from_template('mod_redaction/editor_field', [
+        'id' => 'consignes_editor_text', 'name' => 'consignes_editor', 'rows' => 15,
+        'text' => $consignes->consignes_editor['text'] ?? '',
+        'format' => $consignes->consignesformat ?? FORMAT_HTML, 'itemid' => $consignes->consignes_editor['itemid'] ?? 0,
+    ]);
     $editorhtml = ob_get_clean();
 }
 

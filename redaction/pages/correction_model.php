@@ -134,12 +134,11 @@ ob_start();
 $editor = editors_get_preferred_editor($correction->modele_reponseformat ?? FORMAT_HTML);
 $editor->set_text($correction->modele_reponse_editor['text'] ?? '');
 $editor->use_editor('modele_reponse_editor_text', $editoroptions, ['context' => $context]);
-echo '<textarea id="modele_reponse_editor_text"
-                name="modele_reponse_editor[text]"
-                rows="15"
-                style="width: 100%;">' . s($correction->modele_reponse_editor['text'] ?? '') . '</textarea>';
-echo '<input type="hidden" name="modele_reponse_editor[format]" value="' . ($correction->modele_reponseformat ?? FORMAT_HTML) . '">';
-echo '<input type="hidden" name="modele_reponse_editor[itemid]" value="' . ($correction->modele_reponse_editor['itemid'] ?? 0) . '">';
+echo $OUTPUT->render_from_template('mod_redaction/editor_field', [
+    'id' => 'modele_reponse_editor_text', 'name' => 'modele_reponse_editor', 'rows' => 15,
+    'text' => $correction->modele_reponse_editor['text'] ?? '',
+    'format' => $correction->modele_reponseformat ?? FORMAT_HTML, 'itemid' => $correction->modele_reponse_editor['itemid'] ?? 0,
+]);
 $editorhtml = ob_get_clean();
 
 // Build template data.

@@ -50,7 +50,7 @@
     </h5>
 
     {{^hasattempts}}
-        <p class="text-muted" style="font-size: 13px; font-style: italic; margin: 0;">
+        <p class="text-muted mod_redaction-training-timeline-empty">
             {{#str}}training_timeline_no_data, redaction{{/str}}
         </p>
     {{/hasattempts}}
@@ -113,7 +113,6 @@
                 {{! Deadline marker }}
                 {{#hasdeadline}}
                 <div class="mod_redaction-timeline-deadline-marker"
-                     style="left: 100%"
                      title="Deadline: {{deadlinedatestr}}">
                     <span class="mod_redaction-deadline-line"></span>
                 </div>
@@ -129,7 +128,7 @@
         </div>
 
         {{! Detail panel - populated by JS on marker selection }}
-        <div class="mod_redaction-timeline-detail-panel" id="timeline-detail" style="display:none;">
+        <div class="mod_redaction-timeline-detail-panel mod_redaction-hidden" id="timeline-detail">
             <div class="mod_redaction-detail-header">
                 <span class="mod_redaction-detail-attempt-num" id="detail-attempt-num"></span>
                 <span class="mod_redaction-detail-date" id="detail-date"></span>
@@ -144,7 +143,7 @@
             {{#attempts}}
             <div class="mod_redaction-timeline-fallback-item">
                 <span>{{#str}}training_timeline_attempt, redaction, {{num}}{{/str}} - {{dateshort}}</span>
-                <span class="mod_redaction-ai-level-{{gradelevel}}" style="font-weight: 600; padding: 2px 8px; border-radius: 10px; font-size: 12px;">{{gradestr}}</span>
+                <span class="mod_redaction-timeline-fallback-grade mod_redaction-ai-level-{{gradelevel}}">{{gradestr}}</span>
             </div>
             {{/attempts}}
         </div>

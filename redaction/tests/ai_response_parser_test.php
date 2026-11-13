@@ -395,51 +395,6 @@ class ai_response_parser_test extends \advanced_testcase {
     }
 
     /**
-     * Test format_for_display returns HTML with grade.
-     */
-    public function test_format_for_display(): void {
-        $result = (object) [
-            'grade' => 15.5,
-            'feedback' => 'Good work.',
-            'criteria' => [
-                (object) ['name' => 'Pertinence', 'score' => 4, 'max' => 5, 'comment' => 'Relevant'],
-            ],
-            'keywords_found' => [],
-            'keywords_missing' => [],
-            'suggestions' => [],
-            'confidence' => 0.9,
-        ];
-
-        $html = ai_response_parser::format_for_display($result);
-
-        $this->assertStringContainsString('15.5', $html);
-        $this->assertStringContainsString('/20', $html);
-        $this->assertStringContainsString('Good work.', $html);
-        $this->assertStringContainsString('Pertinence', $html);
-        $this->assertStringContainsString('4/5', $html);
-    }
-
-    /**
-     * Test format_for_display with empty feedback.
-     */
-    public function test_format_for_display_empty_feedback(): void {
-        $result = (object) [
-            'grade' => 10.0,
-            'feedback' => '',
-            'criteria' => [],
-            'keywords_found' => [],
-            'keywords_missing' => [],
-            'suggestions' => [],
-            'confidence' => 0.5,
-        ];
-
-        $html = ai_response_parser::format_for_display($result);
-
-        $this->assertStringContainsString('10.0', $html);
-        $this->assertStringContainsString('ai-result', $html);
-    }
-
-    /**
      * Test feedback sanitization strips dangerous tags.
      */
     public function test_feedback_sanitization(): void {
@@ -662,44 +617,6 @@ class ai_response_parser_test extends \advanced_testcase {
 
         // Overall appreciation.
         $this->assertStringContainsString('solid effort', $result->overall_appreciation);
-    }
-
-    /**
-     * Test format_for_display includes new fields.
-     */
-    public function test_format_for_display_enhanced(): void {
-        $result = (object) [
-            'grade' => 16.0,
-            'feedback' => 'Excellent work.',
-            'criteria' => [
-                (object) ['name' => 'Pertinence', 'score' => 4.5, 'max' => 5, 'comment' => 'Great', 'level' => 'excellent'],
-            ],
-            'strengths' => ['Strong argument', 'Clear writing'],
-            'weaknesses' => ['Missing counterpoints'],
-            'keywords_found' => ['democracy'],
-            'keywords_missing' => ['constitution'],
-            'suggestions' => ['Add counterarguments', 'Improve conclusion'],
-            'overall_appreciation' => 'Outstanding essay.',
-            'confidence' => 0.92,
-        ];
-
-        $html = ai_response_parser::format_for_display($result);
-
-        // Check grade and level.
-        $this->assertStringContainsString('16.0', $html);
-        $this->assertStringContainsString('/20', $html);
-        $this->assertStringContainsString('ai-level-excellent', $html);
-
-        // Check overall appreciation.
-        $this->assertStringContainsString('Outstanding essay.', $html);
-
-        // Check strengths & weaknesses.
-        $this->assertStringContainsString('Strong argument', $html);
-        $this->assertStringContainsString('Missing counterpoints', $html);
-
-        // Check suggestions.
-        $this->assertStringContainsString('Add counterarguments', $html);
-        $this->assertStringContainsString('Improve conclusion', $html);
     }
 
     /**

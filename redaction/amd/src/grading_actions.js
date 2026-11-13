@@ -46,8 +46,6 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
             window.toggleSection = this.toggleSection;
             window.toggleAttempt = this.toggleAttempt;
             window.showHistory = this.showHistory;
-            window.bulkEvaluate = this.bulkEvaluate;
-            window.bulkApplyGrade = this.bulkApplyGrade;
 
             // Keyboard support for collapsible attempt headers.
             // Idempotent: only attach the listener on the first init() call so
@@ -74,21 +72,17 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
                     if (data.success) {
                         location.reload();
                     } else {
-                        alert(data.message || 'Error');
+                        alert(data.message || config.strings.error);
                     }
                 },
-                fail: function(error) {
-                    console.error('Error:', error);
-                    alert(config.strings.connection_error);
-                }
+                fail: Notification.exception
             }]);
         },
 
         triggerAIEvaluation: function(submissionId) {
             var btn = event.target;
             btn.disabled = true;
-            btn.innerHTML = '<span class="mod_redaction-spinner" ' +
-                'style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
+            btn.innerHTML = '<span class="mod_redaction-spinner mod_redaction-spinner-inline"></span> ' +
                 config.strings.evaluating;
 
             Ajax.call([{
@@ -101,7 +95,7 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
                     if (data.success) {
                         setTimeout(function() { location.reload(); }, 2000);
                     } else {
-                        alert(data.message || 'Error');
+                        alert(data.message || config.strings.error);
                         btn.disabled = false;
                         btn.innerHTML = config.strings.evaluate_with_ai;
                     }
@@ -124,13 +118,10 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
                     if (data.success) {
                         location.reload();
                     } else {
-                        alert(data.message || 'Error');
+                        alert(data.message || config.strings.error);
                     }
                 },
-                fail: function(error) {
-                    console.error('Error:', error);
-                    alert(config.strings.connection_error);
-                }
+                fail: Notification.exception
             }]);
         },
 
@@ -156,124 +147,6 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
             headerElement.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         },
 
-        bulkEvaluate: function() {
-            // Get all submission IDs from the page.
-            var submissionIds = [];
-            document.querySelectorAll('[data-submissionid]').forEach(function(el) {
-                submissionIds.push(parseInt(el.dataset.submissionid));
-            });
-
-            // Fallback: collect from select options.
-            if (submissionIds.length === 0) {
-                var selector = document.querySelector('.mod_redaction-item-selector');
-                if (selector) {
-                    Array.from(selector.options).forEach(function(opt) {
-                        var url = opt.value;
-                        var match = url.match(/itemid=(\d+)/);
-                        if (match) {
-                            submissionIds.push(parseInt(match[1]));
-                        }
-                    });
-                }
-            }
-
-            if (submissionIds.length === 0) {
-                alert('No submissions found.');
-                return;
-            }
-
-            var btn = event ? event.target : null;
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="mod_redaction-spinner" ' +
-                    'style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
-                    (config.strings.bulk_evaluating || 'Evaluating all...');
-            }
-
-            Ajax.call([{
-                methodname: 'mod_redaction_bulk_evaluate',
-                args: {
-                    cmid: config.cmid,
-                    submissionids: submissionIds
-                },
-                done: function(data) {
-                    if (data.success) {
-                        var msg = (config.strings.bulk_evaluate_success || '{queued} queued, {skipped} skipped')
-                            .replace('{queued}', data.queued)
-                            .replace('{skipped}', data.skipped);
-                        alert(msg);
-                        location.reload();
-                    } else {
-                        alert((data.errors && data.errors[0]) || 'Error');
-                    }
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = (config.strings.bulk_evaluate || 'Evaluate all');
-                    }
-                },
-                fail: function(error) {
-                    Notification.exception(error);
-                    if (btn) {
-                        btn.disabled = false;
-                    }
-                }
-            }]);
-        },
-
-        bulkApplyGrade: function() {
-            // Get all completed evaluation IDs.
-            var evaluationIds = [];
-            document.querySelectorAll('[data-evaluationid]').forEach(function(el) {
-                evaluationIds.push(parseInt(el.dataset.evaluationid));
-            });
-
-            if (evaluationIds.length === 0) {
-                alert(config.strings.no_evaluations || 'No evaluations to apply.');
-                return;
-            }
-
-            if (!confirm(config.strings.bulk_apply_confirm || 'Apply all AI grades?')) {
-                return;
-            }
-
-            var btn = event ? event.target : null;
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="mod_redaction-spinner" ' +
-                    'style="display:inline-block;width:16px;height:16px;margin-right:5px;"></span> ' +
-                    (config.strings.bulk_applying || 'Applying...');
-            }
-
-            Ajax.call([{
-                methodname: 'mod_redaction_bulk_apply_grade',
-                args: {
-                    cmid: config.cmid,
-                    evaluationids: evaluationIds
-                },
-                done: function(data) {
-                    if (data.success) {
-                        var msg = (config.strings.bulk_apply_success || '{applied} applied, {skipped} skipped')
-                            .replace('{applied}', data.applied)
-                            .replace('{skipped}', data.skipped);
-                        alert(msg);
-                        location.reload();
-                    } else {
-                        alert((data.errors && data.errors[0]) || 'Error');
-                    }
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = (config.strings.bulk_apply || 'Apply all grades');
-                    }
-                },
-                fail: function(error) {
-                    Notification.exception(error);
-                    if (btn) {
-                        btn.disabled = false;
-                    }
-                }
-            }]);
-        },
-
         showHistory: function(submissionId) {
             var modal = document.getElementById('history-modal');
             var content = document.getElementById('history-content');
@@ -297,14 +170,13 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
                     if (data.success && data.history) {
                         var html = '<div class="mod_redaction-history-list">';
                         data.history.forEach(function(version) {
-                            html += '<div class="mod_redaction-history-item" ' +
-                                'style="padding: 15px; border-bottom: 1px solid #eee;">' +
-                                '<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">' +
-                                '<strong>Version ' + version.version_number + '</strong>' +
-                                '<span style="color: #666; font-size: 13px;">' + version.date +
+                            html += '<div class="mod_redaction-history-item">' +
+                                '<div class="mod_redaction-history-item-head">' +
+                                '<strong>' + config.strings.version.replace('{$a}', version.version_number) + '</strong>' +
+                                '<span class="mod_redaction-history-item-meta">' + version.date +
                                 ' - ' + version.saved_by + '</span>' +
                                 '</div>' +
-                                '<div style="font-size: 13px; color: #666;">' +
+                                '<div class="mod_redaction-history-item-meta">' +
                                 version.word_count + ' ' + config.strings.words + ' | ' +
                                 version.char_count + ' ' + config.strings.characters +
                                 '</div></div>';
@@ -316,8 +188,8 @@ define(['jquery', 'core/ajax', 'core/notification'], function($, Ajax, Notificat
                     }
                 },
                 fail: function(error) {
-                    console.error('Error:', error);
                     content.innerHTML = '<p class="text-danger">' + config.strings.loading_error + '</p>';
+                    Notification.exception(error);
                 }
             }]);
         }

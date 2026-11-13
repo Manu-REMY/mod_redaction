@@ -95,7 +95,7 @@
         {{#hascriteriadata}}
             <div class="mod_redaction-ai-evaluation-detail">
                 <div class="mod_redaction-collapsible-header" onclick="toggleCollapsible(this)">
-                    <h4 style="margin: 0;">&#x1F4CA; {{#str}}ai_criteria_details, mod_redaction{{/str}}</h4>
+                    <h4 class="mod_redaction-collapsible-title">&#x1F4CA; {{#str}}ai_criteria_details, mod_redaction{{/str}}</h4>
                     <span class="mod_redaction-collapse-icon">&#x25BC;</span>
                 </div>
                 <div class="mod_redaction-collapsible-content">
@@ -106,7 +106,7 @@
                                     <span class="mod_redaction-criterion-name">{{name}}</span>
                                     <span class="mod_redaction-criterion-badge mod_redaction-criterion-badge-{{levelclass}}">
                                         {{scoreformatted}}/{{maxformatted}}
-                                        <span style="font-size: 11px; opacity: 0.9;">({{leveltext}})</span>
+                                        <span class="mod_redaction-criterion-badge-level">({{leveltext}})</span>
                                     </span>
                                 </div>
                                 <div class="mod_redaction-criterion-progress-bar">
@@ -192,12 +192,12 @@
         {{! Training History }}
         <div class="mod_redaction-training-history">
             <div class="mod_redaction-collapsible-header" onclick="toggleCollapsible(this)">
-                <h4 style="margin: 0;">&#x1F4CB; {{#str}}training_history, mod_redaction{{/str}} ({{trainingevalcount}})</h4>
+                <h4 class="mod_redaction-collapsible-title">&#x1F4CB; {{#str}}training_history, mod_redaction{{/str}} ({{trainingevalcount}})</h4>
                 <span class="mod_redaction-collapse-icon">&#x25BC;</span>
             </div>
             <div class="mod_redaction-collapsible-content">
                 {{^trainingevals}}
-                    <p class="text-muted" style="padding: 12px; font-size: 13px; font-style: italic;">
+                    <p class="text-muted mod_redaction-training-history-empty">
                         {{#str}}training_no_attempts, mod_redaction{{/str}}
                     </p>
                 {{/trainingevals}}
@@ -274,7 +274,7 @@
             <div class="mod_redaction-form-group">
                 <label for="contenu_editor_text">{{#str}}redaction_content, mod_redaction{{/str}}</label>
                 {{#issubmitted}}
-                    <div class="mod_redaction-editor-container" style="padding: 15px; background: #f8f9fa;">
+                    <div class="mod_redaction-editor-container mod_redaction-editor-container-locked">
                         {{{submittedcontent}}}
                     </div>
                 {{/issubmitted}}

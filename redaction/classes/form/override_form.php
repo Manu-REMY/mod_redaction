@@ -79,6 +79,13 @@ class override_form extends \moodleform {
         }
     }
 
+    /**
+     * Validates the override: a deadline is required, then the user or group it applies to.
+     *
+     * @param array $data Submitted data
+     * @param array $files Submitted files
+     * @return array Errors by field name
+     */
     public function validation($data, $files) {
         global $DB;
         $errors = parent::validation($data, $files);

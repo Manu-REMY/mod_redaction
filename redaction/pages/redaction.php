@@ -252,8 +252,8 @@ echo html_writer::link($homeurl, '← ' . get_string('back_to_home', 'redaction'
 if ($redaction->group_submission && $usergroup > 0) {
     $groupinfo = $DB->get_record('groups', ['id' => $usergroup]);
     if ($groupinfo) {
-        echo '<div class="alert alert-info mb-3">' . get_string('group_label', 'redaction') .
-             ' <strong>' . s($groupinfo->name) . '</strong></div>';
+        echo html_writer::div(get_string('group_label', 'redaction') . ' ' . html_writer::tag('strong', s($groupinfo->name)),
+            'alert alert-info mb-3');
     }
 }
 
@@ -264,12 +264,11 @@ if (!$issubmitted) {
     $editor = editors_get_preferred_editor($submission->contenuformat ?? FORMAT_HTML);
     $editor->set_text($submission->contenu_editor['text'] ?? '');
     $editor->use_editor('contenu_editor_text', $editoroptions, ['context' => $context]);
-    echo '<textarea id="contenu_editor_text"
-                    name="contenu_editor[text]"
-                    rows="20"
-                    style="width: 100%;">' . s($submission->contenu_editor['text'] ?? '') . '</textarea>';
-    echo '<input type="hidden" name="contenu_editor[format]" value="' . ($submission->contenuformat ?? FORMAT_HTML) . '">';
-    echo '<input type="hidden" name="contenu_editor[itemid]" value="' . ($submission->contenu_editor['itemid'] ?? 0) . '">';
+    echo $OUTPUT->render_from_template('mod_redaction/editor_field', [
+        'id' => 'contenu_editor_text', 'name' => 'contenu_editor', 'rows' => 20,
+        'text' => $submission->contenu_editor['text'] ?? '',
+        'format' => $submission->contenuformat ?? FORMAT_HTML, 'itemid' => $submission->contenu_editor['itemid'] ?? 0,
+    ]);
     $editorhtml = ob_get_clean();
 }
 

@@ -44,6 +44,15 @@ class grading_overview_data implements renderable, templatable {
     /** @var int */
     protected $maxattempts;
 
+    /**
+     * Constructor.
+     *
+     * @param int $cmid Course module id
+     * @param int $redactionid Activity id
+     * @param int $courseid Course id
+     * @param int $groupid Group to show, 0 for all
+     * @param int $maxattempts Number of training attempts allowed
+     */
     public function __construct(int $cmid, int $redactionid, int $courseid, int $groupid, int $maxattempts) {
         $this->cmid = $cmid;
         $this->redactionid = $redactionid;
@@ -52,6 +61,12 @@ class grading_overview_data implements renderable, templatable {
         $this->maxattempts = $maxattempts;
     }
 
+    /**
+     * Data of the progression overview.
+     *
+     * @param renderer_base $output Renderer
+     * @return array Template context
+     */
     public function export_for_template(renderer_base $output): array {
         global $DB;
 

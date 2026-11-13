@@ -4,3 +4,7 @@ PLAN_PLUGIN_REDACTION.md
 # Real credentials live in TESTING.local.md, never committed.
 TESTING.local.md
 .claude/settings.local.json
+
+# macOS and server-side PHP logs.
+.DS_Store
+error_log

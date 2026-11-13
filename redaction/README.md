@@ -74,7 +74,7 @@ L'évaluation IA génère :
 ```bash
 # Via Git
 cd /path/to/moodle/mod
-git clone https://forge.apps.education.fr/moodle-ai-plugins/plugin-redaction.git redaction
+git clone https://github.com/Manu-REMY/mod_redaction.git redaction
 ```
 
 ## Configuration
@@ -336,3 +336,7 @@ Copyright 2026
 - Historique des versions
 - Interface de notation complète
 - Intégration avec le carnet de notes Moodle
+
+## Signaler un bug
+
+Les bugs et les demandes se signalent dans les issues du dépôt : https://github.com/Manu-REMY/mod_redaction/issues
