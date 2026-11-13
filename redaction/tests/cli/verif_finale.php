@@ -616,7 +616,7 @@ try {
         count($sim->appels) === 2 && (float) ($d94[0]['note'] ?? -1) === 9.0);
 
     // Request 19: an attempt made before 2.7.0 has no fingerprint. A final on the text it graded takes it over all the same,
-    // language included (Théo, 13/11: 12/20 at his attempt, 11.8 once handed in without a change).
+    // language included (a student, 13/11: 12/20 at his attempt, 11.8 once handed in without a change).
     $sansempreinte = function (bool $modifieapres) use ($creeractivite, $DB, $sim, $b, $now): array {
         $r = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 0, 'training_max_attempts' => 5,
             'sujets_enabled' => 1, 'sujets_par_groupe' => 1, 'sujets_seuil' => 12]);

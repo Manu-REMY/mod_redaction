@@ -475,7 +475,7 @@ class ai_evaluator {
                         continue;
                     }
                     // D-050: only spelling, accents or punctuation changed since an earlier evaluation: its content grade stays,
-                    // no call for this subject (Quentin, 12/11: 12 then 10 for "a" corrected to "à"). The language is graded again.
+                    // no call for this subject (a student, 12/11: 12 then 10 for "a" corrected to "à"). The language is graded again.
                     $empreintefond = notes_sujets::empreinte_fond($texte, [
                         'corrige' => notes_sujets::texte_reponse($sujet->corrige, notes_sujets::FORMAT_TEXTE),
                         'lexique' => (string) ($sujet->lexique ?? ''), 'contenu' => (string) $sujet->contenu,

@@ -236,7 +236,7 @@ test('plafond : 18 sans E2 ne valide pas et dit ce qui manque', function() {
 // Language part: total grade, scale of a subject, validation, attempts that count.
 test('total ROB4 fond 18 sans langue', fn() => notes_sujets::note_totale([18.0, 18.0], 0.0, 2.0) === 16.2);
 test('total fond 17 + 0,67, arrondi au dixième', fn() => notes_sujets::note_totale([17.0, 17.0], 0.67, 2.0) === 16.0);
-test('Théo : 11,97 affiché 12 compte 12 (seuil 12 atteint)', fn() => notes_sujets::note_totale([12.19, 12.19], 1.0, 2.0) === 12.0);
+test('Un élève : 11,97 affiché 12 compte 12 (seuil 12 atteint)', fn() => notes_sujets::note_totale([12.19, 12.19], 1.0, 2.0) === 12.0);
 test('total fond incomplet + 2', fn() => notes_sujets::note_totale([14.0, 14.0], 2.0, 2.0) === 14.6);
 test('total sans langue = moyenne', fn() => notes_sujets::note_totale([14.0, 18.0], null, 2.0) === 16.0);
 test('total note manquante', fn() => notes_sujets::note_totale([14.0, null], 1.0, 2.0) === null);
