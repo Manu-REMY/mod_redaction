@@ -675,6 +675,32 @@ try {
     $check('time limits: content call 90 s, language call 120 s (' . implode(', ', $chrono->delais) . ')',
         $chrono->delais === [90, 120] && in_array($DB->get_field('redaction_ai_evaluations', 'status', ['id' => $e12]), ['completed', 'applied'], true));
 
+    // An unreadable answer is asked for once more (13/11: the language JSON came back with one brace too many, or one
+    // missing); two unreadable answers fail the correction, as before.
+    $illisible = function (array $reponses) use ($creeractivite, $DB, $sim, $b, $now): array {
+        $r = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 0, 'training_max_attempts' => 5,
+            'sujets_enabled' => 1, 'sujets_par_groupe' => 1, 'sujets_seuil' => 12]);
+        $DB->insert_record('redaction_sujet', (object) [
+            'redactionid' => $r->id, 'sortorder' => 1, 'titre' => 'Profil', 'contenu' => 'Justifie le profil de ta poutre',
+            'contenuformat' => FORMAT_HTML, 'corrige' => 'E1 : la semelle. E2 : la hauteur.', 'timecreated' => $now, 'timemodified' => $now,
+        ]);
+        $s = redaction_get_or_create_submission($r, 0, $b);
+        repondre($s, \mod_redaction\sujets::de_soumission($r, $s), 'Ma poutre est haute et sa semelle est large.', FORMAT_PLAIN);
+        $sim->appels = [];
+        $sim->reponses = $reponses;
+        $e = passer($r, $s, $b, false);
+        return [$DB->get_record('redaction_ai_evaluations', ['id' => $e]), count($sim->appels)];
+    };
+    $languecassee = "```json\n" . langue_ia(['S', 'S', 'S', 'S']) . "\n}\n```";
+    [$ev20, $appels20] = $illisible([ia3(12), $languecassee, langue_ia(['S', 'S', 'S', 'S'])]);
+    $check("unreadable language answer: asked once more, graded ({$ev20->status}, {$appels20} calls)",
+        in_array($ev20->status, ['completed', 'applied'], true) && $appels20 === 3 && $ev20->langue_json !== null);
+    [$ev21, $appels21] = $illisible(['pas du JSON', ia3(12), langue_ia(['S', 'S', 'S', 'S'])]);
+    $check("unreadable content answer: asked once more, graded ({$ev21->status}, {$appels21} calls)",
+        in_array($ev21->status, ['completed', 'applied'], true) && $appels21 === 3);
+    [$ev22, $appels22] = $illisible([ia3(12), $languecassee, $languecassee]);
+    $check("two unreadable answers: the correction fails ({$ev22->status}, {$appels22} calls)", $ev22->status === 'failed' && $appels22 === 3);
+
     // Request 19: an attempt made before 2.7.0 has no fingerprint. A final on the text it graded takes it over all the same,
     // language included (a student, 13/11: 12/20 at his attempt, 11.8 once handed in without a change).
     $sansempreinte = function (bool $modifieapres) use ($creeractivite, $DB, $sim, $b, $now): array {

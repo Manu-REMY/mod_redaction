@@ -324,6 +324,37 @@ class ai_evaluator {
     }
 
     /**
+     * Calls the AI and reads its answer, asking once more when the answer cannot be read (13/11: the language JSON came
+     * back with a brace too many or missing). A second unreadable answer is an error: the correction fails.
+     *
+     * @param provider_interface $provider AI provider
+     * @param array $prompts system and user prompts
+     * @param string $model Model
+     * @param int $maxtokens Maximum tokens of the answer
+     * @param callable $lire Reads the answer, throws \UnexpectedValueException when it cannot
+     * @param array $bruts Raw answers, each one added
+     * @param int $prompttokens Prompt tokens, added up
+     * @param int $completiontokens Completion tokens, added up
+     * @return array The answer read
+     */
+    protected static function appel_lisible(provider_interface $provider, array $prompts, string $model, int $maxtokens,
+            callable $lire, array &$bruts, int &$prompttokens, int &$completiontokens): array {
+        for ($essai = 1;; $essai++) {
+            $response = $provider->evaluate($prompts['system'], $prompts['user'], $model, $maxtokens);
+            $bruts[] = $response['content'];
+            $prompttokens += (int) $response['prompt_tokens'];
+            $completiontokens += (int) $response['completion_tokens'];
+            try {
+                return $lire((string) $response['content']);
+            } catch (\UnexpectedValueException $e) {
+                if ($essai >= 2) {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    /**
      * Graded attempt on the very answers the copy holds now, if any: the AI never corrects an unchanged text again.
      *
      * An attempt asked for on such a text is refused, a final version takes its grade (Emmanuel, 12/11 and 13/11).
@@ -504,12 +535,8 @@ class ai_evaluator {
                     $reponse = $reponses[$sujet->id];
                     $prompts = ai_prompt_builder::build_sujet_prompt($sujet, $reponse->contenu, (int) $reponse->contenuformat,
                         (string) ($redaction->sujets_theme ?? ''));
-                    $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::MAX_TOKENS);
-                    $bruts[] = $response['content'];
-                    $prompttokens += $response['prompt_tokens'];
-                    $completiontokens += $response['completion_tokens'];
-
-                    $lu = notes_sujets::lire_reponse_ia($response['content']);
+                    $lu = self::appel_lisible($provider, $prompts, $evaluation->model, self::MAX_TOKENS,
+                        fn(string $contenu) => notes_sujets::lire_reponse_ia($contenu), $bruts, $prompttokens, $completiontokens);
                     // The words of the discipline expected belong to the answer key: the feedback never gives them either.
                     // The statement of the subject is shown to the student: its words may be used.
                     $retour = notes_sujets::retour_final($lu, (float) $redaction->sujets_seuil, self::phrases_commentaire($redaction),
@@ -532,12 +559,9 @@ class ai_evaluator {
                     if ($provider instanceof \mod_redaction\ai_provider\base_provider) {
                         $provider->limiter_attente(self::LANGUE_DELAI_APPEL, self::SUJET_REPRISES);
                     }
-                    $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::LANGUE_MAX_TOKENS);
-                    $bruts[] = $response['content'];
-                    $prompttokens += $response['prompt_tokens'];
-                    $completiontokens += $response['completion_tokens'];
-
-                    $langue = langue::verifier(langue::lire_reponse_ia($response['content']), implode("\n", $textes));
+                    $lulangue = self::appel_lisible($provider, $prompts, $evaluation->model, self::LANGUE_MAX_TOKENS,
+                        fn(string $contenu) => langue::lire_reponse_ia($contenu), $bruts, $prompttokens, $completiontokens);
+                    $langue = langue::verifier($lulangue, implode("\n", $textes));
                     $langue = self::langue_filtree($langue, implode("\n", $lexiques) . "\n"
                         . implode("\n", array_map(fn($s) => notes_sujets::texte_reponse($s->corrige, notes_sujets::FORMAT_TEXTE), $sujets)),
                         implode("\n", $textes) . "\n" . implode("\n", $titres));
