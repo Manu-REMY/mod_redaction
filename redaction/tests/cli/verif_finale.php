@@ -110,6 +110,47 @@ class fournisseur_simule implements provider_interface {
     }
 }
 
+/** Real provider class (so the evaluator sets its time limits) that records the time limit of each call. */
+class fournisseur_chrono extends \mod_redaction\ai_provider\base_provider {
+    /** @var fournisseur_simule Gives the answers. */
+    public fournisseur_simule $simule;
+    /** @var int[] Time limit of each call, in seconds. */
+    public array $delais = [];
+
+    public function evaluate(string $systemprompt, string $userprompt, string $model, int $maxtokens): array {
+        $this->delais[] = $this->timeout;
+        return $this->simule->evaluate($systemprompt, $userprompt, $model, $maxtokens);
+    }
+
+    public function get_name(): string {
+        return 'chrono';
+    }
+
+    public function get_models(): array {
+        return ['simule'];
+    }
+
+    public function get_default_model(): string {
+        return 'simule';
+    }
+
+    protected function get_endpoint(): string {
+        return '';
+    }
+
+    protected function build_headers(): array {
+        return [];
+    }
+
+    protected function build_body(string $systemprompt, string $userprompt, string $model, int $maxtokens): array {
+        return [];
+    }
+
+    protected function parse_response(array $response): array {
+        return [];
+    }
+}
+
 $failures = 0;
 $check = function (string $label, bool $ok) use (&$failures): void {
     echo ($ok ? 'PASS' : 'FAIL') . '  ' . $label . "\n";
@@ -614,6 +655,25 @@ try {
     $d94 = json_decode((string) $DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $e94]), true);
     $check('D-050: answer key changed, content graded again (' . count($sim->appels) . ' calls)',
         count($sim->appels) === 2 && (float) ($d94[0]['note'] ?? -1) === 9.0);
+
+    // The language answer is long: its call may take up to 120 s, the content one 30 s (13/11, Albert slow: one attempt
+    // out of two failed after the content was graded).
+    $chrono = new fournisseur_chrono('cle');
+    $chrono->simule = $sim;
+    ai_evaluator::$fournisseurtest = $chrono;
+    $r12 = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 0, 'training_max_attempts' => 5,
+        'sujets_enabled' => 1, 'sujets_par_groupe' => 1, 'sujets_seuil' => 12]);
+    $DB->insert_record('redaction_sujet', (object) [
+        'redactionid' => $r12->id, 'sortorder' => 1, 'titre' => 'Profil', 'contenu' => 'Justifie le profil de ta poutre',
+        'contenuformat' => FORMAT_HTML, 'corrige' => 'E1 : la semelle. E2 : la hauteur.', 'timecreated' => $now, 'timemodified' => $now,
+    ]);
+    $s12 = redaction_get_or_create_submission($r12, 0, $b);
+    repondre($s12, \mod_redaction\sujets::de_soumission($r12, $s12), 'Ma poutre est haute et sa semelle est large.', FORMAT_PLAIN);
+    $sim->reponses = [ia3(12), langue_ia(['S', 'S', 'S', 'S'])];
+    $e12 = passer($r12, $s12, $b, false);
+    ai_evaluator::$fournisseurtest = $sim;
+    $check('time limits: content call 30 s, language call 120 s (' . implode(', ', $chrono->delais) . ')',
+        $chrono->delais === [30, 120] && in_array($DB->get_field('redaction_ai_evaluations', 'status', ['id' => $e12]), ['completed', 'applied'], true));
 
     // Request 19: an attempt made before 2.7.0 has no fingerprint. A final on the text it graded takes it over all the same,
     // language included (a student, 13/11: 12/20 at his attempt, 11.8 once handed in without a change).

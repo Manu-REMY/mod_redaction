@@ -59,6 +59,12 @@ class ai_evaluator {
     /** @var int Retries of one call in the assigned subjects mode. */
     const SUJET_REPRISES = 1;
 
+    /**
+     * @var int Timeout of the language call, in seconds: its answer lists every mistake, so it takes much longer to write
+     * (13/11: 30 s made one attempt out of two fail once the content was graded).
+     */
+    const LANGUE_DELAI_APPEL = 120;
+
     /** @var int Default rate limit: max evaluations per hour per activity */
     const DEFAULT_RATE_LIMIT = 60;
 
@@ -520,6 +526,9 @@ class ai_evaluator {
                 $evaluation->langue_json = null;
                 if ($p > 0 && $textes) {
                     $prompts = ai_prompt_builder::build_langue_prompt($titres, $textes, $lexiques);
+                    if ($provider instanceof \mod_redaction\ai_provider\base_provider) {
+                        $provider->limiter_attente(self::LANGUE_DELAI_APPEL, self::SUJET_REPRISES);
+                    }
                     $response = $provider->evaluate($prompts['system'], $prompts['user'], $evaluation->model, self::LANGUE_MAX_TOKENS);
                     $bruts[] = $response['content'];
                     $prompttokens += $response['prompt_tokens'];
