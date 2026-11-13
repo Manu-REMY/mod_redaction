@@ -89,6 +89,12 @@ class submit_sujets extends sujets_base {
                     ];
                 }
 
+                // The AI never corrects an unchanged text again: no attempt counted (Emmanuel, 13/11).
+                if (\mod_redaction\ai_evaluator::essai_du_texte($redaction, $submission)) {
+                    $transaction->allow_commit();
+                    return ['success' => false, 'evaluationid' => 0, 'message' => get_string('sujets_texte_inchange', 'mod_redaction')];
+                }
+
                 // Count first, then queue and capture the members, all or nothing: a fast failure gives the
                 // attempt back after the commit, and the task only becomes visible with the commit.
                 $DB->execute(

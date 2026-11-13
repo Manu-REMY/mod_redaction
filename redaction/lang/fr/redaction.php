@@ -911,3 +911,4 @@ $string['sujets_carnet_echec'] = 'Le carnet de notes a refusé la note.';
 $string['apply_failed'] = 'La note n\'a pas pu être appliquée.';
 $string['sujets_statut_refuse'] = 'Dans le mode sujets attribués, l\'état d\'un rendu suit les corrections : il ne peut pas être changé à la main.';
 $string['sujets_verrou_correction'] = 'La correction est occupée, elle sera retentée.';
+$string['sujets_texte_inchange'] = 'Ton texte n\'a pas changé depuis son dernier retour : modifie-le avant d\'en demander un nouveau.';

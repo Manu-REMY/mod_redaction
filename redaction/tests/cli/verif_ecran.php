@@ -389,6 +389,15 @@ try {
     $check('validated: text stays editable while attempts remain', !$da['disabled'] && $da['restants'] === 3 && strpos($ha, 'readonly') === false);
     $enregistrer('5-valide', $ha);
 
+    // Nothing changed since that correction: the AI never corrects it again, no attempt counted (Emmanuel, 13/11).
+    $avant = (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sub->id]);
+    $evals = $DB->count_records('redaction_ai_evaluations', ['submissionid' => $sub->id]);
+    $r = $submit($a);
+    $check('unchanged text: attempt refused with the reason, nothing counted, nothing queued', is_array($r) && !$r['success']
+        && $r['message'] === get_string('sujets_texte_inchange', 'mod_redaction')
+        && (int) $DB->get_field('redaction_submission', 'training_count', ['id' => $sub->id]) === $avant
+        && $DB->count_records('redaction_ai_evaluations', ['submissionid' => $sub->id]) === $evals);
+
     // A member who joins after the best grade has no grade and sees no success.
     $late = user_create_user((object) [
         'username' => 'verifecrl' . $now, 'firstname' => 'EleveL', 'lastname' => 'TestL',

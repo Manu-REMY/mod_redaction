@@ -911,3 +911,4 @@ $string['sujets_carnet_echec'] = 'The gradebook refused the grade.';
 $string['apply_failed'] = 'The grade could not be applied.';
 $string['sujets_statut_refuse'] = 'In the assigned subjects mode the status of a submission follows the corrections: it cannot be set by hand.';
 $string['sujets_verrou_correction'] = 'The correction is busy, it will be tried again.';
+$string['sujets_texte_inchange'] = 'Your text has not changed since its last feedback: change it before asking for a new one.';

@@ -250,7 +250,9 @@ function corriger(stdClass $redaction, stdClass $submission, int $userid, bool $
         $DB->execute('UPDATE {redaction_submission} SET training_count = training_count + 1 WHERE id = ?', [$submission->id]);
     } else {
         // Each final here stands for a new text: no attempt is taken over (that rule has its own check in verif_finale.php).
+        // Answers saved after every attempt, as a new text is: an attempt without fingerprint is not taken over either (request 19).
         $DB->set_field('redaction_ai_evaluations', 'empreinte', null, ['submissionid' => $submission->id]);
+        $DB->set_field('redaction_sujet_reponse', 'timemodified', time() + 1, ['submissionid' => $submission->id]);
     }
     $id = ai_evaluator::queue_evaluation($redaction->id, $submission->id, (int) $submission->groupid, $userid, true, $finale);
     retirer_tache($id);

@@ -315,6 +315,75 @@ class ai_evaluator {
     }
 
     /**
+     * Graded attempt on the very answers the copy holds now, if any: the AI never corrects an unchanged text again.
+     *
+     * An attempt asked for on such a text is refused, a final version takes its grade (Emmanuel, 12/11 and 13/11).
+     *
+     * @param \stdClass $redaction Activity record.
+     * @param \stdClass $submission Submission record.
+     * @return \stdClass|null The attempt, the newest first; null when the text was never corrected as it is.
+     */
+    public static function essai_du_texte(\stdClass $redaction, \stdClass $submission): ?\stdClass {
+        global $DB;
+        $reponses = $DB->get_records('redaction_sujet_reponse', ['submissionid' => $submission->id], '', 'sujetid, contenu, contenuformat');
+        $sujets = array_values(sujets::de_soumission($redaction, $submission));
+        $tous = [];
+        foreach ($sujets as $sujet) {
+            $reponse = $reponses[$sujet->id] ?? null;
+            $tous[] = $reponse ? notes_sujets::texte_reponse($reponse->contenu, (int) $reponse->contenuformat) : '';
+        }
+        $p = notes_sujets::reglage_langue($redaction);
+        return self::essai_identique((int) $submission->id, $sujets, notes_sujets::empreinte($tous, $p), $p);
+    }
+
+    /**
+     * Graded attempt whose fingerprint is that of the answers, else one made before fingerprints on the same answers.
+     *
+     * @param int $submissionid Submission id.
+     * @param \stdClass[] $sujets Subjects of the submission.
+     * @param string $empreinte Fingerprint of the answers (notes_sujets::empreinte()).
+     * @param float $reglage Language setting (notes_sujets::reglage_langue()).
+     * @return \stdClass|null The attempt, the newest first; null when none.
+     */
+    protected static function essai_identique(int $submissionid, array $sujets, string $empreinte, float $reglage): ?\stdClass {
+        global $DB;
+        $essais = $DB->get_records_select('redaction_ai_evaluations',
+            "submissionid = ? AND finale = 0 AND empreinte = ? AND status IN ('completed', 'applied')",
+            [$submissionid, $empreinte], 'id DESC', '*', 0, 1);
+        return $essais ? reset($essais) : self::essai_sans_empreinte($submissionid, $sujets, $reglage);
+    }
+
+    /**
+     * Graded attempt made before fingerprints existed (2.7.0) on the very answers handed in, if any (request 19).
+     *
+     * Such an attempt graded the answers as they were when it was asked for: when none was saved since, the text is the same.
+     * Its subjects and its language setting must also be those of the final correction.
+     *
+     * @param int $submissionid Submission id.
+     * @param \stdClass[] $sujets Subjects of the submission.
+     * @param float $reglage Language setting (notes_sujets::reglage_langue()).
+     * @return \stdClass|null The attempt, the newest first; null when none.
+     */
+    protected static function essai_sans_empreinte(int $submissionid, array $sujets, float $reglage): ?\stdClass {
+        global $DB;
+        $derniere = (int) $DB->get_field_sql('SELECT MAX(timemodified) FROM {redaction_sujet_reponse} WHERE submissionid = ?',
+            [$submissionid]);
+        $attendus = array_map(fn($sujet) => (int) $sujet->id, array_values($sujets));
+        sort($attendus);
+        $essais = $DB->get_records_select('redaction_ai_evaluations',
+            "submissionid = ? AND finale = 0 AND empreinte IS NULL AND status IN ('completed', 'applied') AND timecreated >= ?",
+            [$submissionid, $derniere], 'id DESC');
+        foreach ($essais as $essai) {
+            $ids = array_map(fn($detail) => (int) ($detail['sujetid'] ?? 0), json_decode((string) $essai->sujets_json, true) ?: []);
+            sort($ids);
+            if ($ids === $attendus && round((float) $essai->langue_points, 2) === round($reglage, 2)) {
+                return $essai;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Process an evaluation of the assigned subjects mode: one AI call per subject, applied at once.
      *
      * Any error leaves the evaluation failed, without a grade, and gives the attempt back to the group.
@@ -374,13 +443,7 @@ class ai_evaluator {
 
             // Final submission on the very text of a graded attempt: that attempt is the final correction, no AI call
             // (Emmanuel, 12/11: "S'il n'a rien changé on garde la note").
-            $reprise = null;
-            if ($finale) {
-                $reprise = $DB->get_records_select('redaction_ai_evaluations',
-                    "submissionid = ? AND finale = 0 AND empreinte = ? AND status IN ('completed', 'applied')",
-                    [$submission->id, $empreinte], 'id DESC', '*', 0, 1);
-                $reprise = $reprise ? reset($reprise) : null;
-            }
+            $reprise = $finale ? self::essai_identique((int) $submission->id, $sujets, $empreinte, $p) : null;
 
             if ($reprise) {
                 foreach (['parsed_grade', 'parsed_feedback', 'sujets_json', 'langue_json', 'langue_points'] as $champ) {

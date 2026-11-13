@@ -615,6 +615,45 @@ try {
     $check('D-050: answer key changed, content graded again (' . count($sim->appels) . ' calls)',
         count($sim->appels) === 2 && (float) ($d94[0]['note'] ?? -1) === 9.0);
 
+    // Request 19: an attempt made before 2.7.0 has no fingerprint. A final on the text it graded takes it over all the same,
+    // language included (Théo, 13/11: 12/20 at his attempt, 11.8 once handed in without a change).
+    $sansempreinte = function (bool $modifieapres) use ($creeractivite, $DB, $sim, $b, $now): array {
+        $r = $creeractivite(['training_enabled' => 1, 'ai_auto_apply' => 1, 'group_submission' => 0, 'training_max_attempts' => 5,
+            'sujets_enabled' => 1, 'sujets_par_groupe' => 1, 'sujets_seuil' => 12]);
+        $DB->insert_record('redaction_sujet', (object) [
+            'redactionid' => $r->id, 'sortorder' => 1, 'titre' => 'Profil', 'contenu' => 'Justifie le profil de ta poutre',
+            'contenuformat' => FORMAT_HTML, 'corrige' => 'E1 : la semelle. E2 : la hauteur.', 'timecreated' => $now, 'timemodified' => $now,
+        ]);
+        $s = redaction_get_or_create_submission($r, 0, $b);
+        $sujetsr = \mod_redaction\sujets::de_soumission($r, $s);
+        repondre($s, $sujetsr, 'Ma poutre est haute, lorsque une charge appuie dessus elle plie peu.', FORMAT_PLAIN);
+        $sim->reponses = [ia3(12), langue_ia(['S', 'S', 'S', 'S'])];
+        $essai = passer($r, $s, $b, false);
+        // As before 2.7.0: no fingerprint; the answer was saved before the attempt was asked for.
+        $DB->set_field('redaction_ai_evaluations', 'empreinte', null, ['id' => $essai]);
+        $details = json_decode((string) $DB->get_field('redaction_ai_evaluations', 'sujets_json', ['id' => $essai]), true);
+        foreach ($details as &$detail) {
+            unset($detail['empreinte_fond']);
+        }
+        unset($detail);
+        $DB->set_field('redaction_ai_evaluations', 'sujets_json', json_encode($details, JSON_UNESCAPED_UNICODE), ['id' => $essai]);
+        $DB->set_field('redaction_ai_evaluations', 'timecreated', time() - 60, ['id' => $essai]);
+        $DB->execute('UPDATE {redaction_sujet_reponse} SET timemodified = ? WHERE submissionid = ?',
+            [$modifieapres ? time() - 30 : time() - 120, $s->id]);
+        $sim->appels = [];
+        $sim->reponses = [ia3(9), langue_ia(['I', 'I', 'I', 'I'])];
+        $finale = passer($r, $s, $b, true);
+        return [$DB->get_record('redaction_ai_evaluations', ['id' => $essai]), $DB->get_record('redaction_ai_evaluations', ['id' => $finale]),
+            count($sim->appels)];
+    };
+    [$ev19, $fv19, $appels19] = $sansempreinte(false);
+    $check('request 19: final on the text of an attempt without fingerprint, no AI call (' . $appels19 . ')', $appels19 === 0);
+    $check('request 19: grade and language of that attempt (' . $fv19->parsed_grade . ' for ' . $ev19->parsed_grade . ')',
+        (float) $fv19->parsed_grade === (float) $ev19->parsed_grade && $fv19->langue_json === $ev19->langue_json
+        && (int) $fv19->finale === 1 && $fv19->status !== 'failed');
+    [$ev19b, $fv19b, $appels19b] = $sansempreinte(true);
+    $check('request 19: answer changed after that attempt, corrected again (' . $appels19b . ' calls)', $appels19b === 2);
+
     // A correction still queued when its activity is deleted (12/11: seven such tasks failed again and again in preprod).
     $r10 = $creeractivite(['training_enabled' => 1, 'group_submission' => 0, 'training_max_attempts' => 5]);
     $s10 = redaction_get_or_create_submission($r10, 0, $a);
