@@ -215,6 +215,8 @@ class sujets_eleve implements renderable, templatable {
             'note' => $note !== null ? format_float($note, 1, true, true) : '',
             'restants' => $restants,
             'pending' => $pending,
+            'estimation' => \mod_redaction\ai_evaluator::duree_estimee((int) $redaction->id),
+            'ecoule' => $pending ? \mod_redaction\ai_evaluator::attente_ecoulee((int) $submission->id) : 0,
             'echec' => (bool) $echec && !$pending,
             'disabled' => $bloque,
             'raison' => $raison,

@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_redaction';
-$plugin->version = 2026111309;  // YYYYMMDDXX format
+$plugin->version = 2026111310;  // YYYYMMDDXX format
 $plugin->requires = 2024100700; // Moodle 4.5+
 $plugin->maturity = MATURITY_BETA;
-$plugin->release = '2.7.6';
+$plugin->release = '2.7.7';
 $plugin->bugtracker = 'https://github.com/Manu-REMY/mod_redaction/issues';

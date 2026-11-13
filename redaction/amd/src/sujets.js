@@ -28,6 +28,7 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
     var failed = {};
     var root = null;
     var submitting = false;
+    var chronoTimer = null;
 
     /**
      * Show a short state next to the button.
@@ -52,9 +53,45 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
     }
 
     /**
-     * Show the spinner next to the button, in view: the correction takes about a minute.
+     * Minutes and seconds, as 1:05.
+     * @param {number} secondes
+     * @returns {string}
      */
-    function showWaiting() {
+    function minutes(secondes) {
+        var s = secondes % 60;
+        return Math.floor(secondes / 60) + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    /**
+     * Start the timer of the correction: the ring fills up to the estimated time, then a red lap counts the overtime.
+     * @param {number} ecoule Seconds already spent on the correction
+     */
+    function startChrono(ecoule) {
+        var el = root.querySelector('#mod_redaction-se-chrono');
+        if (!el || chronoTimer) {
+            return;
+        }
+        var estimation = parseInt(el.dataset.estimation, 10) || 90;
+        var debut = Date.now() - (ecoule || 0) * 1000;
+        var arc = el.querySelector('.mod_redaction-se-chrono-arc');
+        var temps = el.querySelector('.mod_redaction-se-chrono-temps');
+        var tick = function() {
+            var s = Math.max(0, Math.floor((Date.now() - debut) / 1000));
+            var depasse = s > estimation;
+            var part = depasse ? Math.min(1, (s - estimation) / estimation) : s / estimation;
+            el.classList.toggle('mod_redaction-se-chrono-depasse', depasse);
+            arc.style.strokeDashoffset = String(100 - part * 100);
+            temps.textContent = depasse ? '+' + minutes(s - estimation) : minutes(s);
+        };
+        tick();
+        chronoTimer = setInterval(tick, 1000);
+    }
+
+    /**
+     * Show the timer next to the button, in view.
+     * @param {number} ecoule Seconds already spent on the correction (0 when it was just asked for)
+     */
+    function showWaiting(ecoule) {
         var el = root.querySelector('#mod_redaction-se-attente');
         var failed = root.querySelector('.mod_redaction-se-failed');
         if (failed) {
@@ -63,6 +100,7 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
         if (el) {
             el.hidden = false;
             el.classList.add('mod_redaction-se-pending');
+            startChrono(ecoule || 0);
             if (el.scrollIntoView) {
                 el.scrollIntoView({block: 'center'});
             }
@@ -387,7 +425,8 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
 
         // A correction already running when the page opens.
         if (root.querySelector('.mod_redaction-se-pending')) {
-            showWaiting();
+            var chrono = root.querySelector('#mod_redaction-se-chrono');
+            showWaiting(chrono ? parseInt(chrono.dataset.ecoule, 10) || 0 : 0);
             poll();
         }
     }

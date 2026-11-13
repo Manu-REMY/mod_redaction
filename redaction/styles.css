@@ -2210,8 +2210,67 @@
     display: none;
 }
 
-.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-spinner {
+/* Timer of the correction: the ring fills up to the estimated time, then a second lap in red counts the overtime. */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono {
+    position: relative;
     flex: none;
+    width: 3.25rem;
+    height: 3.25rem;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-cercle {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-piste,
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-arc {
+    fill: none;
+    stroke-width: 4;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-piste {
+    stroke: #c6d9ee;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-arc {
+    stroke: #1a5596;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-temps {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Overtime: the first lap stays full in blue, the red lap goes over it, and the time reads "+0:12". */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-depasse .mod_redaction-se-chrono-piste {
+    stroke: #1a5596;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-depasse .mod_redaction-se-chrono-arc {
+    stroke: #d64541;
+    stroke-width: 5;
+}
+
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-depasse .mod_redaction-se-chrono-temps {
+    color: #a61b1b;
+    font-size: 0.7rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-chrono-arc {
+        transition: none;
+    }
 }
 
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-sujet {

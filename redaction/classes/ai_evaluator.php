@@ -323,6 +323,44 @@ class ai_evaluator {
         }
     }
 
+    /** @var int Estimated time of a correction while the activity has none to measure, in seconds. */
+    const DUREE_ESTIMEE_DEFAUT = 90;
+
+    /**
+     * Estimated time of a correction, from request to feedback: the median of the latest AI corrections of the activity,
+     * between 30 s and 10 minutes, 90 s when there is none yet (shown by the timer of the student screen).
+     *
+     * @param int $redactionid Activity id
+     * @return int Seconds
+     */
+    public static function duree_estimee(int $redactionid): int {
+        global $DB;
+        $durees = array_map(fn($e) => (int) $e->duree, $DB->get_records_sql(
+            "SELECT id, timemodified - timecreated AS duree FROM {redaction_ai_evaluations}
+              WHERE redactionid = ? AND status IN ('completed', 'applied') AND prompt_tokens > 0
+           ORDER BY id DESC", [$redactionid], 0, 20));
+        if (!$durees) {
+            return self::DUREE_ESTIMEE_DEFAUT;
+        }
+        sort($durees);
+        $milieu = intdiv(count($durees), 2);
+        $mediane = count($durees) % 2 ? $durees[$milieu] : intdiv($durees[$milieu - 1] + $durees[$milieu], 2);
+        return max(30, min(600, $mediane));
+    }
+
+    /**
+     * Seconds since the correction of the copy was asked for, 0 when none is waiting or running.
+     *
+     * @param int $submissionid Submission id
+     * @return int Seconds
+     */
+    public static function attente_ecoulee(int $submissionid): int {
+        global $DB;
+        $debut = (int) $DB->get_field_sql("SELECT MAX(timecreated) FROM {redaction_ai_evaluations}
+                                           WHERE submissionid = ? AND status IN ('pending', 'processing')", [$submissionid]);
+        return $debut ? max(0, time() - $debut) : 0;
+    }
+
     /**
      * Calls the AI and reads its answer, asking once more when the answer cannot be read (13/11: the language JSON came
      * back with a brace too many or missing). A second unreadable answer is an error: the correction fails.

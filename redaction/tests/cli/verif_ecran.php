@@ -339,6 +339,11 @@ try {
     $check('pending: same state for the other member, button disabled and worded', $da['pending'] && $da['disabled']
         && strpos($ha, 'Correction en cours') !== false && strpos($ha, 'disabled') !== false && strpos($ha, 'readonly') !== false);
     $enregistrer('2-correction-en-cours', $ha);
+    // The timer: estimated time (90 s while the activity has no correction yet) and time already spent, so a reload keeps
+    // counting from the request.
+    $check("timer: estimate 90 s, time spent from the request ({$da['estimation']}, {$da['ecoule']})",
+        $da['estimation'] === 90 && $da['ecoule'] >= 0 && $da['ecoule'] <= 30
+        && strpos($ha, 'data-estimation="90"') !== false && strpos($ha, 'mod_redaction-se-chrono') !== false);
     $st = $status($b, $sub->id);
     $check('get_evaluation_status gives the pending state to a member', is_array($st) && $st['status'] === 'pending');
     $st = $status($c, $sub->id);
@@ -360,6 +365,8 @@ try {
         && !$da['atteint'] && $da['restants'] === 4);
     $check('after correction: orange banner, grade out of 20, comments with the subject title', strpos($ha, 'mod_redaction-se-ko') !== false
         && strpos($ha, '/20') !== false && strpos($ha, 'Tu as vu la roue.') !== false && strpos($ha, 'Il manque le role du moteur.') === false && strpos($ha, 'Systeme') !== false);
+    $check("timer: estimate from the corrections of the activity, never under 30 s ({$da['estimation']})", $da['estimation'] === 30
+        && $da['ecoule'] === 0);
     $check('after correction: still editable, button usable', !$da['pending'] && !$da['disabled'] && strpos($ha, 'readonly') === false);
     $check('language off: no language block, subjects on 20', strpos($ha, 'mod_redaction-langue') === false && strpos($ha, '12/20') !== false);
     $enregistrer('3-note-sous-le-seuil', $ha);

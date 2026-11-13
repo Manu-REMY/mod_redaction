@@ -30,6 +30,7 @@
     * valide, seuil, niveau, hasnote, note - Grade of the copy (final version or teacher) and validation
     * hasindicatif, indicatif, atteint, numeroretour, max, restants - Last feedback before the final version
     * pending, echec, disabled, raison, canessai, canfinale, finaledisabled - State of the correction and of the buttons
+    * estimation, ecoule - Estimated time of a correction and time already spent on the running one, in seconds (timer)
     * hascommentaireprof, commentaireprof - Comment of the teacher, while the teacher grade stands
     * hascommentaires, commentaires - Last feedback per subject: titre, note, sur, vide, juste, a_preciser, piste (has*)
     * empeche - The explanations are right but the language keeps the total under the threshold
@@ -44,7 +45,7 @@
         "datelimite": "19/11/26, 07:00", "tard": false,
         "valide": false, "seuil": "12", "niveau": "« presque maîtrisé »", "hasnote": false, "note": "",
         "hasindicatif": true, "indicatif": "13,1", "atteint": true, "numeroretour": 2, "max": 8, "restants": 6,
-        "pending": false, "echec": false, "disabled": false, "raison": "", "canessai": true, "canfinale": true, "finaledisabled": false,
+        "pending": false, "estimation": 90, "ecoule": 0, "echec": false, "disabled": false, "raison": "", "canessai": true, "canfinale": true, "finaledisabled": false,
         "hascommentaireprof": false, "commentaireprof": "",
         "hascommentaires": true,
         "commentaires": [{"titre": "Ma poutre « flexion »", "hasnote": true, "note": "11,8", "sur": "18", "vide": false,
@@ -160,7 +161,14 @@
             {{#raison}}<p class="mod_redaction-se-reason">{{raison}}</p>{{/raison}}
         </div>
         <div class="mod_redaction-se-attente{{#pending}} mod_redaction-se-pending{{/pending}}" id="mod_redaction-se-attente" role="status"{{^pending}} hidden{{/pending}}>
-            <span class="spinner-border mod_redaction-se-spinner" aria-hidden="true"></span>
+            <span class="mod_redaction-se-chrono" id="mod_redaction-se-chrono" data-estimation="{{estimation}}" data-ecoule="{{ecoule}}"
+                aria-hidden="true">
+                <svg class="mod_redaction-se-chrono-cercle" viewBox="0 0 48 48" focusable="false">
+                    <circle class="mod_redaction-se-chrono-piste" cx="24" cy="24" r="21"></circle>
+                    <circle class="mod_redaction-se-chrono-arc" cx="24" cy="24" r="21" pathLength="100"></circle>
+                </svg>
+                <span class="mod_redaction-se-chrono-temps"></span>
+            </span>
             <span>{{#str}}sujets_correction_patience, mod_redaction{{/str}}</span>
         </div>
         <div class="mod_redaction-se-message" id="mod_redaction-se-message" role="alert"></div>
