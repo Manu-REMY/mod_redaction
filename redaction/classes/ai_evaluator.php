@@ -53,8 +53,11 @@ class ai_evaluator {
     /** @var int Maximum tokens of the language assessment: every mistake of every answer is listed. */
     const LANGUE_MAX_TOKENS = 4000;
 
-    /** @var int Timeout of one call in the assigned subjects mode, in seconds. */
-    const SUJET_DELAI_APPEL = 30;
+    /**
+     * @var int Timeout of one call in the assigned subjects mode, in seconds (13/11: 30 s failed whole classes once the
+     * provider slowed down under load; a retry after a timeout only adds a request to a provider already late).
+     */
+    const SUJET_DELAI_APPEL = 90;
 
     /** @var int Retries of one call in the assigned subjects mode. */
     const SUJET_REPRISES = 1;

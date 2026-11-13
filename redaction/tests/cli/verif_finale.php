@@ -656,8 +656,8 @@ try {
     $check('D-050: answer key changed, content graded again (' . count($sim->appels) . ' calls)',
         count($sim->appels) === 2 && (float) ($d94[0]['note'] ?? -1) === 9.0);
 
-    // The language answer is long: its call may take up to 120 s, the content one 30 s (13/11, Albert slow: one attempt
-    // out of two failed after the content was graded).
+    // The language answer is long: its call may take up to 120 s, the content one 90 s (13/11, Albert slow: one attempt
+    // out of two failed after the content was graded, then before it).
     $chrono = new fournisseur_chrono('cle');
     $chrono->simule = $sim;
     ai_evaluator::$fournisseurtest = $chrono;
@@ -672,8 +672,8 @@ try {
     $sim->reponses = [ia3(12), langue_ia(['S', 'S', 'S', 'S'])];
     $e12 = passer($r12, $s12, $b, false);
     ai_evaluator::$fournisseurtest = $sim;
-    $check('time limits: content call 30 s, language call 120 s (' . implode(', ', $chrono->delais) . ')',
-        $chrono->delais === [30, 120] && in_array($DB->get_field('redaction_ai_evaluations', 'status', ['id' => $e12]), ['completed', 'applied'], true));
+    $check('time limits: content call 90 s, language call 120 s (' . implode(', ', $chrono->delais) . ')',
+        $chrono->delais === [90, 120] && in_array($DB->get_field('redaction_ai_evaluations', 'status', ['id' => $e12]), ['completed', 'applied'], true));
 
     // Request 19: an attempt made before 2.7.0 has no fingerprint. A final on the text it graded takes it over all the same,
     // language included (a student, 13/11: 12/20 at his attempt, 11.8 once handed in without a change).
