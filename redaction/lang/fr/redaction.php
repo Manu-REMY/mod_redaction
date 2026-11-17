@@ -777,6 +777,7 @@ $string['sujets_commentaire_precision'] = 'Précise encore ton explication.';
 $string['sujets_commentaire_juste'] = 'Ton explication est juste.';
 $string['sujets_reponse_vide'] = 'Un sujet n\'a pas de réponse.';
 $string['training_error_empty_answer'] = 'Réponds à tous les sujets avant de soumettre.';
+$string['training_error_no_feedback'] = 'Demande au moins un retour avant de soumettre ta version finale.';
 $string['sujets_valide'] = 'Niveau {$a} validé';
 $string['sujets_pas_valide'] = 'Niveau {$a} pas encore validé';
 $string['sujets_se_avancement'] = 'Mon avancement';

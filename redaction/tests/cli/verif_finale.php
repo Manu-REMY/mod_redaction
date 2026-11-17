@@ -324,6 +324,11 @@ try {
         && !str_contains($hf, 'mod_redaction-se-final') && !str_contains($hf, '[['));
     $check('student screen: what is right, with its word (above the threshold, nothing else)',
         str_contains($hf, get_string('sujets_se_juste', 'mod_redaction')) && !str_contains($hf, get_string('sujets_se_piste', 'mod_redaction')));
+    // Reopened by the teacher: the feedback received before still counts, the final is not locked again.
+    $DB->set_field('redaction_submission', 'status', 0, ['id' => $submission->id]);
+    $check('reopened copy: the earlier feedback still counts',
+        redaction_can_submit_final($redaction, $DB->get_record('redaction_submission', ['id' => $submission->id]))['allowed']);
+    $DB->set_field('redaction_submission', 'status', 1, ['id' => $submission->id]);
 
     // 3. A changed answer: a new correction.
     $sub2 = redaction_get_or_create_submission($redaction, 0, $b);
@@ -441,6 +446,22 @@ try {
     $DB->set_field('redaction_submission', 'training_count', 2, ['id' => $s6->id]);
     $essai = \mod_redaction\external\submit_sujets::execute($cm6->id);
     $check('no attempt left: an attempt is refused', !$essai['success']);
+    // Proposal C (17/11/2026): no final version before a feedback was received.
+    $sansretour = \mod_redaction\external\submit_final::execute($cm6->id);
+    $check('final before any feedback: refused with no_feedback', !$sansretour['success']
+        && $sansretour['message'] === get_string('training_error_no_feedback', 'mod_redaction'));
+    $sansentrainement = clone $r6;
+    $sansentrainement->training_enabled = 0;
+    $check('no feedback possible (training off): the final is not locked',
+        redaction_can_submit_final($sansentrainement, $DB->get_record('redaction_submission', ['id' => $s6->id]))['allowed']);
+    $retour6 = $DB->insert_record('redaction_ai_evaluations', (object) [
+        'redactionid' => $r6->id, 'submissionid' => $s6->id, 'provider' => 'simule', 'model' => 'simule',
+        'status' => 'failed', 'finale' => 0, 'timecreated' => time(), 'timemodified' => time(),
+    ]);
+    $echoue = \mod_redaction\external\submit_final::execute($cm6->id);
+    $check('a failed feedback does not count: still refused with no_feedback', !$echoue['success']
+        && $echoue['message'] === get_string('training_error_no_feedback', 'mod_redaction'));
+    $DB->set_field('redaction_ai_evaluations', 'status', 'applied', ['id' => $retour6]);
     // Two processes at the same instant: a single final.
     $start = microtime(true) + 3;
     $procs = [];

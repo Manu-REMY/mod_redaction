@@ -777,6 +777,7 @@ $string['sujets_commentaire_precision'] = 'Make your explanation more precise.';
 $string['sujets_commentaire_juste'] = 'Your explanation is right.';
 $string['sujets_reponse_vide'] = 'A subject has no answer.';
 $string['training_error_empty_answer'] = 'Answer every subject before submitting.';
+$string['training_error_no_feedback'] = 'Ask for at least one feedback before handing in your final version.';
 $string['sujets_valide'] = 'Level {$a} validated';
 $string['sujets_pas_valide'] = 'Level {$a} not validated yet';
 $string['sujets_se_avancement'] = 'My progress';

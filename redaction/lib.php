@@ -1057,10 +1057,12 @@ function redaction_deadline_passed($redaction, $submission): bool {
  *
  * Unlike an attempt it needs no attempt left: a student who used every attempt still hands in.
  *
+ * Proposal C (17/11/2026): when feedback can be asked for, it needs at least one feedback received first.
+ *
  * @param stdClass $redaction
  * @param stdClass $submission
  * @return array ['allowed' => bool, 'reason' => string] reason: already_submitted, deadline_passed, evaluation_pending,
- *               empty_answer.
+ *               empty_answer, no_feedback.
  */
 function redaction_can_submit_final($redaction, $submission): array {
     global $DB;
@@ -1078,7 +1080,33 @@ function redaction_can_submit_final($redaction, $submission): array {
     if (!redaction_sujets_answered($redaction, $submission)) {
         return ['allowed' => false, 'reason' => 'empty_answer'];
     }
+    if (redaction_retours_possibles($redaction) && !redaction_retour_recu($submission)) {
+        return ['allowed' => false, 'reason' => 'no_feedback'];
+    }
     return ['allowed' => true, 'reason' => ''];
+}
+
+/**
+ * Whether the students of an activity can ask for feedback (training and AI on).
+ *
+ * @param stdClass $redaction
+ * @return bool
+ */
+function redaction_retours_possibles($redaction): bool {
+    return !empty($redaction->training_enabled) && !empty($redaction->ai_enabled);
+}
+
+/**
+ * Whether a copy received at least one feedback: an applied correction that is not a final one.
+ *
+ * A failed correction gives its attempt back and does not count. A copy reopened by the teacher keeps its feedback.
+ *
+ * @param stdClass $submission
+ * @return bool
+ */
+function redaction_retour_recu($submission): bool {
+    global $DB;
+    return $DB->record_exists('redaction_ai_evaluations', ['submissionid' => $submission->id, 'status' => 'applied', 'finale' => 0]);
 }
 
 /**
