@@ -558,7 +558,9 @@ class ai_evaluator {
                         }
                         $notes[] = 0.0;
                         $details[] = ['sujetid' => (int) $sujet->id, 'titre' => $sujet->titre, 'note' => 0.0, 'vide' => true,
-                            'juste' => '', 'a_preciser' => '', 'piste' => '', 'commentaire' => ''];
+                            'juste' => '', 'a_preciser' => '', 'piste' => '', 'commentaire' => '', 'attendus' => [],
+                            'attendus_total' => notes_sujets::nb_attendus(notes_sujets::texte_reponse($sujet->corrige,
+                                notes_sujets::FORMAT_TEXTE))];
                         continue;
                     }
                     // D-050: only spelling, accents or punctuation changed since an earlier evaluation: its content grade stays,
@@ -594,8 +596,11 @@ class ai_evaluator {
                     $lexiques[] = (string) ($sujet->lexique ?? '');
                     $textes[] = $texte;
                     $commentaires[] = $sujet->titre . get_string('labelsep', 'langconfig') . $retour['commentaire'];
+                    // The feedback window counts the expected elements found, never names them (17/11/2026).
                     $details[] = ['sujetid' => (int) $sujet->id, 'titre' => $sujet->titre, 'note' => $lu['note'],
-                        'empreinte_fond' => $empreintefond] + $retour;
+                        'empreinte_fond' => $empreintefond, 'attendus' => $lu['attendus'] ?? [],
+                        'attendus_total' => notes_sujets::nb_attendus(notes_sujets::texte_reponse($sujet->corrige,
+                            notes_sujets::FORMAT_TEXTE))] + $retour;
                 }
 
                 // The language of every answer written, in one separate call: its points come from the levels, never from the AI.

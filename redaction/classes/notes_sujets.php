@@ -230,6 +230,17 @@ class notes_sujets {
     }
 
     /**
+     * How many expected elements (E1, E2…) an answer key holds: the student is told how many were found, never which.
+     *
+     * @param string $corrige Answer key, plain text.
+     * @return int
+     */
+    public static function nb_attendus(string $corrige): int {
+        preg_match_all('/\bE\s*(\d+)\b/i', $corrige, $m);
+        return count(array_unique($m[1]));
+    }
+
+    /**
      * Marks such as E1 or X2 found in a list given by the AI.
      *
      * @param mixed $liste The list, as decoded from the AI answer.

@@ -32,6 +32,12 @@ function refuse(string $brut): bool {
     return false;
 }
 
+// Feedback window (17/11/2026): how many expected elements the answer key holds, never which ones.
+test('éléments attendus : repères distincts du corrigé', fn() => notes_sujets::nb_attendus("E1 : la semelle. E2 : la hauteur. Voir E1.") === 2);
+test('éléments attendus : minuscules et espace acceptés', fn() => notes_sujets::nb_attendus('e1 : a ; E 2 : b ; E3 : c') === 3);
+test('éléments attendus : un corrigé sans repère en a 0', fn() => notes_sujets::nb_attendus('La poutre plie.') === 0);
+test('éléments attendus : un mot comme « E10x » ou « FE1 » ne compte pas', fn() => notes_sujets::nb_attendus('FE1 et E10x') === 0);
+
 test('moyenne', fn() => notes_sujets::note_soumission([14.0, 18.0]) === 16.0);
 test('moyenne arrondie au dixième (ce que l\'élève voit compte)', fn() => notes_sujets::note_soumission([10.0, 10.0, 11.0]) === 10.3);
 test('une note manque : pas de note', fn() => notes_sujets::note_soumission([14.0, null]) === null);
