@@ -201,6 +201,34 @@ class sujets_eleve implements renderable, templatable {
             $indicatif = null;
         }
 
+        // Proposal C (17/11/2026): the steps write, feedback, final version; the final locked until a feedback came back.
+        $retourspossibles = redaction_retours_possibles($redaction);
+        $verrou = $finalepossible && $retourspossibles && !redaction_retour_recu($submission);
+        $aecrit = (bool) array_filter($reponses, fn($contenu) => trim(strip_tags((string) $contenu)) !== '');
+        $atteint = $indicatif !== null && $indicatif >= $seuil;
+        if ($rendue) {
+            $etape = 4;
+        } else if (!$aecrit) {
+            $etape = 1;
+        } else if ($retourspossibles && !$atteint && $restants > 0) {
+            $etape = 2;
+        } else {
+            $etape = 3;
+        }
+        $etapes = [];
+        foreach (['ecrire', 'retour', 'finale'] as $i => $cle) {
+            $numero = $i + 1;
+            $etapes[] = [
+                'numero' => $numero,
+                'libelle' => get_string('sujets_se_etape_' . $cle, 'mod_redaction'),
+                'fait' => $numero < $etape,
+                'encours' => $numero === $etape,
+                'avenir' => $numero > $etape,
+            ];
+        }
+        $utilises = min((int) $submission->training_count, $maxeffective);
+        $pastilles = array_map(fn($i) => ['utilise' => $i < $utilises], range(0, $maxeffective - 1));
+
         return [
             'cmid' => (int) $this->cm->id,
             'submissionid' => (int) $submission->id,
@@ -239,12 +267,19 @@ class sujets_eleve implements renderable, templatable {
             'dateremise' => $rendue && $submission->timesubmitted ? userdate((int) $submission->timesubmitted, get_string('strftimedatetimeshort', 'langconfig')) : '',
             'hasindicatif' => $note === null && $indicatif !== null,
             'indicatif' => $indicatif !== null ? format_float($indicatif, 1, true, true) : '',
-            'atteint' => $indicatif !== null && $indicatif >= $seuil,
+            'atteint' => $atteint,
             'numeroretour' => (int) $submission->training_count,
             'max' => $maxeffective,
             'canessai' => !$rendue && !$tard,
             'canfinale' => $finalepossible,
-            'finaledisabled' => !$finalepossible || $pending,
+            'finaledisabled' => !$finalepossible || $pending || $verrou,
+            'etape' => $etape,
+            'etapes' => $etapes,
+            'pastilles' => $pastilles,
+            'utilises' => $utilises,
+            'retourplein' => $etape <= 2,
+            'finaleplein' => $etape === 3 && !$verrou,
+            'verrou' => $verrou,
         ];
     }
 }

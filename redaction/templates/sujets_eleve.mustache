@@ -30,6 +30,10 @@
     * valide, seuil, niveau, hasnote, note - Grade of the copy (final version or teacher) and validation
     * hasindicatif, indicatif, atteint, numeroretour, max, restants - Last feedback before the final version
     * pending, echec, disabled, raison, canessai, canfinale, finaledisabled - State of the correction and of the buttons
+    * etape, etapes - Current step (1 write, 2 feedback, 3 final version, 4 handed in) and the three steps: numero, libelle,
+      fait, encours, avenir
+    * pastilles, utilises - One dot per possible feedback (utilise) and the number used
+    * retourplein, finaleplein, verrou - Which button is filled; the final version locked until a feedback came back
     * estimation, ecoule - Estimated time of a correction and time already spent on the running one, in seconds (timer)
     * hascommentaireprof, commentaireprof - Comment of the teacher, while the teacher grade stands
     * hascommentaires, commentaires - Last feedback per subject: titre, note, sur, vide, juste, a_preciser, piste (has*)
@@ -46,6 +50,11 @@
         "valide": false, "seuil": "12", "niveau": "« presque maîtrisé »", "hasnote": false, "note": "",
         "hasindicatif": true, "indicatif": "13,1", "atteint": true, "numeroretour": 2, "max": 8, "restants": 6,
         "pending": false, "estimation": 90, "ecoule": 0, "echec": false, "disabled": false, "raison": "", "canessai": true, "canfinale": true, "finaledisabled": false,
+        "etape": 3, "etapes": [{"numero": 1, "libelle": "Écrire", "fait": true, "encours": false, "avenir": false},
+            {"numero": 2, "libelle": "Retour", "fait": true, "encours": false, "avenir": false},
+            {"numero": 3, "libelle": "Version finale", "fait": false, "encours": true, "avenir": false}],
+        "pastilles": [{"utilise": true}, {"utilise": true}, {"utilise": false}], "utilises": 2,
+        "retourplein": false, "finaleplein": true, "verrou": false,
         "hascommentaireprof": false, "commentaireprof": "",
         "hascommentaires": true,
         "commentaires": [{"titre": "Ma poutre « flexion »", "hasnote": true, "note": "11,8", "sur": "18", "vide": false,
@@ -75,6 +84,14 @@
 
     <aside class="mod_redaction-se-volet" id="mod_redaction-se-volet-ancre" aria-label="{{#str}}sujets_se_avancement, mod_redaction{{/str}}">
         <h2 class="mod_redaction-se-volet-titre">{{#str}}sujets_se_avancement, mod_redaction{{/str}}</h2>
+        <ol class="mod_redaction-se-frise" aria-label="{{#str}}sujets_se_etapes, mod_redaction{{/str}}">
+            {{#etapes}}
+            <li class="mod_redaction-se-etape{{#fait}} mod_redaction-se-etape-faite{{/fait}}{{#encours}} mod_redaction-se-etape-encours{{/encours}}{{#avenir}} mod_redaction-se-etape-avenir{{/avenir}}"{{#encours}} aria-current="step"{{/encours}}>
+                <span class="mod_redaction-se-etape-pastille" aria-hidden="true">{{#fait}}&#10003;{{/fait}}{{^fait}}{{numero}}{{/fait}}</span>
+                <span class="mod_redaction-se-etape-libelle">{{libelle}}{{#fait}} <span class="sr-only">{{#str}}sujets_se_etape_faite, mod_redaction{{/str}}</span>{{/fait}}</span>
+            </li>
+            {{/etapes}}
+        </ol>
         <div class="mod_redaction-se-cartes">
             <div class="mod_redaction-se-carte">
                 <div class="mod_redaction-se-carte-label">{{#str}}sujets_se_etat, mod_redaction{{/str}}</div>
@@ -148,14 +165,18 @@
 
         <div class="mod_redaction-se-actions">
             {{#canessai}}
-            <p class="mod_redaction-se-restants">{{#str}}sujets_essais_restants, mod_redaction, {{restants}}{{/str}}</p>
-            <button type="button" class="btn btn-outline-primary mod_redaction-se-submit" id="mod_redaction-se-submit"
-                {{#disabled}}disabled{{/disabled}}>{{#pending}}{{#str}}sujets_correction_en_cours, mod_redaction{{/str}}{{/pending}}{{^pending}}{{#str}}sujets_se_demander, mod_redaction, {{restants}}{{/str}}{{/pending}}</button>
+            <p class="mod_redaction-se-retours">
+                <span class="mod_redaction-se-retours-pastilles" aria-hidden="true">{{#pastilles}}<span class="mod_redaction-se-retour-pastille{{#utilise}} mod_redaction-se-retour-utilise{{/utilise}}"></span>{{/pastilles}}</span>
+                <span>{{#str}}sujets_se_retours_utilises, mod_redaction, { "utilises": {{utilises}}, "max": {{max}} }{{/str}}</span>
+            </p>
+            <button type="button" class="btn {{#retourplein}}btn-primary{{/retourplein}}{{^retourplein}}btn-outline-primary{{/retourplein}} mod_redaction-se-submit" id="mod_redaction-se-submit"
+                {{#disabled}}disabled{{/disabled}}>{{#pending}}{{#str}}sujets_correction_en_cours, mod_redaction{{/str}}{{/pending}}{{^pending}}<span class="mod_redaction-se-num" aria-hidden="true">2</span> {{#str}}sujets_se_demander, mod_redaction, {{restants}}{{/str}}{{/pending}}</button>
             {{/canessai}}
             {{#canfinale}}
-            <button type="button" class="btn btn-primary mod_redaction-se-final" id="mod_redaction-se-final"
-                {{#finaledisabled}}disabled{{/finaledisabled}}>{{#str}}sujets_se_finale, mod_redaction{{/str}}</button>
-            <p class="mod_redaction-se-aide">{{#str}}sujets_se_finale_aide, mod_redaction{{/str}}</p>
+            <button type="button" class="btn {{#finaleplein}}btn-primary{{/finaleplein}}{{^finaleplein}}btn-outline-primary{{/finaleplein}} mod_redaction-se-final{{#verrou}} mod_redaction-se-verrouille{{/verrou}}" id="mod_redaction-se-final"
+                {{#finaledisabled}}disabled{{/finaledisabled}}><span class="mod_redaction-se-num" aria-hidden="true">3</span>{{#verrou}}<svg class="mod_redaction-se-cadenas" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7h1zm2 0h4V5a2 2 0 0 0-4 0v2z"></path></svg>{{/verrou}} {{#str}}sujets_se_finale, mod_redaction{{/str}}</button>
+            {{#verrou}}<p class="mod_redaction-se-aide mod_redaction-se-verrou">{{#str}}sujets_se_verrou, mod_redaction{{/str}}</p>{{/verrou}}
+            {{^verrou}}<p class="mod_redaction-se-aide">{{#str}}sujets_se_finale_aide, mod_redaction{{/str}}</p>{{/verrou}}
             {{/canfinale}}
             {{#tard}}<p class="mod_redaction-se-reason">{{#str}}training_error_deadline_passed, mod_redaction{{/str}}</p>{{/tard}}
             {{#raison}}<p class="mod_redaction-se-reason">{{raison}}</p>{{/raison}}

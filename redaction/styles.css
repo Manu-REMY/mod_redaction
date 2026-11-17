@@ -2576,10 +2576,131 @@
     min-height: 44px;
 }
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-aide,
-.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-restants {
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-retours {
     font-size: 0.9em;
     color: #52606d;
     margin: 0;
+}
+/* Proposal C (17/11/2026): the steps. Done, current and to come differ by lightness and shape (tick, number, dashes). */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-frise {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8em;
+    color: #52606d;
+    text-align: center;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape + .mod_redaction-se-etape::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    right: 50%;
+    width: 100%;
+    height: 2px;
+    background: #dde2e8;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape-faite::before,
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape-encours::before {
+    background: #0f6cbf;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape-pastille {
+    position: relative;
+    z-index: 1;
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-weight: 700;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape-faite .mod_redaction-se-etape-pastille {
+    background: #e3eefa;
+    color: #0b4f8c;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape-encours .mod_redaction-se-etape-pastille {
+    background: #0f6cbf;
+    color: #fff;
+    box-shadow: 0 0 0 4px #e3eefa;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape-encours {
+    color: #1d2125;
+    font-weight: 600;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-etape-avenir .mod_redaction-se-etape-pastille {
+    background: #eef0f3;
+    color: #6a737d;
+    border: 1px dashed #6a737d;
+}
+/* One dot per possible feedback, filled when used. */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-retours {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-retours-pastilles {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-retour-pastille {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid #0f6cbf;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-retour-utilise {
+    background: #0f6cbf;
+}
+/* Numbered buttons; the final version locked (grey, dashed, padlock) until a feedback came back. */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-num {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.8em;
+    font-weight: 700;
+    background: #e3eefa;
+    color: #0b4f8c;
+}
+.mod_redaction.mod_redaction-sujets-eleve .btn-primary .mod_redaction-se-num {
+    background: #fff;
+    color: #0f6cbf;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-final.mod_redaction-se-verrouille,
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-final.mod_redaction-se-verrouille:disabled {
+    background: #eef0f3;
+    color: #6a737d;
+    border: 1px dashed #6a737d;
+    opacity: 1;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-verrouille .mod_redaction-se-num {
+    background: #dde2e8;
+    color: #6a737d;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-cadenas {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: currentColor;
 }
 .mod_redaction .mod_redaction-langue-regle {
     display: block;

@@ -277,6 +277,15 @@ try {
     $check('screen: no feedback yet, no banner, threshold recalled', !$da['valide'] && !$da['hasindicatif']
         && strpos($ha, 'Il faut au moins 16/20') !== false && strpos($ha, 'Mon avancement') !== false);
     $check('screen: no grade yet, five attempts left', !$da['hasnote'] && $da['restants'] === 5);
+    // Proposal C (17/11/2026): the steps, the feedback dots, the button of the current step filled, the final locked.
+    $utilises = fn(int $n, int $m) => get_string('sujets_se_retours_utilises', 'mod_redaction', (object) ['utilises' => $n, 'max' => $m]);
+    $check('steps: nothing written, step 1, the feedback button filled, the final locked with its sentence',
+        $da['etape'] === 1 && $da['retourplein'] && !$da['finaleplein'] && $da['verrou'] && $da['finaledisabled']
+        && count($da['etapes']) === 3 && $da['etapes'][0]['encours'] && $da['etapes'][2]['avenir']
+        && strpos($ha, get_string('sujets_se_verrou', 'mod_redaction')) !== false && strpos($ha, 'mod_redaction-se-cadenas') !== false
+        && strpos($ha, get_string('sujets_se_finale_aide', 'mod_redaction')) === false);
+    $check('feedback dots: five, none used', count($da['pastilles']) === 5 && !array_filter($da['pastilles'], fn($p) => $p['utilise'])
+        && strpos($ha, $utilises(0, 5)) !== false);
     $enregistrer('1-debut-membre-A', $ha);
     $enregistrer('1-debut-membre-B', $hb);
 
@@ -339,6 +348,8 @@ try {
     $check('pending: same state for the other member, button disabled and worded', $da['pending'] && $da['disabled']
         && strpos($ha, 'Correction en cours') !== false && strpos($ha, 'disabled') !== false && strpos($ha, 'readonly') !== false);
     $enregistrer('2-correction-en-cours', $ha);
+    $check('steps: written, no feedback yet, step 2, the final still locked', $da['etape'] === 2 && $da['verrou']
+        && $da['etapes'][0]['fait'] && $da['etapes'][1]['encours']);
     // The timer: estimated time (90 s while the activity has no correction yet) and time already spent, so a reload keeps
     // counting from the request.
     $check("timer: estimate 90 s, time spent from the request ({$da['estimation']}, {$da['ecoule']})",
@@ -369,6 +380,9 @@ try {
         && $da['ecoule'] === 0);
     $check('after correction: still editable, button usable', !$da['pending'] && !$da['disabled'] && strpos($ha, 'readonly') === false);
     $check('language off: no language block, subjects on 20', strpos($ha, 'mod_redaction-langue') === false && strpos($ha, '12/20') !== false);
+    $check('steps: a feedback under the threshold, still step 2, the final unlocked but not filled', $da['etape'] === 2
+        && !$da['verrou'] && !$da['finaledisabled'] && $da['retourplein'] && !$da['finaleplein']
+        && strpos($ha, get_string('sujets_se_verrou', 'mod_redaction')) === false && strpos($ha, $utilises(1, 5)) !== false);
     $enregistrer('3-note-sous-le-seuil', $ha);
 
     // Failure: correction pending, attempt given back.
@@ -394,6 +408,9 @@ try {
     $check('threshold reached on this feedback: blue banner, said to be validated only by the final version', $da['atteint'] && !$da['valide']
         && strpos($ha, 'mod_redaction-se-ok') !== false && strpos($ha, get_string('sujets_se_atteint', 'mod_redaction', 'fragile')) !== false);
     $check('validated: text stays editable while attempts remain', !$da['disabled'] && $da['restants'] === 3 && strpos($ha, 'readonly') === false);
+    $check('steps: threshold reached, step 3, the final filled, the feedback button outlined', $da['etape'] === 3
+        && $da['finaleplein'] && !$da['retourplein'] && !$da['verrou'] && $da['etapes'][1]['fait'] && $da['etapes'][2]['encours']
+        && strpos($ha, $utilises(2, 5)) !== false);
     $enregistrer('5-valide', $ha);
 
     // Nothing changed since that correction: the AI never corrects it again, no attempt counted (Emmanuel, 13/11).
