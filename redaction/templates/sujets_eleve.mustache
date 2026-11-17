@@ -34,6 +34,11 @@
       fait, encours, avenir
     * pastilles, utilises - One dot per possible feedback (utilise) and the number used
     * retourplein, finaleplein, verrou - Which button is filled; the final version locked until a feedback came back
+    * enfile - The running correction still waits for the AI (waiting window)
+    * hasresultat, resultat - Feedback window of the latest correction: evaluationid, titre, estretour, estseuil, estfinale,
+      estechec, ok, ligne, sousligne, canameliorer, ameliorer, canremettre, and the frame (template sujets_cadre)
+    * proposerremise, bandeauremise - Banner offering to hand in once the last feedback reaches the threshold
+    * items[].haspiste, items[].piste - Lead of the last feedback, under each answer
     * estimation, ecoule - Estimated time of a correction and time already spent on the running one, in seconds (timer)
     * hascommentaireprof, commentaireprof - Comment of the teacher, while the teacher grade stands
     * hascommentaires, commentaires - Last feedback per subject: titre, note, sur, vide, juste, a_preciser, piste (has*)
@@ -44,7 +49,8 @@
     Example context (json):
     {
         "cmid": 1, "submissionid": 2, "groupname": "", "hasphrases": true, "phrases": 2,
-        "items": [{"id": 5, "number": 1, "titre": "Ma poutre « flexion »", "contenu": "<p>Explique</p>", "reponse": "", "readonly": false}],
+        "items": [{"id": 5, "number": 1, "titre": "Ma poutre « flexion »", "contenu": "<p>Explique</p>", "reponse": "", "readonly": false,
+            "haspiste": false, "piste": ""}],
         "etat": "brouillon", "etatlibelle": "Brouillon", "rendue": false, "dateremise": "", "hasdatelimite": true,
         "datelimite": "19/11/26, 07:00", "tard": false,
         "valide": false, "seuil": "12", "niveau": "« presque maîtrisé »", "hasnote": false, "note": "",
@@ -54,7 +60,9 @@
             {"numero": 2, "libelle": "Retour", "fait": true, "encours": false, "avenir": false},
             {"numero": 3, "libelle": "Version finale", "fait": false, "encours": true, "avenir": false}],
         "pastilles": [{"utilise": true}, {"utilise": true}, {"utilise": false}], "utilises": 2,
-        "retourplein": false, "finaleplein": true, "verrou": false,
+        "retourplein": false, "finaleplein": true, "verrou": false, "enfile": false,
+        "hasresultat": false, "resultat": null, "proposerremise": true,
+        "bandeauremise": "Seuil atteint à ton dernier retour (13,1/20) : tu peux rendre ta copie.",
         "hascommentaireprof": false, "commentaireprof": "",
         "hascommentaires": true,
         "commentaires": [{"titre": "Ma poutre « flexion »", "hasnote": true, "note": "11,8", "sur": "18", "vide": false,
@@ -66,6 +74,12 @@
 <div class="mod_redaction mod_redaction-sujets-eleve" id="mod_redaction-sujets-eleve">
 <div class="mod_redaction-se-layout">
     <div class="mod_redaction-se-main">
+        {{#proposerremise}}
+        <div class="mod_redaction-se-bandeau-remise" role="status">
+            <span class="mod_redaction-se-bandeau-texte"><span aria-hidden="true">&#10003;</span> {{bandeauremise}}</span>
+            <button type="button" class="btn btn-light mod_redaction-se-remettre" data-action="remettre">{{#str}}sujets_se_finale, mod_redaction{{/str}}</button>
+        </div>
+        {{/proposerremise}}
         {{#groupname}}
         <p class="mod_redaction-se-group">{{#str}}group_label, mod_redaction{{/str}} <strong>{{groupname}}</strong></p>
         {{/groupname}}
@@ -76,6 +90,7 @@
             <label class="mod_redaction-se-label" for="mod_redaction-se-reponse-{{id}}">{{#str}}sujets_reponse_label, mod_redaction{{/str}}</label>
             <textarea class="form-control mod_redaction-se-reponse" id="mod_redaction-se-reponse-{{id}}" rows="7"
                 data-sujetid="{{id}}" {{#readonly}}readonly{{/readonly}}>{{reponse}}</textarea>
+            {{#haspiste}}<p class="mod_redaction-se-piste-reponse"><span aria-hidden="true">&rarr;</span> <strong>{{#str}}sujets_se_piste, mod_redaction{{/str}}</strong> {{piste}}</p>{{/haspiste}}
             {{#hasphrases}}<p class="mod_redaction-se-phrases">{{#str}}sujets_phrases_consigne, mod_redaction, {{phrases}}{{/str}}</p>{{/hasphrases}}
         </section>
         {{/items}}
@@ -144,10 +159,10 @@
             {{#commentaires}}
             <div class="mod_redaction-se-comment">
                 <p class="mod_redaction-se-comment-title"><strong>{{titre}}</strong>{{#hasnote}} <span class="mod_redaction-se-comment-grade">{{note}}/{{sur}}</span>{{/hasnote}}</p>
-                {{#vide}}<p>{{#str}}sujets_se_vide, mod_redaction{{/str}}</p>{{/vide}}
-                {{#hasjuste}}<p class="mod_redaction-se-partie"><span class="mod_redaction-se-signe mod_redaction-se-signe-ok" aria-hidden="true">&#10003;</span> <strong>{{#str}}sujets_se_juste, mod_redaction{{/str}}</strong> {{juste}}</p>{{/hasjuste}}
-                {{#hasapreciser}}<p class="mod_redaction-se-partie"><span class="mod_redaction-se-signe mod_redaction-se-signe-ko" aria-hidden="true">&#10007;</span> <strong>{{#str}}sujets_se_a_preciser, mod_redaction{{/str}}</strong> {{a_preciser}}</p>{{/hasapreciser}}
-                {{#haspiste}}<p class="mod_redaction-se-partie"><span class="mod_redaction-se-signe" aria-hidden="true">&rarr;</span> <strong>{{#str}}sujets_se_piste, mod_redaction{{/str}}</strong> {{piste}}</p>{{/haspiste}}
+                {{#vide}}<div class="mod_redaction-se-bloc mod_redaction-se-manque"><p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_se_a_preciser, mod_redaction{{/str}}</p><p>{{#str}}sujets_se_vide, mod_redaction{{/str}}</p></div>{{/vide}}
+                {{#hasjuste}}<div class="mod_redaction-se-bloc mod_redaction-se-va"><p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&#10003;</span> {{#str}}sujets_se_juste, mod_redaction{{/str}}</p><p>{{juste}}</p></div>{{/hasjuste}}
+                {{#hasapreciser}}<div class="mod_redaction-se-bloc mod_redaction-se-manque"><p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_se_a_preciser, mod_redaction{{/str}}</p><p>{{a_preciser}}</p></div>{{/hasapreciser}}
+                {{#haspiste}}<div class="mod_redaction-se-bloc mod_redaction-se-prochain"><p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&rarr;</span> {{#str}}sujets_se_piste, mod_redaction{{/str}}</p><p>{{piste}}</p></div>{{/haspiste}}
             </div>
             {{/commentaires}}
             {{#empeche}}
@@ -181,22 +196,70 @@
             {{#tard}}<p class="mod_redaction-se-reason">{{#str}}training_error_deadline_passed, mod_redaction{{/str}}</p>{{/tard}}
             {{#raison}}<p class="mod_redaction-se-reason">{{raison}}</p>{{/raison}}
         </div>
-        <div class="mod_redaction-se-attente{{#pending}} mod_redaction-se-pending{{/pending}}" id="mod_redaction-se-attente" role="status"{{^pending}} hidden{{/pending}}>
-            <span class="mod_redaction-se-chrono" id="mod_redaction-se-chrono" data-estimation="{{estimation}}" data-ecoule="{{ecoule}}"
-                aria-hidden="true">
-                <svg class="mod_redaction-se-chrono-cercle" viewBox="0 0 48 48" focusable="false">
-                    <circle class="mod_redaction-se-chrono-piste" cx="24" cy="24" r="21"></circle>
-                    <circle class="mod_redaction-se-chrono-arc" cx="24" cy="24" r="21" pathLength="100"></circle>
-                </svg>
-                <span class="mod_redaction-se-chrono-temps"></span>
-            </span>
-            <span>{{#str}}sujets_correction_patience, mod_redaction{{/str}}</span>
-        </div>
         <div class="mod_redaction-se-message" id="mod_redaction-se-message" role="alert"></div>
     </aside>
 </div>
 <div class="mod_redaction-se-barre">
     <span class="mod_redaction-se-barre-etat">{{etatlibelle}}{{#hasnote}} · {{note}}/20{{/hasnote}}{{^hasnote}}{{#hasindicatif}} · {{indicatif}}/20{{/hasindicatif}}{{/hasnote}}</span>
+    {{#proposerremise}}<button type="button" class="btn btn-primary btn-sm mod_redaction-se-remettre" data-action="remettre">{{#str}}sujets_se_finale, mod_redaction{{/str}}</button>{{/proposerremise}}
     <a class="btn btn-secondary btn-sm" href="#mod_redaction-se-volet-ancre">{{#str}}sujets_se_avancement, mod_redaction{{/str}}</a>
 </div>
+<dialog class="mod_redaction-se-fenetre" id="mod_redaction-se-fenetre-attente" aria-labelledby="mod_redaction-se-attente-titre">
+    <div class="mod_redaction-se-fenetre-tete"><h2 id="mod_redaction-se-attente-titre">{{#str}}sujets_res_attente_titre, mod_redaction{{/str}}</h2></div>
+    <div class="mod_redaction-se-fenetre-corps">
+        <ol class="mod_redaction-se-attente-etapes">
+            <li class="mod_redaction-se-etape-faite"><span class="mod_redaction-se-etape-pastille" aria-hidden="true">&#10003;</span> {{#str}}sujets_res_etape_envoyee, mod_redaction{{/str}}</li>
+            <li class="mod_redaction-se-etape-encours" aria-current="step"><span class="mod_redaction-se-etape-pastille" aria-hidden="true">2</span>
+                <span id="mod_redaction-se-etape-ia" data-file="{{#str}}sujets_res_etape_file, mod_redaction{{/str}}" data-encours="{{#str}}sujets_res_etape_note, mod_redaction{{/str}}">{{#enfile}}{{#str}}sujets_res_etape_file, mod_redaction{{/str}}{{/enfile}}{{^enfile}}{{#str}}sujets_res_etape_note, mod_redaction{{/str}}{{/enfile}}</span></li>
+            <li class="mod_redaction-se-etape-avenir"><span class="mod_redaction-se-etape-pastille" aria-hidden="true">3</span> {{#str}}sujets_res_etape_affiche, mod_redaction{{/str}}</li>
+        </ol>
+    <div class="mod_redaction-se-attente{{#pending}} mod_redaction-se-pending{{/pending}}" id="mod_redaction-se-attente" role="status">
+        <span class="mod_redaction-se-chrono" id="mod_redaction-se-chrono" data-estimation="{{estimation}}" data-ecoule="{{ecoule}}"
+            aria-hidden="true">
+            <svg class="mod_redaction-se-chrono-cercle" viewBox="0 0 48 48" focusable="false">
+                <circle class="mod_redaction-se-chrono-piste" cx="24" cy="24" r="21"></circle>
+                <circle class="mod_redaction-se-chrono-arc" cx="24" cy="24" r="21" pathLength="100"></circle>
+            </svg>
+            <span class="mod_redaction-se-chrono-temps"></span>
+        </span>
+        <span>{{#str}}sujets_correction_patience, mod_redaction{{/str}}</span>
+    </div>
+    </div>
+</dialog>
+{{#hasresultat}}{{#resultat}}
+<dialog class="mod_redaction-se-fenetre" id="mod_redaction-se-fenetre-resultat" data-evaluationid="{{evaluationid}}" aria-labelledby="mod_redaction-se-resultat-titre">
+    <div class="mod_redaction-se-fenetre-tete">
+        <h2 id="mod_redaction-se-resultat-titre">{{titre}}</h2>
+        <button type="button" class="mod_redaction-se-fermer" data-action="fermer" aria-label="{{#str}}sujets_res_fermer, mod_redaction{{/str}}"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="mod_redaction-se-fenetre-corps">
+        {{#estseuil}}
+        <div class="mod_redaction-se-reussite">
+            <span class="mod_redaction-se-medaille" aria-hidden="true">&#10003;</span>
+            <strong>{{ligne}}</strong>
+            <p>{{sousligne}}</p>
+        </div>
+        <details class="mod_redaction-se-detail">
+            <summary>{{#str}}sujets_res_detail, mod_redaction{{/str}}</summary>
+            {{> mod_redaction/sujets_cadre}}
+        </details>
+        {{/estseuil}}
+        {{^estseuil}}
+        <div class="mod_redaction-se-res-banner {{#ok}}mod_redaction-se-ok{{/ok}}{{^ok}}mod_redaction-se-ko{{/ok}}" role="status">
+            <span class="mod_redaction-se-mark" aria-hidden="true">{{#ok}}&#10003;{{/ok}}{{^ok}}&#10007;{{/ok}}</span>
+            <span><strong>{{ligne}}</strong>{{#sousligne}} <span class="mod_redaction-se-res-sousligne">{{sousligne}}</span>{{/sousligne}}</span>
+        </div>
+        {{^estechec}}{{> mod_redaction/sujets_cadre}}{{/estechec}}
+        {{/estseuil}}
+    </div>
+    <div class="mod_redaction-se-fenetre-pied">
+        {{#estseuil}}
+        {{#canameliorer}}<button type="button" class="btn btn-outline-primary" data-action="fermer">{{ameliorer}}</button>{{/canameliorer}}
+        {{#canremettre}}<button type="button" class="btn btn-primary mod_redaction-se-remettre" data-action="remettre"><span class="mod_redaction-se-num" aria-hidden="true">3</span> {{#str}}sujets_se_finale, mod_redaction{{/str}}</button>{{/canremettre}}
+        {{^canremettre}}<button type="button" class="btn btn-primary" data-action="fermer">{{#str}}sujets_res_retourner, mod_redaction{{/str}}</button>{{/canremettre}}
+        {{/estseuil}}
+        {{^estseuil}}<button type="button" class="btn btn-primary" data-action="fermer">{{#str}}sujets_res_retourner, mod_redaction{{/str}}</button>{{/estseuil}}
+    </div>
+</dialog>
+{{/resultat}}{{/hasresultat}}
 </div>

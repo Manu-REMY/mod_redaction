@@ -1,0 +1,75 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_redaction/sujets_cadre
+
+    Frame of a feedback in the feedback window (17/11/2026): how many expected elements were found (never which ones),
+    what works and what is missing side by side, then what to do for the next feedback, and the language mistakes.
+
+    Context variables required for this template:
+    * hascompteur, compteur, cases - Expected elements found: sentence and one box per element (trouve)
+    * hasva, va, hasmanque, manque, hasprochain, prochain - Per subject: titre, texte
+    * empeche - The explanations are right but the language keeps the total under the threshold
+    * hasfautes, fautes - Language mistakes: cite (quoted), correction
+
+    Example context (json):
+    {
+        "hascompteur": true, "compteur": "Éléments attendus trouvés : 1 sur 2", "cases": [{"trouve": true}, {"trouve": false}],
+        "hasva": true, "va": [{"titre": "Ma poutre « flexion »", "texte": "Tu décris ta section."}],
+        "hasmanque": true, "manque": [{"titre": "Ma poutre « flexion »", "texte": "Dis ce que subit chaque semelle."}],
+        "hasprochain": true, "prochain": [{"titre": "Ma poutre « flexion »", "texte": "Que se passe-t-il quand ta poutre plie ?"}],
+        "empeche": false,
+        "hasfautes": true, "fautes": [{"cite": "« fonctionnemant »", "correction": "fonctionnement"}]
+    }
+}}
+{{#hascompteur}}
+<p class="mod_redaction-se-compteur">
+    <span class="mod_redaction-se-compteur-cases" aria-hidden="true">{{#cases}}<span class="mod_redaction-se-compteur-case{{#trouve}} mod_redaction-se-compteur-trouve{{/trouve}}"></span>{{/cases}}</span>
+    <span>{{compteur}}</span>
+</p>
+{{/hascompteur}}
+<div class="mod_redaction-se-colonnes">
+    {{#hasva}}
+    <div class="mod_redaction-se-bloc mod_redaction-se-va">
+        <p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&#10003;</span> {{#str}}sujets_se_juste, mod_redaction{{/str}}</p>
+        {{#va}}<p class="mod_redaction-se-bloc-sujet">{{titre}}</p><p>{{texte}}</p>{{/va}}
+    </div>
+    {{/hasva}}
+    {{#hasmanque}}
+    <div class="mod_redaction-se-bloc mod_redaction-se-manque">
+        <p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_se_a_preciser, mod_redaction{{/str}}</p>
+        {{#manque}}<p class="mod_redaction-se-bloc-sujet">{{titre}}</p><p>{{texte}}</p>{{/manque}}
+    </div>
+    {{/hasmanque}}
+</div>
+{{#hasprochain}}
+<div class="mod_redaction-se-bloc mod_redaction-se-prochain">
+    <p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&rarr;</span> {{#str}}sujets_se_piste, mod_redaction{{/str}}</p>
+    {{#prochain}}<p class="mod_redaction-se-bloc-sujet">{{titre}}</p><p>{{texte}}</p>{{/prochain}}
+</div>
+{{/hasprochain}}
+{{#empeche}}
+<p class="mod_redaction-se-notice mod_redaction-langue-empeche" role="status">{{#str}}sujets_langue_empeche, mod_redaction{{/str}}</p>
+{{/empeche}}
+{{#hasfautes}}
+<div class="mod_redaction-se-bloc mod_redaction-se-manque mod_redaction-se-fautes">
+    <p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&#10007;</span> {{#str}}sujets_res_fautes, mod_redaction{{/str}}</p>
+    <ul>
+        {{#fautes}}<li><s>{{cite}}</s> <span aria-hidden="true">&rarr;</span> <strong>{{correction}}</strong></li>{{/fautes}}
+    </ul>
+</div>
+{{/hasfautes}}

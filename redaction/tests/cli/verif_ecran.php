@@ -350,6 +350,9 @@ try {
     $enregistrer('2-correction-en-cours', $ha);
     $check('steps: written, no feedback yet, step 2, the final still locked', $da['etape'] === 2 && $da['verrou']
         && $da['etapes'][0]['fait'] && $da['etapes'][1]['encours']);
+    $check('waiting window: in the page, queued for the AI, no result while the correction runs',
+        strpos($ha, 'mod_redaction-se-fenetre-attente') !== false && $da['enfile'] && !$da['hasresultat']
+        && strpos($ha, get_string('sujets_res_etape_file', 'mod_redaction')) !== false);
     // The timer: estimated time (90 s while the activity has no correction yet) and time already spent, so a reload keeps
     // counting from the request.
     $check("timer: estimate 90 s, time spent from the request ({$da['estimation']}, {$da['ecoule']})",
@@ -383,6 +386,12 @@ try {
     $check('steps: a feedback under the threshold, still step 2, the final unlocked but not filled', $da['etape'] === 2
         && !$da['verrou'] && !$da['finaledisabled'] && $da['retourplein'] && !$da['finaleplein']
         && strpos($ha, get_string('sujets_se_verrou', 'mod_redaction')) === false && strpos($ha, $utilises(1, 5)) !== false);
+    $check('window: the feedback under the threshold, what works in its blue frame, back to the copy',
+        $da['hasresultat'] && $da['resultat']['estretour'] && $da['resultat']['hasva'] && !$da['proposerremise']
+        && strpos($ha, 'mod_redaction-se-fenetre-resultat') !== false && strpos($ha, 'mod_redaction-se-va') !== false
+        && strpos($ha, get_string('sujets_res_retourner', 'mod_redaction')) !== false);
+    $check('window: an answer key without E1, E2… gives no count', !$da['resultat']['hascompteur']
+        && strpos($ha, 'mod_redaction-se-compteur') === false);
     $enregistrer('3-note-sous-le-seuil', $ha);
 
     // Failure: correction pending, attempt given back.
@@ -396,6 +405,9 @@ try {
     [$da, $ha] = $rendre($a);
     $check('failed: attempt given back, "correction en attente" shown, indication kept', $da['echec'] && !$da['pending'] && $da['restants'] === 4
         && $da['hasindicatif'] && strpos($ha, 'Correction en attente') !== false);
+    $check('window: a failed correction says the attempt is given back', $da['hasresultat'] && $da['resultat']['estechec']
+        && $da['resultat']['ligne'] === get_string('sujets_res_echec', 'mod_redaction')
+        && strpos($ha, s(get_string('sujets_res_echec', 'mod_redaction'))) !== false);
     $enregistrer('4-correction-en-attente', $ha);
 
     // Validated.
@@ -411,6 +423,12 @@ try {
     $check('steps: threshold reached, step 3, the final filled, the feedback button outlined', $da['etape'] === 3
         && $da['finaleplein'] && !$da['retourplein'] && !$da['verrou'] && $da['etapes'][1]['fait'] && $da['etapes'][2]['encours']
         && strpos($ha, $utilises(2, 5)) !== false);
+    $check('window at the threshold: offers to hand in, or to improve further with the feedback left',
+        $da['hasresultat'] && $da['resultat']['estseuil'] && $da['resultat']['canremettre'] && $da['resultat']['canameliorer']
+        && strpos($ha, 'data-action="remettre"') !== false
+        && strpos($ha, get_string('sujets_res_ameliorer', 'mod_redaction', 3)) !== false);
+    $check('banner at the top: threshold reached, hand in', $da['proposerremise']
+        && strpos($ha, 'mod_redaction-se-bandeau-remise') !== false);
     $enregistrer('5-valide', $ha);
 
     // Nothing changed since that correction: the AI never corrects it again, no attempt counted (Emmanuel, 13/11).

@@ -139,6 +139,14 @@ class sujets_eleve implements renderable, templatable {
             1
         );
         $indicatif = null;
+        // The feedback window (17/11/2026): what works, what is missing, what to do next, by subject.
+        $va = [];
+        $manque = [];
+        $prochain = [];
+        $pistes = [];
+        $attendustrouves = 0;
+        $attendustotal = 0;
+        $compteur = true;
         if ($derniere) {
             $derniere = reset($derniere);
             $p = (float) ($derniere->langue_points ?? 0);
@@ -151,8 +159,28 @@ class sujets_eleve implements renderable, templatable {
                 $juste = (string) ($detail['juste'] ?? ($detail['commentaire'] ?? ''));
                 $apreciser = (string) ($detail['a_preciser'] ?? '');
                 $piste = (string) ($detail['piste'] ?? '');
+                $titre = format_string($detail['titre'] ?? '');
+                if ($juste !== '') {
+                    $va[] = ['titre' => $titre, 'texte' => $juste];
+                }
+                if (!empty($detail['vide'])) {
+                    $manque[] = ['titre' => $titre, 'texte' => get_string('sujets_se_vide', 'mod_redaction')];
+                } else if ($apreciser !== '') {
+                    $manque[] = ['titre' => $titre, 'texte' => $apreciser];
+                }
+                if ($piste !== '') {
+                    $prochain[] = ['titre' => $titre, 'texte' => $piste];
+                    $pistes[(int) ($detail['sujetid'] ?? 0)] = $piste;
+                }
+                // Counted, never named; a correction made before the count was kept has no counter.
+                if (isset($detail['attendus'], $detail['attendus_total']) && is_array($detail['attendus'])) {
+                    $attendustrouves += min(count($detail['attendus']), (int) $detail['attendus_total']);
+                    $attendustotal += (int) $detail['attendus_total'];
+                } else {
+                    $compteur = false;
+                }
                 $commentaires[] = [
-                    'titre' => format_string($detail['titre'] ?? ''),
+                    'titre' => $titre,
                     'hasnote' => isset($detail['note']),
                     'note' => isset($detail['note'])
                         ? format_float(\mod_redaction\notes_sujets::sur_echelle((float) $detail['note'], $p), 1, true, true) : '',
@@ -226,6 +254,22 @@ class sujets_eleve implements renderable, templatable {
                 'avenir' => $numero > $etape,
             ];
         }
+        $resultat = $this->resultat($toutes, $derniere, [
+            'pending' => $pending || $enattente, 'indicatif' => $indicatif, 'atteint' => $atteint, 'note' => $note,
+            'valide' => $valide, 'seuil' => $seuil, 'redaction' => $redaction, 'numero' => (int) $submission->training_count,
+            'va' => $va, 'manque' => $manque, 'prochain' => $prochain, 'empeche' => $empeche, 'langue' => $langue,
+            'compteur' => $compteur && $attendustotal > 0, 'trouves' => $attendustrouves, 'total' => $attendustotal,
+            'canameliorer' => !$rendue && !$tard && $restants > 0, 'restants' => $restants,
+            'canremettre' => $finalepossible && !$verrou,
+        ]);
+        // Idea 1: the lead of each subject stays under its answer while the copy can change.
+        $avecpiste = !$rendue && !$tard && $derniere && empty($derniere->finale);
+        foreach ($items as $k => $item) {
+            $piste = $avecpiste ? ($pistes[$item['id']] ?? '') : '';
+            $items[$k]['haspiste'] = $piste !== '';
+            $items[$k]['piste'] = $piste;
+        }
+
         $utilises = min((int) $submission->training_count, $maxeffective);
         $pastilles = array_map(fn($i) => ['utilise' => $i < $utilises], range(0, $maxeffective - 1));
 
@@ -280,6 +324,83 @@ class sujets_eleve implements renderable, templatable {
             'retourplein' => $etape <= 2,
             'finaleplein' => $etape === 3 && !$verrou,
             'verrou' => $verrou,
+            'enfile' => $pending && $toutes && reset($toutes)->status === 'pending',
+            'hasresultat' => $resultat !== null,
+            'resultat' => $resultat,
+            // Idea 2: the threshold is reached on the last feedback and the copy can be handed in.
+            'proposerremise' => $atteint && $finalepossible && !$verrou && !$pending && $note === null,
+            'bandeauremise' => $atteint ? get_string('sujets_bandeau_seuil', 'mod_redaction', format_float($indicatif, 1, true, true)) : '',
         ];
+    }
+
+    /**
+     * What the feedback window shows about the latest correction, null while one runs or before any.
+     *
+     * @param array $toutes Evaluations of the copy, latest first: id, status, finale.
+     * @param \stdClass|array $derniere Latest applied evaluation (empty when none).
+     * @param array $d What export_for_template computed: pending, indicatif, atteint, note, valide, seuil, redaction,
+     *                 numero, va, manque, prochain, empeche, langue, compteur, trouves, total, canameliorer, restants,
+     *                 canremettre.
+     * @return array|null
+     */
+    protected function resultat(array $toutes, $derniere, array $d): ?array {
+        $plusrecente = $toutes ? reset($toutes) : null;
+        if (!$plusrecente || $d['pending']) {
+            return null;
+        }
+        $f = fn(float $x) => format_float($x, 1, true, true);
+        $base = [
+            'evaluationid' => (int) $plusrecente->id,
+            'estretour' => false, 'estseuil' => false, 'estfinale' => false, 'estechec' => false, 'ok' => false,
+            'ligne' => '', 'sousligne' => '',
+            'hasva' => !empty($d['va']), 'va' => $d['va'],
+            'hasmanque' => !empty($d['manque']), 'manque' => $d['manque'],
+            'hasprochain' => !empty($d['prochain']), 'prochain' => $d['prochain'],
+            'empeche' => $d['empeche'],
+            'hascompteur' => $d['compteur'],
+            'compteur' => $d['compteur'] ? get_string('sujets_res_trouves', 'mod_redaction',
+                (object) ['trouves' => $d['trouves'], 'total' => $d['total']]) : '',
+            'cases' => $d['compteur'] ? array_map(fn($i) => ['trouve' => $i < $d['trouves']], range(0, $d['total'] - 1)) : [],
+            'hasfautes' => !empty($d['langue']['fautes']),
+            'fautes' => $d['langue']['fautes'] ?? [],
+            'canameliorer' => false, 'ameliorer' => '', 'canremettre' => false,
+        ];
+
+        if ($plusrecente->status === 'failed' && empty($plusrecente->finale)) {
+            return ['estechec' => true, 'titre' => get_string('sujets_res_echec_titre', 'mod_redaction'),
+                'ligne' => get_string('sujets_res_echec', 'mod_redaction'),
+                'hasva' => false, 'hasmanque' => false, 'hasprochain' => false, 'hascompteur' => false,
+                'hasfautes' => false, 'empeche' => false] + $base;
+        }
+        if ($plusrecente->status !== 'applied' || !$derniere || (int) $derniere->id !== (int) $plusrecente->id) {
+            return null;
+        }
+        $niveau = \mod_redaction\notes_sujets::niveau($d['redaction']);
+        if (!empty($derniere->finale)) {
+            if ($d['note'] === null) {
+                return null;
+            }
+            return ['estfinale' => true, 'ok' => $d['valide'],
+                'titre' => get_string('sujets_res_finale_titre', 'mod_redaction'),
+                'ligne' => get_string('sujets_se_note', 'mod_redaction', $f($d['note'])),
+                'sousligne' => get_string($d['valide'] ? 'sujets_valide' : 'sujets_pas_valide', 'mod_redaction', $niveau)] + $base;
+        }
+        if ($d['indicatif'] === null) {
+            return null;
+        }
+        $titre = get_string('sujets_se_retour_titre', 'mod_redaction', $d['numero']);
+        if ($d['atteint']) {
+            return ['estseuil' => true, 'ok' => true, 'titre' => $titre,
+                'ligne' => get_string('sujets_res_seuil', 'mod_redaction', $f($d['indicatif'])),
+                'sousligne' => get_string('sujets_se_atteint', 'mod_redaction', $niveau),
+                'canameliorer' => $d['canameliorer'],
+                'ameliorer' => get_string('sujets_res_ameliorer', 'mod_redaction', $d['restants']),
+                'canremettre' => $d['canremettre']] + $base;
+        }
+        $ecart = max(0.1, round($d['seuil'] - $d['indicatif'], 1));
+        return ['estretour' => true, 'titre' => $titre,
+            'ligne' => get_string('sujets_res_note_ko', 'mod_redaction',
+                (object) ['note' => $f($d['indicatif']), 'seuil' => format_float($d['seuil'], 0, true, true)]),
+            'sousligne' => get_string($ecart < 2 ? 'sujets_res_encore_un' : 'sujets_res_encore', 'mod_redaction', $f($ecart))] + $base;
     }
 }

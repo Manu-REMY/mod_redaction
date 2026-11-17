@@ -2552,18 +2552,229 @@
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-carte-valeur {
     font-weight: 600;
 }
-.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-partie {
-    margin: 4px 0;
+/* Feedback (17/11/2026), in the window and in the panel: what works (light blue, tick), what is missing (orange frame,
+   cross), what to do next (blue frame, arrow). The colour always comes with its mark and its word. */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-bloc {
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 6px 0;
     line-height: 1.45;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
-.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-signe {
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-bloc p {
+    margin: 0 0 4px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-bloc-titre {
     font-weight: 700;
+    font-size: 0.9em;
 }
-.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-signe-ok {
-    color: #2f5f93;
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-bloc-sujet {
+    font-weight: 600;
+    font-size: 0.85em;
+    color: #52606d;
 }
-.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-signe-ko {
-    color: #a4500f;
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-va {
+    background: #e3eefa;
+    border: 1px solid #e3eefa;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-va .mod_redaction-se-bloc-titre {
+    color: #0b4f8c;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-manque {
+    background: #fff;
+    border: 2px solid #e7b48a;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-manque .mod_redaction-se-bloc-titre {
+    color: #a9500f;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-prochain {
+    background: #fff;
+    border: 2px solid #0f6cbf;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-prochain .mod_redaction-se-bloc-titre {
+    color: #0b4f8c;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fautes ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fautes s {
+    color: #a9500f;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-colonnes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-colonnes .mod_redaction-se-bloc {
+    margin: 0;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-compteur {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-size: 0.9em;
+    color: #52606d;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-compteur-cases {
+    display: inline-flex;
+    gap: 4px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-compteur-case {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1.5px solid #0f6cbf;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-compteur-trouve {
+    background: #0f6cbf;
+}
+/* Idea 1: the lead under its answer. */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-piste-reponse {
+    margin: 6px 0 0;
+    padding: 6px 10px;
+    border-left: 3px solid #0f6cbf;
+    border-radius: 0 6px 6px 0;
+    background: #e3eefa;
+    color: #1d2125;
+}
+/* Idea 2: the banner offering to hand in. */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-bandeau-remise {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    margin-bottom: 1rem;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #0f6cbf;
+    color: #fff;
+    font-weight: 600;
+}
+/* The window: waiting, then the result of the correction. */
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fenetre {
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    color: #1d2125;
+    background: #fff;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fenetre::backdrop {
+    background: rgba(29, 33, 37, 0.5);
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fenetre-tete {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #dde2e8;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fenetre-tete h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fermer {
+    border: 0;
+    background: transparent;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #52606d;
+    min-width: 44px;
+    min-height: 44px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fenetre-corps {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fenetre-pied {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid #dde2e8;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fenetre-pied .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fenetre .mod_redaction-se-attente {
+    margin: 0;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-attente-etapes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #52606d;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-attente-etapes li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-attente-etapes .mod_redaction-se-etape-encours {
+    color: #1d2125;
+    font-weight: 600;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-res-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-res-banner strong {
+    display: block;
+    font-size: 1.1rem;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-reussite {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-reussite strong {
+    font-size: 1.35rem;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-reussite p {
+    margin: 0;
+    color: #52606d;
+    max-width: 42ch;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-medaille {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #0f6cbf;
+    color: #fff;
+    font-size: 1.8rem;
+    font-weight: 700;
+    box-shadow: 0 0 0 8px #e3eefa;
+}
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-detail summary {
+    font-weight: 600;
+    color: #0b4f8c;
+    cursor: pointer;
 }
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-actions {
     display: flex;

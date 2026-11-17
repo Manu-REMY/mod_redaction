@@ -20,6 +20,7 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
     var POLL_MAX = 120;
     var LIGHT_INTERVAL = 10000;
     var KEEPALIVE_URL = '/lib/ajax/service.php';
+    var STORAGE_PREFIX = 'mod_redaction_attente_';
 
     var config = {};
     var strings = {};
@@ -88,7 +89,66 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
     }
 
     /**
-     * Show the timer next to the button, in view.
+     * Remember, in this tab, that a correction is awaited: the result window opens after the reload.
+     * @param {boolean} on
+     */
+    function markWaiting(on) {
+        try {
+            if (on) {
+                window.sessionStorage.setItem(STORAGE_PREFIX + config.submissionid, '1');
+            } else {
+                window.sessionStorage.removeItem(STORAGE_PREFIX + config.submissionid);
+            }
+        } catch (e) {
+            // Storage blocked: no result window, the panel still shows the feedback.
+            return;
+        }
+    }
+
+    /**
+     * Whether this tab was waiting for a correction.
+     * @returns {boolean}
+     */
+    function wasWaiting() {
+        try {
+            return window.sessionStorage.getItem(STORAGE_PREFIX + config.submissionid) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Open a window over the page (a dialog element; shown in place where the browser has no dialog support).
+     * @param {HTMLDialogElement} dialog
+     */
+    function openWindow(dialog) {
+        if (!dialog || dialog.open) {
+            return;
+        }
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+    }
+
+    /**
+     * Close a window.
+     * @param {HTMLDialogElement} dialog
+     */
+    function closeWindow(dialog) {
+        if (!dialog || !dialog.open) {
+            return;
+        }
+        if (typeof dialog.close === 'function') {
+            dialog.close();
+        } else {
+            dialog.removeAttribute('open');
+        }
+    }
+
+    /**
+     * Show the waiting window with its timer.
      * @param {number} ecoule Seconds already spent on the correction (0 when it was just asked for)
      */
     function showWaiting(ecoule) {
@@ -97,13 +157,24 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
         if (failed) {
             failed.hidden = true;
         }
+        closeWindow(root.querySelector('#mod_redaction-se-fenetre-resultat'));
         if (el) {
             el.hidden = false;
             el.classList.add('mod_redaction-se-pending');
             startChrono(ecoule || 0);
-            if (el.scrollIntoView) {
-                el.scrollIntoView({block: 'center'});
-            }
+        }
+        markWaiting(true);
+        openWindow(root.querySelector('#mod_redaction-se-fenetre-attente'));
+    }
+
+    /**
+     * Word the second step of the waiting window: still queued, or being corrected.
+     * @param {string} status pending or processing
+     */
+    function showStep(status) {
+        var step = root.querySelector('#mod_redaction-se-etape-ia');
+        if (step && (status === 'pending' || status === 'processing')) {
+            step.textContent = status === 'pending' ? step.dataset.file : step.dataset.encours;
         }
     }
 
@@ -185,6 +256,8 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
                 if (data.status === 'applied' || data.status === 'failed') {
                     clearInterval(timer);
                     window.location.reload();
+                } else {
+                    showStep(data.status);
                 }
                 return data;
             }).catch(function() {
@@ -306,6 +379,7 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
                 setMessage(result.message);
                 return;
             }
+            showStep('pending');
             root.querySelectorAll('.mod_redaction-se-reponse').forEach(function(area) {
                 area.readOnly = true;
             });
@@ -414,6 +488,27 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
             });
         }
 
+        // The windows: no closing while the correction runs; the result closes, or hands in the copy.
+        var attente = root.querySelector('#mod_redaction-se-fenetre-attente');
+        if (attente) {
+            attente.addEventListener('cancel', function(e) {
+                e.preventDefault();
+            });
+        }
+        root.querySelectorAll('[data-action="fermer"]').forEach(function(bouton) {
+            bouton.addEventListener('click', function() {
+                closeWindow(bouton.closest('dialog'));
+            });
+        });
+        root.querySelectorAll('[data-action="remettre"]').forEach(function(bouton) {
+            bouton.addEventListener('click', function() {
+                closeWindow(bouton.closest('dialog'));
+                if (finale && !finale.disabled) {
+                    soumettreFinale(finale);
+                }
+            });
+        });
+
         // Keep the last seconds of typing when the page is left or hidden.
         window.addEventListener('pagehide', flushOnExit);
         document.addEventListener('visibilitychange', function() {
@@ -423,11 +518,14 @@ define(['core/ajax', 'core/notification', 'core/str', 'mod_redaction/phrases'], 
         });
         lightPoll();
 
-        // A correction already running when the page opens.
+        // A correction already running when the page opens; or the one this tab waited for is over.
         if (root.querySelector('.mod_redaction-se-pending')) {
             var chrono = root.querySelector('#mod_redaction-se-chrono');
             showWaiting(chrono ? parseInt(chrono.dataset.ecoule, 10) || 0 : 0);
             poll();
+        } else if (wasWaiting()) {
+            markWaiting(false);
+            openWindow(root.querySelector('#mod_redaction-se-fenetre-resultat'));
         }
     }
 

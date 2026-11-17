@@ -324,6 +324,11 @@ try {
         && !str_contains($hf, 'mod_redaction-se-final') && !str_contains($hf, '[['));
     $check('student screen: what is right, with its word (above the threshold, nothing else)',
         str_contains($hf, get_string('sujets_se_juste', 'mod_redaction')) && !str_contains($hf, get_string('sujets_se_piste', 'mod_redaction')));
+    // Feedback window (17/11/2026): the final graded, nothing more to hand in, no lead under the answers.
+    $check('window after the final: the grade of the final, validated, no lead under the answers, no banner',
+        $df['hasresultat'] && $df['resultat']['estfinale'] && $df['resultat']['ok'] && !$df['proposerremise']
+        && !array_filter($df['items'], fn($i) => $i['haspiste']) && str_contains($hf, 'mod_redaction-se-fenetre-resultat')
+        && str_contains($hf, get_string('sujets_res_finale_titre', 'mod_redaction')));
     // Reopened by the teacher: the feedback received before still counts, the final is not locked again.
     $DB->set_field('redaction_submission', 'status', 0, ['id' => $submission->id]);
     $check('reopened copy: the earlier feedback still counts',
@@ -336,6 +341,25 @@ try {
     repondre($sub2, $sujets2, 'Premier texte de ma poutre.', FORMAT_PLAIN);
     $sim->reponses = [ia3(10), ia3(10), langue_ia(['S', 'S', 'S', 'S'])];
     passer($redaction, $sub2, $b, false);
+    // Feedback window (17/11/2026) under the threshold: the two columns, the lead, the count, never the expected elements.
+    \core\session\manager::set_user($DB->get_record('user', ['id' => $b]));
+    $d3 = (new \mod_redaction\output\sujets_eleve($redaction, $cmf, $ctxf, $DB->get_record('redaction_submission', ['id' => $sub2->id]), 0))
+        ->export_for_template($outf);
+    $h3 = $outf->render_from_template('mod_redaction/sujets_eleve', $d3);
+    \core\session\manager::set_user(get_admin());
+    $r3 = $d3['resultat'];
+    $check('window under the threshold: a feedback, what works, what is missing, what to do next',
+        $d3['hasresultat'] && $r3['estretour'] && !$r3['ok'] && $r3['hasva'] && $r3['hasmanque'] && $r3['hasprochain']
+        && str_contains($h3, 'mod_redaction-se-va') && str_contains($h3, 'mod_redaction-se-manque') && str_contains($h3, 'mod_redaction-se-prochain'));
+    $check('window under the threshold: the points still missing are said', $r3['sousligne'] !== '' && !$d3['proposerremise']);
+    $check('window: the expected elements are counted (4 out of 4), never named (' . $r3['compteur'] . ' '
+        . $DB->get_field_sql('SELECT sujets_json FROM {redaction_ai_evaluations} WHERE submissionid = ? ORDER BY id DESC', [$sub2->id], IGNORE_MULTIPLE) . ')', $r3['hascompteur']
+        && $r3['compteur'] === get_string('sujets_res_trouves', 'mod_redaction', (object) ['trouves' => 4, 'total' => 4])
+        && !str_contains($h3, 'semelle') && !str_contains($h3, 'E1'));
+    $check('the lead of each subject stays under its answer', count(array_filter($d3['items'], fn($i) => $i['haspiste'])) === 2
+        && str_contains($h3, 'mod_redaction-se-piste-reponse'));
+    $check('window under the threshold: no hand-in button in it, the student goes back to the copy',
+        str_contains($h3, get_string('sujets_res_retourner', 'mod_redaction')));
     repondre($sub2, $sujets2, 'Premier texte de la poutre.', FORMAT_PLAIN);
     $sim->appels = [];
     $sim->reponses = [ia3(16), ia3(16), langue_ia(['TS', 'TS', 'TS', 'TS'])];
