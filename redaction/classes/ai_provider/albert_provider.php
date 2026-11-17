@@ -42,6 +42,13 @@ class albert_provider extends base_provider {
     const DEFAULT_MODEL = 'deepseek-v4-flash';
 
     /**
+     * @var string[] Models that reason before they answer: their reasoning is switched off (Emmanuel, 17/11/2026).
+     * Under load Albert wrote about 12 tokens per second, and the reasoning made one correction last more than
+     * 5 minutes; without it, the same copy took 21 seconds, the content grade unchanged on 6 copies out of 8.
+     */
+    const MODELES_SANS_RAISONNEMENT = ['deepseek-v4-flash'];
+
+    /**
      * Get the API key for Albert from admin settings.
      *
      * @return string The configured API key, or empty string if not configured.
@@ -124,7 +131,7 @@ class albert_provider extends base_provider {
      * @return array
      */
     protected function build_body(string $systemprompt, string $userprompt, string $model, int $maxtokens): array {
-        return [
+        $body = [
             'model' => $model,
             'messages' => [
                 ['role' => 'system', 'content' => $systemprompt],
@@ -133,6 +140,10 @@ class albert_provider extends base_provider {
             'max_tokens' => $maxtokens,
             'temperature' => 0.3,
         ];
+        if (in_array($model, self::MODELES_SANS_RAISONNEMENT, true)) {
+            $body['chat_template_kwargs'] = ['thinking' => false];
+        }
+        return $body;
     }
 
     /**
