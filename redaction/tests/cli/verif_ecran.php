@@ -486,6 +486,13 @@ try {
     [$da, $ha] = $rendre($a);
     $enregistrer('8-langue', $ha);
     $check('language: the levels in words and letters', strpos($ha, 'Insuffisant (I)') !== false && strpos($ha, 'Très satisfaisant (TS)') !== false);
+    // 17/11/2026: below TS, what to do to go up, whatever the AI wrote (its advice may be empty or filtered out).
+    $progresser = array_column($da['langue']['progresser'] ?? [], 'conseil');
+    $check('language: how to go up for each level under TS, nothing for the TS one', count($progresser) === 3
+        && in_array(get_string('langue_progresser_orthographe', 'mod_redaction'), $progresser, true)
+        && !in_array(get_string('langue_progresser_organisation', 'mod_redaction'), $progresser, true)
+        && strpos($ha, s(get_string('langue_progresser_titre', 'mod_redaction'))) !== false);
+    $check('language: the window says it too', !empty($da['resultat']['hasprogresser']));
     $check('language: each spelling mistake with its exact form', strpos($ha, 'fonctionnemant') !== false
         && strpos($ha, 'fonctionnement') !== false && strpos($ha, 'ça permet') !== false);
     $check('language: the badly built sentence, quoted, with its kind', strpos($ha, 'le moteur et la roue tourne') !== false

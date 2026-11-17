@@ -363,6 +363,8 @@ class sujets_eleve implements renderable, templatable {
             'cases' => $d['compteur'] ? array_map(fn($i) => ['trouve' => $i < $d['trouves']], range(0, $d['total'] - 1)) : [],
             'hasfautes' => !empty($d['langue']['fautes']),
             'fautes' => $d['langue']['fautes'] ?? [],
+            'hasprogresser' => !empty($d['langue']['progresser']),
+            'progresser' => $d['langue']['progresser'] ?? [],
             'canameliorer' => false, 'ameliorer' => '', 'canremettre' => false,
         ];
 
@@ -370,7 +372,7 @@ class sujets_eleve implements renderable, templatable {
             return ['estechec' => true, 'titre' => get_string('sujets_res_echec_titre', 'mod_redaction'),
                 'ligne' => get_string('sujets_res_echec', 'mod_redaction'),
                 'hasva' => false, 'hasmanque' => false, 'hasprochain' => false, 'hascompteur' => false,
-                'hasfautes' => false, 'empeche' => false] + $base;
+                'hasfautes' => false, 'hasprogresser' => false, 'empeche' => false] + $base;
         }
         if ($plusrecente->status !== 'applied' || !$derniere || (int) $derniere->id !== (int) $plusrecente->id) {
             return null;

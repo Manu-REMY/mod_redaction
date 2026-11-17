@@ -87,6 +87,20 @@ class langue_bloc {
             ];
         }
 
+        // 17/11/2026: for the student, what to do on each dimension under TS. It does not rely on the AI, whose advice
+        // can be missing or removed by the filter of the words of the answer key.
+        $progresser = [];
+        if (!$pourenseignant) {
+            foreach (langue::DIMENSIONS as $dimension) {
+                if (($langue['paliers'][$dimension] ?? '') !== 'TS') {
+                    $progresser[] = [
+                        'dimension' => get_string('langue_dim_' . $dimension, 'mod_redaction'),
+                        'conseil' => get_string('langue_progresser_' . $dimension, 'mod_redaction'),
+                    ];
+                }
+            }
+        }
+
         $ecartees = (int) ($langue['ecartees'] ?? 0);
         return [
             'titre' => get_string('langue_titre', 'mod_redaction', (object) [
@@ -98,6 +112,8 @@ class langue_bloc {
             'fautes' => $fautes,
             'hasremarques' => !empty($remarques),
             'remarques' => $remarques,
+            'hasprogresser' => !empty($progresser),
+            'progresser' => $progresser,
             'hasconseil' => trim((string) ($langue['conseil'] ?? '')) !== '',
             'conseil' => trim((string) ($langue['conseil'] ?? '')),
             'hasecartees' => $pourenseignant && $ecartees > 0,

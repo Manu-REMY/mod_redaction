@@ -2139,7 +2139,7 @@
 
 /* Assigned subjects: student screen. Tender blue = validated, tender orange = not yet, always with a mark and a word. */
 .mod_redaction.mod_redaction-sujets-eleve {
-    max-width: 60rem;
+    max-width: none;
 }
 
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-banner {
@@ -2595,6 +2595,7 @@
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-prochain .mod_redaction-se-bloc-titre {
     color: #0b4f8c;
 }
+.mod_redaction.mod_redaction-sujets-eleve .mod_redaction-langue-progresser ul,
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-fautes ul {
     margin: 0;
     padding-left: 1.2rem;
@@ -2779,6 +2780,7 @@
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-actions {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 8px;
     border-top: 1px solid #e3e6ea;
     padding-top: 12px;
@@ -2922,6 +2924,33 @@
     background: #f5f6f8;
     border-radius: 6px;
     padding: 8px 10px;
+}
+/* A wide screen (17/11/2026): the whole width of the page, the panel as wide as the answers, and in the panel the three
+   parts of a feedback side by side, so the student scrolls less. */
+@media (min-width: 1200px) {
+    .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(420px, 1fr);
+    }
+    .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-comment {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 8px;
+        align-items: start;
+    }
+    .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-comment > .mod_redaction-se-comment-title {
+        grid-column: 1 / -1;
+    }
+    .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-comment > .mod_redaction-se-bloc {
+        margin: 0;
+    }
+    /* The two buttons side by side, in their order: 2 feedback, 3 final version. */
+    .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-actions > p {
+        grid-column: 1 / -1;
+    }
 }
 /* Bottom bar of narrow screens: hidden on a wide screen. */
 .mod_redaction.mod_redaction-sujets-eleve .mod_redaction-se-barre {

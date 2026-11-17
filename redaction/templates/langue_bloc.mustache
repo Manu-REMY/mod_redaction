@@ -24,6 +24,7 @@
     * paliers - dimension, mot, sigle, bas (TI or I)
     * hasfautes, fautes - cite (already quoted), correction, hastype, type, hasfois, fois
     * hasremarques, remarques - cite (already quoted), hastype, type
+    * hasprogresser, progresser - Student only: what to do on each dimension under TS (dimension, conseil)
     * hasecartees, ecartees - Teacher only: quotes of the AI not found in the text
 
     Example context (json):
@@ -36,6 +37,7 @@
             "hasfois": false, "fois": ""}],
         "hasremarques": true,
         "remarques": [{"cite": "« le moteur et la roue tourne »", "hastype": true, "type": "phrase mal construite"}],
+        "hasprogresser": true, "progresser": [{"dimension": "Orthographe", "conseil": "relis-toi mot par mot."}],
         "hasecartees": false,
         "ecartees": ""
     }
@@ -72,6 +74,12 @@
         {{/remarques}}
     </ul>
     {{/hasremarques}}
+    {{#hasprogresser}}
+    <div class="mod_redaction-se-bloc mod_redaction-se-prochain mod_redaction-langue-progresser">
+        <p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&rarr;</span> {{#str}}langue_progresser_titre, mod_redaction{{/str}}</p>
+        <ul>{{#progresser}}<li><strong>{{dimension}}</strong> : {{conseil}}</li>{{/progresser}}</ul>
+    </div>
+    {{/hasprogresser}}
     {{#hasconseil}}
     <p class="mod_redaction-langue-conseil"><strong>{{#str}}langue_conseil, mod_redaction{{/str}}</strong> {{conseil}}</p>
     {{/hasconseil}}

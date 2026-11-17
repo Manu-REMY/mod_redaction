@@ -25,6 +25,7 @@
     * hasva, va, hasmanque, manque, hasprochain, prochain - Per subject: titre, texte
     * empeche - The explanations are right but the language keeps the total under the threshold
     * hasfautes, fautes - Language mistakes: cite (quoted), correction
+    * hasprogresser, progresser - Language: what to do on each dimension under TS (dimension, conseil)
 
     Example context (json):
     {
@@ -33,7 +34,8 @@
         "hasmanque": true, "manque": [{"titre": "Ma poutre « flexion »", "texte": "Dis ce que subit chaque semelle."}],
         "hasprochain": true, "prochain": [{"titre": "Ma poutre « flexion »", "texte": "Que se passe-t-il quand ta poutre plie ?"}],
         "empeche": false,
-        "hasfautes": true, "fautes": [{"cite": "« fonctionnemant »", "correction": "fonctionnement"}]
+        "hasfautes": true, "fautes": [{"cite": "« fonctionnemant »", "correction": "fonctionnement"}],
+        "hasprogresser": true, "progresser": [{"dimension": "Orthographe", "conseil": "Relis-toi mot par mot."}]
     }
 }}
 {{#hascompteur}}
@@ -73,3 +75,9 @@
     </ul>
 </div>
 {{/hasfautes}}
+{{#hasprogresser}}
+<div class="mod_redaction-se-bloc mod_redaction-se-prochain mod_redaction-langue-progresser">
+    <p class="mod_redaction-se-bloc-titre"><span aria-hidden="true">&rarr;</span> {{#str}}langue_progresser_titre, mod_redaction{{/str}}</p>
+    <ul>{{#progresser}}<li><strong>{{dimension}}</strong> : {{conseil}}</li>{{/progresser}}</ul>
+</div>
+{{/hasprogresser}}
