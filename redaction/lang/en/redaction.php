@@ -187,6 +187,7 @@ $string['incomplete'] = 'Incomplete';
 $string['task_evaluate_submission'] = 'Evaluate submission with AI';
 $string['task_auto_submit_deadline'] = 'Auto-submit drafts at deadline';
 $string['task_relancer_finales'] = 'Retry the failed final corrections (assigned subjects)';
+$string['task_liberer_corrections'] = 'Release the corrections left running by a stopped process (assigned subjects)';
 $string['auto_submitted_at_deadline'] = 'Automatically submitted at deadline';
 
 // AI Errors.
@@ -823,6 +824,7 @@ $string['sujets_correction_en_cours'] = 'Correction in progress';
 $string['sujets_finale_en_cours'] = 'Your final version is being corrected.';
 $string['sujets_correction_patience'] = 'Correction in progress, about a minute. Stay on this page: your grade will appear on its own.';
 $string['sujets_correction_attente'] = 'Correction pending: the last attempt could not be corrected and was not counted. Submit again.';
+$string['sujets_correction_interrompue'] = 'The correction was interrupted on the server. Your attempt is given back: ask for feedback again.';
 $string['sujets_soumettre'] = 'Submit';
 $string['sujets_reponse_label'] = 'Your answer';
 $string['sujets_enregistrement'] = 'Saving...';

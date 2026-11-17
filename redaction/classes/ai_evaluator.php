@@ -63,6 +63,15 @@ class ai_evaluator {
     const SUJET_REPRISES = 1;
 
     /**
+     * @var int Seconds after which a correction still marked running is given up, whatever its process (17/11/2026:
+     * the server killed four corrections whose rows then stayed "running" for half an hour).
+     */
+    const CORRECTION_DUREE_MAX = 1800;
+
+    /** @var int Seconds after which a running correction that has no task left is taken for dead. */
+    const CORRECTION_SANS_TACHE = 120;
+
+    /**
      * @var int Timeout of the language call, in seconds: its answer lists every mistake, so it takes much longer to write
      * (13/11: 30 s made one attempt out of two fail once the content was graded).
      */
@@ -880,6 +889,70 @@ class ai_evaluator {
             'submissionid = ? AND status IN (?, ?)',
             [$submissionid, 'pending', 'processing']
         );
+    }
+
+    /**
+     * Fails the corrections of the assigned subjects mode left running by a process that is gone (17/11/2026).
+     *
+     * The server may kill a long cron process: its adhoc task keeps its start time and its correction stays "running",
+     * so the student waits for nothing. Such a correction is failed and its attempt given back (a final one is then
+     * retried by relancer_finales). A correction waiting in the queue is never touched; one whose process still runs
+     * is left alone until CORRECTION_DUREE_MAX.
+     *
+     * @param int|null $maintenant Current time, for the checks.
+     * @return int Number of corrections failed.
+     */
+    public static function liberer_bloquees(?int $maintenant = null): int {
+        global $DB;
+
+        $maintenant = $maintenant ?? time();
+        $evaluations = $DB->get_records_sql(
+            "SELECT e.*
+               FROM {redaction_ai_evaluations} e
+               JOIN {redaction} r ON r.id = e.redactionid AND r.sujets_enabled = 1
+              WHERE e.status IN (?, ?)",
+            ['pending', 'processing']
+        );
+        $liberees = 0;
+        foreach ($evaluations as $evaluation) {
+            $tache = $DB->get_record_select('task_adhoc', 'classname = ? AND ' . $DB->sql_compare_text('customdata') . ' = ?',
+                ['\\mod_redaction\\task\\evaluate_submission', json_encode(['evaluationid' => (int) $evaluation->id])],
+                'id, timestarted, pid, hostname', IGNORE_MULTIPLE);
+            $age = $maintenant - (int) $evaluation->timemodified;
+            if ($tache) {
+                if (empty($tache->timestarted)) {
+                    continue;
+                }
+                if (!self::processus_disparu($tache) && $age < self::CORRECTION_DUREE_MAX) {
+                    continue;
+                }
+                $DB->delete_records('task_adhoc', ['id' => $tache->id]);
+            } else if ($age < self::CORRECTION_SANS_TACHE) {
+                continue;
+            }
+            if (self::echouer_sujets($evaluation, get_string('sujets_correction_interrompue', 'mod_redaction'))) {
+                $liberees++;
+            }
+        }
+        return $liberees;
+    }
+
+    /**
+     * Whether the process that started an adhoc task is known to be gone.
+     *
+     * Only a process of this host can be checked; elsewhere, or when the system tells nothing, it is taken as alive
+     * and only CORRECTION_DUREE_MAX releases the correction.
+     *
+     * @param \stdClass $tache Adhoc task row: pid, hostname.
+     * @return bool
+     */
+    protected static function processus_disparu(\stdClass $tache): bool {
+        if (empty($tache->pid) || (string) $tache->hostname !== (string) gethostname() || !is_dir('/proc/self')) {
+            return false;
+        }
+        $ligne = @file_get_contents('/proc/' . (int) $tache->pid . '/cmdline');
+        // Gone, or its number taken by a process that is not PHP.
+        return $ligne === false || strpos($ligne, 'php') === false;
     }
 
     /**

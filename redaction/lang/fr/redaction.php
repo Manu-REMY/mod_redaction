@@ -187,6 +187,7 @@ $string['incomplete'] = 'Incomplet';
 $string['task_evaluate_submission'] = 'Évaluer une soumission avec l\'IA';
 $string['task_auto_submit_deadline'] = 'Soumettre automatiquement les brouillons à la date limite';
 $string['task_relancer_finales'] = 'Relancer les corrections finales en échec (sujets attribués)';
+$string['task_liberer_corrections'] = 'Libérer les corrections restées en cours après l\'arrêt de leur processus (sujets attribués)';
 $string['auto_submitted_at_deadline'] = 'Soumis automatiquement à la date limite';
 
 // AI Errors.
@@ -823,6 +824,7 @@ $string['sujets_correction_en_cours'] = 'Correction en cours';
 $string['sujets_finale_en_cours'] = 'Ta version finale est en cours de correction.';
 $string['sujets_correction_patience'] = 'Correction en cours, environ une minute. Reste sur cette page : ta note s’affichera toute seule.';
 $string['sujets_correction_attente'] = 'Correction en attente : le dernier essai n\'a pas pu être corrigé et n\'a pas été compté. Soumets à nouveau.';
+$string['sujets_correction_interrompue'] = 'La correction a été interrompue sur le serveur. Ton essai t\'est rendu : redemande un retour.';
 $string['sujets_soumettre'] = 'Soumettre';
 $string['sujets_reponse_label'] = 'Ta réponse';
 $string['sujets_enregistrement'] = 'Enregistrement...';
