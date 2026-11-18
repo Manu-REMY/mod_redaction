@@ -17,9 +17,9 @@ define([
     'core/ajax',
     'core/notification',
     'core/str',
-    'core/modal_factory',
+    'core/modal_save_cancel',
     'core/modal_events',
-], function(Ajax, Notification, Str, ModalFactory, ModalEvents) {
+], function(Ajax, Notification, Str, ModalSaveCancel, ModalEvents) {
 
     var SEL = {
         TABLE: '.mod_redaction-overview-table',
@@ -210,8 +210,8 @@ define([
             ]).then(function(headers) {
                 var html = buildSummaryHtml(parts.affected, parts.ignored, headers[0], headers[1]);
 
-                return ModalFactory.create({
-                    type: ModalFactory.types.SAVE_CANCEL,
+                // Moodle 5.3 removed the modal factory: the save/cancel modal class creates itself.
+                return ModalSaveCancel.create({
                     title: title,
                     body: html,
                 }).then(function(modal) {
@@ -223,7 +223,9 @@ define([
                         modal.getRoot().on(ModalEvents.cancel, function() {
                             resolve({confirmed: false, parts: parts});
                         });
+                        // Closed with the cross or Escape: a cancel (no effect once resolved).
                         modal.getRoot().on(ModalEvents.hidden, function() {
+                            resolve({confirmed: false, parts: parts});
                             modal.destroy();
                         });
                         modal.show();
